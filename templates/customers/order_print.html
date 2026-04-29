@@ -261,41 +261,40 @@
             💡 请注意，客户在收到货物后请检查货物型号、色号、品质、数量等，如有异议请在7日内提出，逾期、开剪或者深加工后概不负责。
         </div>
         
-        <!-- 业务章 - 右下角 -->
-      <div id="sealContainer" class="seal-area">
-    {% if selected_seal %}
-    <img src="{{ selected_seal.seal_image.url }}" alt="{{ selected_seal.brand_name }}" class="seal-img">
-    {% endif %}
+<!-- 业务章 - 右下角 -->
+<div id="sealContainer" class="seal-area">
+    <img id="selectedSealImage" src="" alt="业务章" class="seal-img" style="display:none;">
 </div>
-    </div>
-    
-    <div class="no-print">
+
+<div class="no-print">
     <label class="me-2">选择业务章：</label>
     <select id="sealSelect">
         <option value="">不使用业务章</option>
-        {% for seal in seals %}
-        <option value="{{ seal.id }}" {% if selected_seal and selected_seal.id == seal.id %}selected{% endif %}>
-            {{ seal.brand_name }}
-        </option>
-        {% endfor %}
+        <option value="/static/images/seals/Raffinato1.png">Raffinato1</option>
+        <option value="/static/images/seals/Raffinato2.png">Raffinato2</option>
+        <option value="/static/images/seals/Raffinato3.png">Raffinato3</option>
+        <option value="/static/images/seals/sulun.png">sulun</option>
     </select>
-    <!-- 调试信息 -->
-    <button onclick="window.print()">🖨️ 打印</button>
-    <button onclick="window.close()">✖️ 关闭</button>
 </div>
 
 <script>
-// 选择印章后直接刷新页面显示
-document.getElementById('sealSelect').addEventListener('change', function() {
-    const sealId = this.value;
-    let url = window.location.href.split('?')[0];
-    if (sealId) {
-        url += '?seal=1&seal_id=' + sealId;
-    } else {
-        url += '?seal=0';
-    }
-    window.location.href = url;
-});
+    // 业务章切换逻辑（只改变显示，不刷新页面）
+    document.getElementById('sealSelect').addEventListener('change', function() {
+        var img = document.getElementById('selectedSealImage');
+        var selectedValue = this.value;
+        if (selectedValue) {
+            img.src = selectedValue;
+            img.style.display = 'block';
+        } else {
+            img.style.display = 'none';
+            img.src = '';
+        }
+    });
 </script>
+
+<div class="no-print">
+    <button onclick="window.print()">🖨️ 打印</button>
+    <button onclick="window.close()">✖️ 关闭</button>
+</div>
 </body>
 </html>
