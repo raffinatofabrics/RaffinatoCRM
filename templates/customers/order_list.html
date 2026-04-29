@@ -136,7 +136,7 @@ body.dark-mode .pagination .page-item.active .page-link {
                         <td>
                             <a href="{% url 'order_detail' order.id %}" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
                             <button class="btn btn-info" onclick="openPrintWindow('{% url 'order_print' order.id %}?seal=1')">
-    <i class="fas fa-print"></i> 打印
+    <i class="fas fa-print"></i>
 </button>
                             <a href="{% url 'order_delete' order.id %}" class="btn btn-sm btn-danger" onclick="return confirm('确定删除？')"><i class="fas fa-trash"></i></a>
                         </a> 操作</th> </td>
