@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block page_title %}编辑订单 - {{ order.order_no }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-3">
+        <a href="{% url 'order_detail' order.id %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回详情
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card-modern">
+            <div class="card-header">
+                <h5 class="mb-0">编辑订单 - {{ order.order_no }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">订单状态</label>
+                        <select name="status" class="form-select">
+                            <option value="draft" {% if order.status == 'draft' %}selected{% endif %}>草稿</option>
+                            <option value="confirmed" {% if order.status == 'confirmed' %}selected{% endif %}>已确认</option>
+                            <option value="shipped" {% if order.status == 'shipped' %}selected{% endif %}>已发货</option>
+                            <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>已完成</option>
+                            <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>已取消</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">备注</label>
+                        <textarea name="notes" class="form-control" rows="4">{{ order.notes|default:'' }}</textarea>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">保存修改</button>
+                        <a href="{% url 'order_detail' order.id %}" class="btn btn-secondary">取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,431 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block page_title %}邮件统计报表{% endblock %}
+
+{% block extra_css %}
+<!-- 注意：Chart.js 放在这里 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* 暗色模式适配 - 完整版 */
+[data-theme="dark"] body {
+    background-color: #0f0f1a;
+}
+
+[data-theme="dark"] .card {
+    background-color: #1a1a2e !important;
+    border-color: #2d2d44 !important;
+}
+
+[data-theme="dark"] .card-header {
+    background-color: #16213e !important;
+    border-bottom-color: #2d2d44 !important;
+}
+
+[data-theme="dark"] .card-header h5,
+[data-theme="dark"] .card-header h2,
+[data-theme="dark"] .card-title {
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .text-muted {
+    color: #8a8a9e !important;
+}
+
+[data-theme="dark"] .table {
+    color: #d0d0e0 !important;
+}
+
+[data-theme="dark"] .table thead th {
+    background-color: #16213e !important;
+    color: #a0a0b8 !important;
+    border-bottom-color: #2d2d44 !important;
+}
+
+[data-theme="dark"] .table tbody td {
+    border-bottom-color: #2d2d44 !important;
+}
+
+[data-theme="dark"] .table tbody tr:hover {
+    background-color: #1e2a3e !important;
+}
+
+[data-theme="dark"] .btn-outline-secondary {
+    color: #a0a0b8 !important;
+    border-color: #4a4a6a !important;
+}
+
+[data-theme="dark"] .btn-outline-secondary:hover {
+    background-color: #4a4a6a !important;
+    color: #fff !important;
+}
+
+[data-theme="dark"] .btn-outline-primary {
+    color: #6c9eff !important;
+    border-color: #6c9eff !important;
+}
+
+[data-theme="dark"] .btn-outline-primary:hover {
+    background-color: #6c9eff !important;
+    color: #fff !important;
+}
+
+/* 统计卡片 */
+.stats-card {
+    transition: transform 0.2s;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.stats-card:hover {
+    transform: translateY(-3px);
+}
+
+.stats-value {
+    font-size: 32px;
+    font-weight: bold;
+    line-height: 1.2;
+}
+
+.stats-label {
+    font-size: 13px;
+    color: #8a8a9e;
+    margin-top: 4px;
+}
+
+[data-theme="dark"] .stats-value {
+    color: #fff;
+}
+
+/* 确保暗色下文字可见 */
+[data-theme="dark"] .text-success {
+    color: #2ba84a !important;
+}
+
+[data-theme="dark"] .text-danger {
+    color: #e05a5a !important;
+}
+
+[data-theme="dark"] .text-info {
+    color: #4ab5c2 !important;
+}
+
+[data-theme="dark"] .text-warning {
+    color: #e0a030 !important;
+}
+
+[data-theme="dark"] .text-primary {
+    color: #6c9eff !important;
+}
+
+/* 卡片内边距 */
+.card-body {
+    padding: 1.25rem;
+}
+
+/* 表格紧凑 */
+.table-sm td, .table-sm th {
+    padding: 8px 12px;
+}
+
+/* 图表容器 */
+#trendChart {
+    max-height: 300px;
+    width: 100%;
+}
+/* 强制覆盖所有 card-header 样式 */
+.card-header {
+    background-color: #f8f9fa !important;
+    border-bottom: 1px solid #dee2e6 !important;
+}
+
+[data-theme="dark"] .card-header {
+    background-color: #16213e !important;
+    border-bottom-color: #2d2d44 !important;
+    color: #fff !important;
+}
+
+[data-theme="dark"] .card-header * {
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .table thead th {
+    background-color: #1e2a3e !important;
+    color: #e0e0e0 !important;
+    border-bottom-color: #3d4d5f !important;
+}
+
+[data-theme="dark"] .table tbody td {
+    color: #d0d0e0 !important;
+    border-bottom-color: #2d2d44 !important;
+}
+
+[data-theme="dark"] .table tbody tr:hover td {
+    background-color: #1e2a3e !important;
+}
+
+[data-theme="dark"] .card-header {
+    background-color: #16213e !important;
+    border-bottom-color: #2d2d44 !important;
+}
+
+[data-theme="dark"] .card-header h5 {
+    color: white !important;
+}
+
+[data-theme="dark"] .table thead th {
+    background-color: #1e2a3e !important;
+    color: white !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <h3 class="mb-0">📊 邮件统计报表</h3>
+            <small class="text-muted">查看邮件发送、打开、点击等数据统计</small>
+        </div>
+        <div>
+            <div class="btn-group me-2">
+                <a href="?days=7" class="btn btn-sm {% if days == 7 %}btn-primary{% else %}btn-outline-secondary{% endif %}">7天</a>
+                <a href="?days=30" class="btn btn-sm {% if days == 30 %}btn-primary{% else %}btn-outline-secondary{% endif %}">30天</a>
+                <a href="?days=90" class="btn btn-sm {% if days == 90 %}btn-primary{% else %}btn-outline-secondary{% endif %}">90天</a>
+            </div>
+            <a href="{% url 'email_stats_detail' %}?days={{ days }}" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-list"></i> 详情
+            </a>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="card stats-card h-100">
+                <div class="card-body">
+                    <div class="stats-value">{{ total_sent|default:0 }}</div>
+                    <div class="stats-label">总发送</div>
+                    <small class="text-muted">最近{{ days }}天</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card stats-card h-100">
+                <div class="card-body">
+                    <div class="stats-value text-success">{{ open_rate|default:0 }}%</div>
+                    <div class="stats-label">打开率</div>
+                    <small class="text-muted">{{ total_opened|default:0 }}/{{ total_sent|default:0 }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card stats-card h-100">
+                <div class="card-body">
+                    <div class="stats-value text-info">{{ click_rate|default:0 }}%</div>
+                    <div class="stats-label">点击率</div>
+                    <small class="text-muted">{{ total_clicked|default:0 }}/{{ total_sent|default:0 }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card stats-card h-100">
+                <div class="card-body">
+                    <div class="stats-value text-danger">{{ bounce_rate|default:0 }}%</div>
+                    <div class="stats-label">退信率</div>
+                    <small class="text-muted">{{ total_bounced|default:0 }}/{{ total_sent|default:0 }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 趋势图表 -->
+    <div class="card mb-4">
+        <div class="card-header">
+    <h5 class="mb-0">📈 发送趋势</h5>
+</div>
+        <div class="card-body">
+            <canvas id="trendChart" style="max-height: 280px; width: 100%;"></canvas>
+        </div>
+    </div>
+
+    <!-- 两个表格 -->
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card h-100">
+    <div class="card-header">
+        <h5 class="mb-0">🔥 热门邮件主题</h5>
+    </div>
+    <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>主题</th>
+                                    <th class="text-center" style="width: 50px">发送</th>
+                                    <th class="text-center" style="width: 50px">打开</th>
+                                    <th class="text-center" style="width: 50px">点击</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in top_subjects %}
+                                <tr>
+                                    <td class="small">{{ item.subject|truncatechars:35|default:'无主题' }}</td>
+                                    <td class="text-center">{{ item.sent }}</td>
+                                    <td class="text-center text-success">{{ item.opened }}</td>
+                                    <td class="text-center text-info">{{ item.clicked }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-3">暂无数据</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+    <h5 class="mb-0">👥 最活跃客户</h5>
+</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>客户</th>
+                                    <th class="text-center" style="width: 50px">发送</th>
+                                    <th class="text-center" style="width: 50px">打开</th>
+                                    <th class="text-center" style="width: 50px">点击</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in top_customers %}
+                                <tr>
+                                    <td class="small">{{ item.customer__company_name|default:'未知'|truncatechars:25 }}</td>
+                                    <td class="text-center">{{ item.sent }}</td>
+                                    <td class="text-center text-success">{{ item.opened }}</td>
+                                    <td class="text-center text-info">{{ item.clicked }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-3">暂无数据</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部统计 -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body py-2">
+                    <div class="row text-center small">
+                        <div class="col-3">
+                            <span class="text-muted">退订数</span><br>
+                            <strong>{{ total_unsubscribed|default:0 }}</strong>
+                        </div>
+                        <div class="col-3">
+                            <span class="text-muted">有效送达</span><br>
+                            <strong class="text-success">{{ total_sent|default:0 }}</strong>
+                        </div>
+                        <div class="col-3">
+                            <span class="text-muted">打开客户</span><br>
+                            <strong>{{ top_customers|length }}</strong>
+                        </div>
+                        <div class="col-3">
+                            <span class="text-muted">统计周期</span><br>
+                            <strong>{{ days }}天</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Chart.js 库 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// 暗色模式统一修复
+function fixDarkModeStyles() {
+    const isDark = document.body.classList.contains('dark-mode');
+    
+    if (isDark) {
+        document.querySelectorAll('.card-header').forEach(el => {
+            el.style.backgroundColor = '#16213e';
+            el.style.borderBottomColor = '#2d2d44';
+            el.style.color = '#fff';
+        });
+        
+        document.querySelectorAll('.table thead th').forEach(el => {
+            el.style.backgroundColor = '#1e2a3e';
+            el.style.color = '#fff';
+        });
+        
+        document.querySelectorAll('.table tbody td').forEach(el => {
+            el.style.color = '#d0d0e0';
+        });
+    } else {
+        document.querySelectorAll('.card-header').forEach(el => {
+            el.style.backgroundColor = '';
+            el.style.borderBottomColor = '';
+            el.style.color = '';
+        });
+        
+        document.querySelectorAll('.table thead th').forEach(el => {
+            el.style.backgroundColor = '';
+            el.style.color = '';
+        });
+        
+        document.querySelectorAll('.table tbody td').forEach(el => {
+            el.style.color = '';
+        });
+    }
+}
+
+// 页面加载时执行
+fixDarkModeStyles();
+
+// 监听暗色模式变化（因为切换是通过 class 变化）
+const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+        if (mutation.attributeName === 'class') {
+            fixDarkModeStyles();
+        }
+    });
+});
+observer.observe(document.body, { attributes: true });
+
+// 图表初始化
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof Chart === 'undefined') return;
+    
+    const labels = [{% for item in daily_stats %}"{{ item.date }}"{% if not forloop.last %}, {% endif %}{% endfor %}];
+    const sent = [{% for item in daily_stats %}{{ item.sent|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+    const opened = [{% for item in daily_stats %}{{ item.opened|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+    const clicked = [{% for item in daily_stats %}{{ item.clicked|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+    
+    new Chart(document.getElementById('trendChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                { label: '发送', data: sent, borderColor: '#007bff', fill: true },
+                { label: '打开', data: opened, borderColor: '#28a745', fill: true },
+                { label: '点击', data: clicked, borderColor: '#17a2b8', fill: true }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: true }
+    });
+});
+</script>
+{% endblock %}

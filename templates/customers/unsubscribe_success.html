@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>退订成功 - Raffinato CRM</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 40px;
+            text-align: center;
+        }
+        h1 { color: #28a745; margin-bottom: 20px; }
+        p { color: #666; line-height: 1.6; margin-bottom: 20px; }
+        .email { 
+            background: #f0f0f0; 
+            padding: 10px; 
+            border-radius: 8px;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        .btn {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            padding: 10px 25px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ 退订成功</h1>
+        <p>邮箱 <strong class="email">{{ email }}</strong> 已成功退订。</p>
+        <p>您将不再收到我们的营销邮件。</p>
+        <p style="font-size:12px;color:#999;">如果这是误操作，或想重新订阅，请<a href="#">联系我们</a>。</p>
+        <a href="#" class="btn" onclick="window.close();return false;">关闭页面</a>
+    </div>
+</body>
+</html>

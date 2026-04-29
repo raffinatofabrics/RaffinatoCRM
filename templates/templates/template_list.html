@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>邮件模板</h2>
+    <div>
+        <button type="button" id="batchDeleteBtn" class="btn btn-danger me-2" style="display: none;">
+            <i class="fas fa-trash"></i> 批量删除
+        </button>
+        <a href="{% url 'template_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> 新建模板
+        </a>
+    </div>
+</div>
+
+<div class="card-modern">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-modern">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" id="selectAll">
+                        </th>
+                        <th>模板名称</th>
+                        <th>主题</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for template in templates %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" class="template-checkbox" value="{{ template.id }}">
+                        </td>
+                        <td>{{ template.name }}</td>
+                        <td>{{ template.subject|truncatechars:50 }}</td>
+                        <td>{{ template.created_at|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            <a href="{% url 'template_edit' template.id %}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'template_delete' template.id %}" class="btn btn-sm btn-danger" onclick="return confirm('确定删除？')">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">暂无模板，请先创建</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// 全选/取消全选
+const selectAll = document.getElementById('selectAll');
+const checkboxes = document.querySelectorAll('.template-checkbox');
+const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+
+function updateBatchDeleteBtn() {
+    const checked = document.querySelectorAll('.template-checkbox:checked');
+    if (checked.length > 0) {
+        batchDeleteBtn.style.display = 'inline-block';
+        batchDeleteBtn.innerHTML = `<i class="fas fa-trash"></i> 批量删除 (${checked.length})`;
+    } else {
+        batchDeleteBtn.style.display = 'none';
+    }
+}
+
+if (selectAll) {
+    selectAll.addEventListener('change', function() {
+        checkboxes.forEach(cb => {
+            cb.checked = selectAll.checked;
+        });
+        updateBatchDeleteBtn();
+    });
+}
+
+checkboxes.forEach(cb => {
+    cb.addEventListener('change', function() {
+        updateBatchDeleteBtn();
+        if (selectAll) {
+            const allChecked = checkboxes.length === document.querySelectorAll('.template-checkbox:checked').length;
+            selectAll.checked = allChecked;
+        }
+    });
+});
+
+// 批量删除
+if (batchDeleteBtn) {
+    batchDeleteBtn.addEventListener('click', function() {
+        const checked = document.querySelectorAll('.template-checkbox:checked');
+        const templateIds = Array.from(checked).map(cb => cb.value);
+        
+        if (templateIds.length === 0) {
+            alert('请先选择模板');
+            return;
+        }
+        
+        if (confirm(`确定要删除选中的 ${templateIds.length} 个模板吗？`)) {
+            fetch('/templates/batch-delete/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ template_ids: templateIds })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`成功删除 ${data.deleted_count} 个模板`);
+                    location.reload();
+                } else {
+                    alert('删除失败：' + data.message);
+                }
+            });
+        }
+    });
+}
+</script>
+{% endblock %}

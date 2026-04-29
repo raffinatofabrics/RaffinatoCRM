@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block page_title %}{% if task %}编辑任务{% else %}新建搜索任务{% endif %}{% endblock %}
+
+{% block content %}
+<h2>{% if task %}编辑任务{% else %}新建搜索任务{% endif %}</h2>
+
+<div class="card-modern">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">任务名称 *</label>
+                    <input type="text" name="name" class="form-control" required placeholder="如：意大利面料客户">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">业务类型 *</label>
+                    <select name="business_type" id="businessType" class="form-select" required>
+                        <option value="international">🌍 外贸（Google搜索）</option>
+                        <option value="domestic">🇨🇳 内贸（百度搜索）</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">产品关键词 *</label>
+                <textarea name="keywords" class="form-control" rows="3" required placeholder="每行一个关键词&#10;例如：&#10;fabric&#10;textile&#10;tessuti"></textarea>
+                <div class="form-text">每行一个关键词，系统会自动组合搜索</div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">排除词（可选）</label>
+                <textarea name="exclude_words" class="form-control" rows="2" placeholder="每行一个排除词&#10;例如：&#10;retail&#10;blog&#10;youtube"></textarea>
+                <div class="form-text">搜索结果中排除包含这些词的网页</div>
+            </div>
+            
+<!-- 外贸配置 -->
+<div id="internationalConfig">
+    <div class="mb-3">
+        <label class="form-label">目标国家</label>
+        <select name="target_country" class="form-select" id="targetCountry">
+            <option value="">🌍 不限国家</option>
+            <option value="美国">🇺🇸 美国</option>
+            <option value="英国">🇬🇧 英国</option>
+            <option value="德国">🇩🇪 德国</option>
+            <option value="法国">🇫🇷 法国</option>
+            <option value="意大利">🇮🇹 意大利</option>
+            <option value="西班牙">🇪🇸 西班牙</option>
+            <option value="荷兰">🇳🇱 荷兰</option>
+            <option value="日本">🇯🇵 日本</option>
+            <option value="韩国">🇰🇷 韩国</option>
+            <option value="加拿大">🇨🇦 加拿大</option>
+            <option value="澳大利亚">🇦🇺 澳大利亚</option>
+            <option value="巴西">🇧🇷 巴西</option>
+            <option value="印度">🇮🇳 印度</option>
+            <option value="俄罗斯">🇷🇺 俄罗斯</option>
+            <option value="土耳其">🇹🇷 土耳其</option>
+            <option value="新加坡">🇸🇬 新加坡</option>
+            <option value="马来西亚">🇲🇾 马来西亚</option>
+            <option value="泰国">🇹🇭 泰国</option>
+            <option value="越南">🇻🇳 越南</option>
+            <option value="印尼">🇮🇩 印尼</option>
+            <option value="瑞士">🇨🇭 瑞士</option>
+            <option value="瑞典">🇸🇪 瑞典</option>
+            <option value="挪威">🇳🇴 挪威</option>
+            <option value="丹麦">🇩🇰 丹麦</option>
+            <option value="芬兰">🇫🇮 芬兰</option>
+            <option value="波兰">🇵🇱 波兰</option>
+            <option value="奥地利">🇦🇹 奥地利</option>
+            <option value="比利时">🇧🇪 比利时</option>
+            <option value="爱尔兰">🇮🇪 爱尔兰</option>
+            <option value="葡萄牙">🇵🇹 葡萄牙</option>
+            <option value="希腊">🇬🇷 希腊</option>
+            <option value="南非">🇿🇦 南非</option>
+            <option value="阿联酋">🇦🇪 阿联酋</option>
+            <option value="沙特">🇸🇦 沙特阿拉伯</option>
+        </select>
+        <div class="form-text">选择目标国家，搜索结果将优先显示该国家的网站</div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">目标城市（可选）</label>
+        <input type="text" name="target_city" class="form-control" 
+               placeholder="例如：米兰、纽约、东京、伦敦">
+        <div class="form-text">多个城市用空格分隔</div>
+    </div>
+</div>
+
+<!-- 内贸配置 -->
+<div id="domesticConfig" style="display: none;">
+    <div class="mb-3">
+        <label class="form-label">目标省份</label>
+        <select name="target_province" class="form-select" id="targetProvince">
+            <option value="">🇨🇳 不限省份</option>
+            <option value="广东">广东省</option>
+            <option value="浙江">浙江省</option>
+            <option value="江苏">江苏省</option>
+            <option value="上海">上海市</option>
+            <option value="北京">北京市</option>
+            <option value="深圳">深圳市</option>
+            <option value="广州">广州市</option>
+            <option value="福建">福建省</option>
+            <option value="山东">山东省</option>
+            <option value="四川">四川省</option>
+            <option value="湖北">湖北省</option>
+            <option value="湖南">湖南省</option>
+            <option value="河南">河南省</option>
+            <option value="河北">河北省</option>
+            <option value="安徽">安徽省</option>
+            <option value="辽宁">辽宁省</option>
+            <option value="陕西">陕西省</option>
+            <option value="重庆">重庆市</option>
+            <option value="天津">天津市</option>
+            <option value="广西">广西壮族自治区</option>
+            <option value="云南">云南省</option>
+            <option value="贵州">贵州省</option>
+            <option value="黑龙江">黑龙江省</option>
+            <option value="吉林">吉林省</option>
+            <option value="山西">山西省</option>
+            <option value="甘肃">甘肃省</option>
+            <option value="海南">海南省</option>
+            <option value="内蒙古">内蒙古自治区</option>
+            <option value="新疆">新疆维吾尔自治区</option>
+            <option value="宁夏">宁夏回族自治区</option>
+            <option value="青海">青海省</option>
+            <option value="西藏">西藏自治区</option>
+        </select>
+        <div class="form-text">选择目标省份，搜索结果将优先显示该省份的网站</div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">目标城市（可选）</label>
+        <input type="text" name="target_city" class="form-control" 
+               placeholder="例如：广州、深圳、杭州、宁波">
+        <div class="form-text">多个城市用空格分隔</div>
+    </div>
+</div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">搜索数量</label>
+                    <input type="range" name="max_results" class="form-range" min="10" max="100" step="10" value="50" oninput="rangeValue.innerText = this.value">
+                    <span id="rangeValue">50</span> 条
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">自定义搜索范围</label>
+                    <input type="text" name="custom_site" class="form-control" placeholder="如 site:linkedin.com">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">限定域名后缀</label>
+                    <input type="text" name="domain_suffix" class="form-control" placeholder="如 .it,.de">
+                </div>
+            </div>
+            
+            <hr>
+            <h6>定时执行</h6>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="form-check">
+                        <input type="checkbox" name="schedule_enabled" class="form-check-input" id="scheduleEnabled">
+                        <label class="form-check-label" for="scheduleEnabled">启用定时执行</label>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">执行频率</label>
+                    <select name="schedule_frequency" class="form-select">
+                        <option value="daily">每天</option>
+                        <option value="weekly">每周</option>
+                        <option value="monthly">每月</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">执行时间</label>
+                    <input type="time" name="schedule_time" class="form-control" value="02:00">
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">保存任务</button>
+                <a href="{% url 'search_task_list' %}" class="btn btn-secondary">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // 内外贸切换
+    const businessType = document.getElementById('businessType');
+    const internationalConfig = document.getElementById('internationalConfig');
+    const domesticConfig = document.getElementById('domesticConfig');
+    
+    // 初始化显示
+    if (businessType.value === 'domestic') {
+        internationalConfig.style.display = 'none';
+        domesticConfig.style.display = 'block';
+    } else {
+        internationalConfig.style.display = 'block';
+        domesticConfig.style.display = 'none';
+    }
+    
+    businessType.addEventListener('change', function() {
+        if (this.value === 'domestic') {
+            internationalConfig.style.display = 'none';
+            domesticConfig.style.display = 'block';
+        } else {
+            internationalConfig.style.display = 'block';
+            domesticConfig.style.display = 'none';
+        }
+    });
+    
+    // 搜索数量滑块显示
+    const rangeInput = document.querySelector('input[name="max_results"]');
+    const rangeValue = document.getElementById('rangeValue');
+    rangeInput.addEventListener('input', function() {
+        rangeValue.innerText = this.value;
+    });
+</script>
+{% endblock %}

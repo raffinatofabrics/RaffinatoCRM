@@ -1,0 +1,328 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block page_title %}客户仪表盘{% endblock %}
+
+{% block content %}
+<style>
+.kpi-card {
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    color: white;
+}
+.kpi-number {
+    font-size: 32px;
+    font-weight: bold;
+}
+.kpi-label {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-top: 8px;
+}
+
+/* 暗色模式适配 */
+body.dark-mode .kpi-card {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+</style>
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="kpi-card" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+            <div class="kpi-number">{{ total_customers }}</div>
+            <div class="kpi-label">总客户数</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <div class="kpi-number">{{ sent_count }}</div>
+            <div class="kpi-label">总发送邮件</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-card" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <div class="kpi-number">{{ replied_count }}</div>
+            <div class="kpi-label">已回复客户</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-card" style="background: linear-gradient(135deg, #FFD700, #FFA500);">
+            <div class="kpi-number">{{ vip_count }}</div>
+            <div class="kpi-label">VIP客户</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-card" style="background: linear-gradient(135deg, #E67E22, #D35400);">
+            <div class="kpi-number">{{ pending_followup }}</div>
+            <div class="kpi-label">待跟进客户</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-card" style="background: linear-gradient(135deg, #95A5A6, #7F8C8D);">
+            <div class="kpi-number">{{ dormant_count }}</div>
+            <div class="kpi-label">沉睡客户</div>
+        </div>
+    </div>
+    </div>
+
+<div class="row">
+    <!-- 客户增长趋势（30天） -->
+    <div class="col-md-6 mb-4">
+        <div class="card-modern">
+            <div class="card-header">
+                客户增长趋势（最近30天）
+            </div>
+            <div class="card-body">
+                <canvas id="growthChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 待跟进客户趋势 -->
+    <div class="col-md-6 mb-4">
+        <div class="card-modern">
+            <div class="card-header">
+                待跟进客户趋势（最近30天）
+            </div>
+            <div class="card-body">
+                <canvas id="pendingChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 热门国家TOP5 -->
+    <div class="col-md-6 mb-4">
+        <div class="card-modern">
+            <div class="card-header">
+                热门国家TOP5
+            </div>
+            <div class="card-body">
+                <canvas id="topCountriesChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 最近7天邮件活动 -->
+    <div class="col-md-6 mb-4">
+        <div class="card-modern">
+            <div class="card-header">
+                最近7天邮件活动
+            </div>
+            <div class="card-body">
+                <canvas id="emailChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 客户等级分布 -->
+    <div class="col-md-6 mb-4">
+        <div class="card-modern">
+            <div class="card-header">
+                客户等级分布
+            </div>
+            <div class="card-body">
+                <canvas id="levelChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 邮件回复率 -->
+    <div class="col-md-6 mb-4">
+        <div class="card-modern">
+            <div class="card-header">
+                邮件回复率
+            </div>
+            <div class="card-body">
+                <canvas id="replyRateChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// 客户等级分布图表
+const levelCtx = document.getElementById('levelChart').getContext('2d');
+new Chart(levelCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['VIP', '高级', '中级', '潜在'],
+        datasets: [{
+            data: [{{ vip_count }}, {{ advanced_count }}, {{ intermediate_count }}, {{ potential_count }}],
+            backgroundColor: ['#FFD700', '#27AE60', '#3498DB', '#95A5A6'],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// 邮件活动图表
+const emailCtx = document.getElementById('emailChart').getContext('2d');
+new Chart(emailCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for day in last_7_days %}'{{ day }}',{% endfor %}],
+        datasets: [{
+            label: '发送邮件数',
+            data: [{% for count in email_counts %}{{ count }},{% endfor %}],
+            borderColor: '#8B0000',
+            backgroundColor: 'rgba(139, 0, 0, 0.05)',
+            fill: true,
+            tension: 0.3,
+            pointBackgroundColor: '#8B0000',
+            pointBorderColor: '#fff',
+            pointRadius: 4,
+            pointHoverRadius: 6
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// 客户增长趋势图表（30天）
+const growthCtx = document.getElementById('growthChart').getContext('2d');
+new Chart(growthCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for date in growth_dates %}'{{ date }}',{% endfor %}],
+        datasets: [{
+            label: '新增客户数',
+            data: [{% for count in growth_counts %}{{ count }},{% endfor %}],
+            backgroundColor: 'rgba(102, 126, 234, 0.7)',
+            borderColor: '#667eea',
+            borderWidth: 1,
+            borderRadius: 5
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: { position: 'top' }
+        },
+        scales: {
+            y: { 
+                beginAtZero: true, 
+                ticks: { stepSize: 1, color: '#64748b' }
+            },
+            x: {
+                ticks: { color: '#64748b' }
+            }
+        }
+    }
+});
+
+// 邮件回复率图表
+const replyCtx = document.getElementById('replyRateChart').getContext('2d');
+new Chart(replyCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['已回复', '未回复'],
+        datasets: [{
+            data: [{{ replied }}, {{ not_replied }}],
+            backgroundColor: ['#27AE60', '#E74C3C'],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: { position: 'bottom' }
+        }
+    }
+});
+
+// 检测暗色模式
+const isDarkMode = document.body.classList.contains('dark-mode');
+
+// 热门国家TOP5图表
+const countriesCtx = document.getElementById('topCountriesChart').getContext('2d');
+new Chart(countriesCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for label in top_countries_labels %}'{{ label }}',{% endfor %}],
+        datasets: [{
+            label: '客户数量',
+            data: [{% for data in top_countries_data %}{{ data }},{% endfor %}],
+            backgroundColor: isDarkMode ? 'rgba(245, 158, 11, 0.8)' : 'rgba(245, 158, 11, 0.6)',
+            borderColor: '#f59e0b',
+            borderWidth: 1,
+            borderRadius: 5
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        indexAxis: 'y',
+        plugins: {
+            legend: { 
+                position: 'top',
+                labels: { color: isDarkMode ? '#cbd5e1' : '#64748b' }
+            }
+        },
+        scales: {
+            x: { 
+                beginAtZero: true, 
+                ticks: { stepSize: 1, color: isDarkMode ? '#cbd5e1' : '#64748b' }
+            },
+            y: {
+                ticks: { color: isDarkMode ? '#cbd5e1' : '#64748b' }
+            }
+        }
+    }
+});
+
+// 待跟进客户趋势图表
+const pendingCtx = document.getElementById('pendingChart').getContext('2d');
+new Chart(pendingCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for date in pending_dates %}'{{ date }}',{% endfor %}],
+        datasets: [{
+            label: '待跟进客户数',
+            data: [{% for count in pending_counts %}{{ count }},{% endfor %}],
+            borderColor: '#E67E22',
+            backgroundColor: 'rgba(230, 126, 34, 0.1)',
+            fill: true,
+            tension: 0.3,
+            pointBackgroundColor: '#E67E22',
+            pointBorderColor: '#fff',
+            pointRadius: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: { position: 'top' }
+        },
+        scales: {
+            y: { 
+                beginAtZero: true, 
+                ticks: { stepSize: 1 }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

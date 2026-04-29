@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>导入客户</h2>
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">上传 Excel 文件</h5>
+        <p class="card-text">支持格式：.xlsx, .xls。请确保包含以下列：公司名、联系人、邮箱、电话、国家、地址、网站（邮箱为必填）</p>
+        
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-3">
+                <input type="file" name="excel_file" class="form-control" accept=".xlsx,.xls" required>
+            </div>
+            <button type="submit" class="btn btn-primary">上传并导入</button>
+            <a href="/customers/" class="btn btn-secondary">返回</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

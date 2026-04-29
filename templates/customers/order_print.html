@@ -1,0 +1,301 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>销售单 - {{ order.order_no }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: '微软雅黑', 'SimSun', Arial, sans-serif;
+            background: white;
+            padding: 20px;
+        }
+        .print-container {
+            width: 210mm;
+            height: 148mm;
+            margin: 0 auto;
+            background: white;
+            padding: 10px;
+            box-sizing: border-box;
+            position: relative;
+        }
+        /* 头部 */
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #a0a0a0;
+        }
+        .header h1 {
+            color: #000000;
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+        .header p {
+            color: #000000;
+            font-size: 12px;
+        }
+        /* 信息表格 */
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+        .info-table td {
+            border: 1px solid #ddd;
+            padding: 6px 8px;
+        }
+        .info-table tr:first-child td {
+            background-color: #f0f0f0 !important;
+            color: black !important;
+        }
+        /* 产品表格 */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 11px;
+        }
+        .items-table th {
+            background-color: #f0f0f0 !important;
+            color: black !important;
+            padding: 8px;
+            text-align: center;
+            font-weight: normal;
+            border: 1px solid #ddd;
+        }
+        .items-table td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: center;
+        }
+        /* 合计行 */
+        .total-row {
+            text-align: right;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid #ddd;
+        }
+        .total-row span {
+            font-weight: bold;
+            font-size: 14px;
+            color: #000000;
+        }
+        /* 大写金额行 */
+        .total-amount-chinese {
+            background-color: #f0f0f0 !important;
+            color: black !important;
+            text-align: left;
+            padding: 6px 12px;
+            margin-top: 5px;
+        }
+        /* 备注 */
+        .notes {
+            margin-top: 10px;
+            padding: 6px;
+            background: #f9f9f9;
+            font-size: 11px;
+        }
+        /* 业务章 - 右下角落款位置 */
+.seal-area {
+    position: absolute;
+    bottom: 410px;
+    right: 80px;
+    text-align: center;
+}
+ .seal-img {
+    width: auto;
+    height: auto;
+    max-width: 150px;
+    max-height: 130px;
+    opacity: 0.85;
+}
+        .seal-stamp {
+            border: 1px solid #668484;
+            padding: 8px 16px;
+            border-radius: 30px;
+            color: #668484;
+            font-size: 12px;
+            display: inline-block;
+        }
+        /* 页脚 */
+        .footer {
+            margin-top: 10px;
+            text-align: center;
+            font-size: 10px;
+            color: #999;
+            border-top: 1px solid #eee;
+            padding-top: 8px;
+        }
+        /* 打印按钮区域 */
+        .no-print {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        .no-print select {
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            margin-right: 10px;
+        }
+        .no-print button {
+            padding: 6px 20px;
+            font-size: 14px;
+            background: #e0e0e0;
+            color: black;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+        /* 打印样式 */
+        @media print {
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            .print-container {
+    width: 210mm;
+    height: 148mm;
+    margin: 0 auto;
+    background: white;
+    padding: 10px;
+    box-sizing: border-box;
+    position: relative;
+}
+            .no-print {
+                display: none;
+            }
+            * {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-container" id="printContainer">
+        <!-- 头部 -->
+        <div class="header" style="display: flex; align-items: center; justify-content: space-between;">
+            <div class="logo-area" style="width: 70px;">
+                <img src="/media/logo/invoicelogo.png" alt="Raffinato" style="max-height: 50px;" onerror="this.style.display='none';">
+            </div>
+            <div class="title-area" style="flex: 1; text-align: center;">
+                <h1>瑞菲纳朵面料销售单</h1>
+                <p>RAFFINATO FABRICS SALES ORDER</p>
+            </div>
+            <div style="width: 70px;"></div>
+        </div>
+        
+        <!-- 订单号 -->
+        <div style="text-align: right; margin-bottom: 10px; font-size: 12px;">
+            订单号：{{ order.order_no }}
+        </div>
+
+        <!-- 订单信息 -->
+        <table class="info-table">
+            <tr>
+                <td>客户名称：{{ order.customer.company_name }}</td>
+                <td>联系人：{{ order.customer.contact_person|default:"-" }}</td>
+                <td>电话：{{ order.customer.phone|default:"-" }}</td>
+                <td>日期：{{ order.order_date|date:"Y-m-d" }}
+            </tr>
+        </table>
+        
+        <!-- 产品明细 -->
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>产品名称 ITEM</th>
+                    <th>规格色号 COLOR NO.</th>
+                    <th>数量 QTY</th>
+                    <th>单位 UNIT</th>
+                    <th>单价 PRICE</th>
+                    <th>金额 AMOUNT</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order.items %}
+                <tr>
+                    <td>{{ item.product_name }}</td>
+                    <td>{{ item.specification|default:"-" }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.unit|default:"米" }}</td>
+                    <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ item.unit_price|floatformat:2 }}</td>
+                    <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ item.amount|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- 合计 -->
+        <div class="total-row">
+            合计金额 TOTAL：<span>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.subtotal|floatformat:2 }}</span>
+        </div>
+
+<!-- 大写金额（仅内贸显示） -->
+{% if order.business_type != 'international' %}
+<div class="total-amount-chinese">
+    大写金额：{{ chinese_amount }}
+</div>
+{% endif %}
+        
+        <!-- 备注 -->
+        {% if order.notes %}
+        <div class="notes">
+            <strong>备注：</strong> {{ order.notes|linebreaks }}
+        </div>
+        {% endif %}
+        
+        <!-- 页脚提示 -->
+        <div class="footer">
+            💡 请注意，客户在收到货物后请检查货物型号、色号、品质、数量等，如有异议请在7日内提出，逾期、开剪或者深加工后概不负责。
+        </div>
+        
+        <!-- 业务章 - 右下角 -->
+      <div id="sealContainer" class="seal-area">
+    {% if selected_seal %}
+    <img src="{{ selected_seal.seal_image.url }}" alt="{{ selected_seal.brand_name }}" class="seal-img">
+    {% endif %}
+</div>
+    </div>
+    
+    <div class="no-print">
+    <label class="me-2">选择业务章：</label>
+    <select id="sealSelect">
+        <option value="">不使用业务章</option>
+        {% for seal in seals %}
+        <option value="{{ seal.id }}" {% if selected_seal and selected_seal.id == seal.id %}selected{% endif %}>
+            {{ seal.brand_name }}
+        </option>
+        {% endfor %}
+    </select>
+    <!-- 调试信息 -->
+    <button onclick="window.print()">🖨️ 打印</button>
+    <button onclick="window.close()">✖️ 关闭</button>
+</div>
+
+<script>
+// 选择印章后直接刷新页面显示
+document.getElementById('sealSelect').addEventListener('change', function() {
+    const sealId = this.value;
+    let url = window.location.href.split('?')[0];
+    if (sealId) {
+        url += '?seal=1&seal_id=' + sealId;
+    } else {
+        url += '?seal=0';
+    }
+    window.location.href = url;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block page_title %}邮件发送详情{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📋 邮件发送详情</h2>
+        <div>
+            <a href="{% url 'email_stats_dashboard' %}?days={{ days }}" class="btn btn-outline-secondary">← 返回仪表盘</a>
+        </div>
+    </div>
+
+    <!-- 筛选 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <input type="hidden" name="days" value="{{ days }}">
+                <div class="col-md-8">
+                    <input type="text" name="search" class="form-control" placeholder="搜索收件人或主题..." value="{{ search }}">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary">搜索</button>
+                    {% if search %}
+                    <a href="?days={{ days }}" class="btn btn-secondary">清除</a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 数据表格 -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>收件人</th>
+                            <th>主题</th>
+                            <th>状态</th>
+                            <th>打开</th>
+                            <th>点击</th>
+                            <th>退信</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td>{{ log.sent_at|date:"Y-m-d H:i" }}</td>
+                            <td>{{ log.recipient }}</td>
+                            <td>{{ log.subject|truncatechars:50 }}</td>
+                            <td>
+                                <span class="badge {% if log.status == 'sent' %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ log.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if log.opened_at %}
+                                <span class="text-success">✓ {{ log.opened_at|date:"H:i" }}</span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if log.click_count %}
+                                <span class="text-info">{{ log.click_count }}次</span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if log.is_bounced %}
+                                <span class="text-danger">{{ log.bounce_type|default:'退信' }}</span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center">暂无数据</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            {% if total_pages > 1 %}
+            <nav>
+                <ul class="pagination justify-content-center">
+                    {% if page > 1 %}
+                    <li class="page-item"><a class="page-link" href="?days={{ days }}&search={{ search }}&page={{ page|add:-1 }}">上一页</a></li>
+                    {% endif %}
+                    <li class="page-item active"><span class="page-link">{{ page }}/{{ total_pages }}</span></li>
+                    {% if page < total_pages %}
+                    <li class="page-item"><a class="page-link" href="?days={{ days }}&search={{ search }}&page={{ page|add:1 }}">下一页</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

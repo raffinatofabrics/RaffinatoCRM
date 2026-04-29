@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block page_title %}数据备份与恢复{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>数据备份与恢复</h2>
+    <div>
+        <button type="button" id="createBackupBtn" class="btn btn-primary">
+            <i class="fas fa-database"></i> 立即备份
+        </button>
+        <button type="button" id="restoreBackupBtn" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#restoreModal">
+            <i class="fas fa-upload"></i> 恢复备份
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> 备份说明：备份包含数据库和上传的图片文件。恢复备份前请先手动备份当前数据。
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-modern">
+                <thead>
+                    <tr>
+                        <th>文件名</th>
+                        <th>文件大小</th>
+                        <th>备份类型</th>
+                        <th>备份时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for backup in backups %}
+                    <tr>
+                        <td>{{ backup.filename }}</td>
+                        <td>{{ backup.file_size }} KB</td>
+                        <td>
+                            {% if backup.backup_type == 'manual' %}
+                                <span class="badge bg-primary">手动备份</span>
+                            {% else %}
+                                <span class="badge bg-secondary">自动备份</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ backup.created_at|date:"Y-m-d H:i:s" }}</td>
+                        <td>
+                            <a href="{% url 'backup_download' backup.id %}" class="btn btn-sm btn-success">
+                                <i class="fas fa-download"></i> 下载
+                            </a>
+                            <button class="btn btn-sm btn-danger delete-backup" data-id="{{ backup.id }}" data-filename="{{ backup.filename }}">
+                                <i class="fas fa-trash"></i> 删除
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">暂无备份记录</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 恢复备份弹窗 -->
+<div class="modal fade" id="restoreModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">恢复备份</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    警告：恢复备份将覆盖当前数据，建议先手动备份当前数据！
+                </div>
+                <form id="restoreForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">选择备份文件 (ZIP格式)</label>
+                        <input type="file" name="backup_file" class="form-control" accept=".zip" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" id="confirmRestoreBtn" class="btn btn-warning">恢复</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 创建备份
+document.getElementById('createBackupBtn').addEventListener('click', function() {
+    if (confirm('确定要立即备份当前数据吗？')) {
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 备份中...';
+        btn.disabled = true;
+        
+        fetch('/customers/backup/create/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('备份成功！文件：' + data.filename);
+                location.reload();
+            } else {
+                alert('备份失败：' + data.message);
+            }
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        })
+        .catch(err => {
+            alert('备份失败：网络错误');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    }
+});
+
+// 删除备份
+document.querySelectorAll('.delete-backup').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const backupId = this.dataset.id;
+        const filename = this.dataset.filename;
+        
+        if (confirm(`确定要删除备份文件 "${filename}" 吗？`)) {
+            fetch(`/customers/backup/${backupId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('删除成功');
+                    location.reload();
+                } else {
+                    alert('删除失败：' + data.message);
+                }
+            });
+        }
+    });
+});
+
+// 恢复备份
+document.getElementById('confirmRestoreBtn').addEventListener('click', function() {
+    const formData = new FormData(document.getElementById('restoreForm'));
+    const backupFile = document.querySelector('input[name="backup_file"]').files[0];
+    
+    if (!backupFile) {
+        alert('请选择备份文件');
+        return;
+    }
+    
+    if (confirm('恢复备份将覆盖当前数据，确定继续吗？')) {
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 恢复中...';
+        btn.disabled = true;
+        
+        fetch('/customers/backup/restore/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('恢复成功！请手动重启服务器。');
+                window.location.href = '/';
+            } else {
+                alert('恢复失败：' + data.message);
+            }
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        })
+        .catch(err => {
+            alert('恢复失败：网络错误');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    }
+});
+</script>
+{% endblock %}

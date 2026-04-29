@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block page_title %}操作日志{% endblock %}
+
+{% block content %}
+<h2>操作日志</h2>
+
+<!-- 手动清除日志（仅管理员可见） -->
+{% if request.user.is_superuser %}
+<div class="row mb-3">
+    <div class="col-auto">
+        <select id="cleanDays" class="form-select" style="width: 130px;">
+            <option value="7">7天前</option>
+            <option value="15">15天前</option>
+            <option value="30">30天前</option>
+            <option value="60" selected>60天前</option>
+            <option value="90">90天前</option>
+            <option value="180">180天前</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <button id="clearLogsBtn" class="btn btn-danger">
+            <i class="fas fa-trash"></i> 手动清除日志
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<!-- 筛选栏 -->
+<form method="get" class="row g-2 mb-3">
+    <div class="col-auto">
+        <select name="module" class="form-select">
+            <option value="">全部模块</option>
+            {% for value, label in modules %}
+            <option value="{{ value }}" {% if current_module == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <select name="action" class="form-select">
+            <option value="">全部操作</option>
+            {% for value, label in actions %}
+            <option value="{{ value }}" {% if current_action == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <input type="text" name="user" class="form-control" placeholder="操作用户" value="{{ current_user }}">
+    </div>
+    <div class="col-auto">
+        <input type="date" name="date_from" class="form-control" placeholder="开始日期" value="{{ date_from }}">
+    </div>
+    <div class="col-auto">
+        <input type="date" name="date_to" class="form-control" placeholder="结束日期" value="{{ date_to }}">
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">筛选</button>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'operation_log_list' %}" class="btn btn-secondary">重置</a>
+    </div>
+</form>
+
+<div class="card-modern">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-modern">
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>用户</th>
+                        <th>模块</th>
+                        <th>操作</th>
+                        <th>操作对象</th>
+                        <th>IP地址</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in page_obj %}
+                    <tr>
+                        <td>{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
+                        <td>{{ log.user }}</td>
+                        <td>{{ log.get_module_display }}</td>
+                        <td>{{ log.get_action_display }}</td>
+                        <td>{{ log.target|default:"-" }}</td>
+                        <td>{{ log.ip_address|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">暂无操作记录</a> 暂无操作记录</th> </a> 暂无操作记录</th> </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 分页 -->
+        <nav class="mt-3">
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1{% if current_module %}&module={{ current_module }}{% endif %}{% if current_action %}&action={{ current_action }}{% endif %}{% if current_user %}&user={{ current_user }}{% endif %}">首页</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_module %}&module={{ current_module }}{% endif %}{% if current_action %}&action={{ current_action }}{% endif %}{% if current_user %}&user={{ current_user }}{% endif %}">上一页</a></li>
+                {% endif %}
+                
+                <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_module %}&module={{ current_module }}{% endif %}{% if current_action %}&action={{ current_action }}{% endif %}{% if current_user %}&user={{ current_user }}{% endif %}">下一页</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if current_module %}&module={{ current_module }}{% endif %}{% if current_action %}&action={{ current_action }}{% endif %}{% if current_user %}&user={{ current_user }}{% endif %}">末页</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<script>
+// 手动清除日志
+{% if request.user.is_superuser %}
+const clearLogsBtn = document.getElementById('clearLogsBtn');
+if (clearLogsBtn) {
+    clearLogsBtn.addEventListener('click', function() {
+        const days = document.getElementById('cleanDays').value;
+        if (confirm(`确定要清空${days}天前的操作日志吗？此操作不可恢复！`)) {
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 清除中...';
+            this.disabled = true;
+            
+            fetch(`/customers/operation-logs/clear/?days=${days}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`已删除 ${data.deleted_count} 条${days}天前的日志`);
+                    location.reload();
+                } else {
+                    alert('删除失败：' + data.message);
+                }
+                this.innerHTML = originalText;
+                this.disabled = false;
+            })
+            .catch(err => {
+                alert('删除失败');
+                this.innerHTML = originalText;
+                this.disabled = false;
+            });
+        }
+    });
+}
+{% endif %}
+</script>
+{% endblock %}

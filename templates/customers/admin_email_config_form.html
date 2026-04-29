@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block page_title %}{% if config %}编辑{% else %}添加{% endif %}邮箱配置{% endblock %}
+
+{% block content %}
+<style>
+/* 复选框基础样式 */
+input[type="checkbox"] {
+    width: 18px !important;
+    height: 18px !important;
+    cursor: pointer !important;
+    margin: 0 !important;
+    flex-shrink: 0 !important;
+}
+
+/* 亮色模式 */
+input[type="checkbox"] {
+    accent-color: #667eea !important;
+}
+
+/* 暗色模式 - 完全自定义 */
+body.dark-mode input[type="checkbox"] {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background-color: #0f3460 !important;
+    border: 1px solid #667eea !important;
+    border-radius: 3px !important;
+    position: relative !important;
+    width: 18px !important;
+    height: 18px !important;
+    cursor: pointer !important;
+}
+
+body.dark-mode input[type="checkbox"]:checked {
+    background-color: #667eea !important;
+    border-color: #667eea !important;
+}
+
+body.dark-mode input[type="checkbox"]:checked::after {
+    content: "✓" !important;
+    position: absolute !important;
+    left: 2px !important;
+    top: -2px !important;
+    color: white !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+}
+
+/* 复选框容器 */
+.form-check {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.form-check-label {
+    cursor: pointer !important;
+    margin-bottom: 0 !important;
+}
+</style>
+<div class="card-modern">
+    <div class="card-body">
+        <h2 class="mb-3">{% if config %}编辑{% else %}添加{% endif %}邮箱配置</h2>
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            {% if not config %}
+            <div class="mb-3">
+                <label class="form-label">选择用户</label>
+                <select name="user_id" class="form-select" required>
+                    <option value="">请选择用户</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}">{{ user.real_name|default:user.username }} ({{ user.get_role_display }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            
+            <div class="mb-3">
+                <label class="form-label">邮箱地址</label>
+                <input type="email" name="email" class="form-control" value="{{ config.email|default:'' }}" required>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">发件人名称</label>
+                <input type="text" name="from_name" class="form-control" value="{{ config.from_name|default:'' }}" required>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">SMTP服务器</label>
+                    <input type="text" name="smtp_host" class="form-control" value="{{ config.smtp_host|default:'smtp.exmail.qq.com' }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">SMTP端口</label>
+                    <input type="number" name="smtp_port" class="form-control" value="{{ config.smtp_port|default:'587' }}" required>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">邮箱密码/授权码</label>
+                <input type="password" name="smtp_password" class="form-control" {% if not config %}required{% endif %}>
+                {% if config %}<small class="text-muted">留空则不修改密码</small>{% endif %}
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">邮件签名</label>
+                <textarea name="signature" class="form-control" rows="4">{{ config.signature|default:'' }}</textarea>
+            </div>
+            
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+            <input type="checkbox" name="is_default" value="on" style="width: 18px; height: 18px; margin: 0; cursor: pointer;" {% if config.is_default %}checked{% endif %}>
+            <span>设为默认邮箱</span>
+        </label>
+    </div>
+
+<div class="col-md-6 mb-3">
+    <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+        <input type="checkbox" name="is_active" value="on" style="width: 18px; height: 18px; margin: 0; cursor: pointer;" {% if config.is_active or not config %}checked{% endif %}>
+        <span>启用此邮箱</span>
+    </label>
+</div>
+    </div>
+</div>            
+            <div class="mb-3">
+                <label class="form-label">每日发送上限</label>
+                <input type="number" name="daily_limit" class="form-control" value="{{ config.daily_limit|default:'200' }}">
+            </div>
+            
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">保存</button>
+                <a href="{% url 'admin_email_config_list' %}" class="btn btn-secondary">返回</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

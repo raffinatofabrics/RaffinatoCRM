@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block page_title %}用户邮箱配置管理{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>用户邮箱配置管理</h2>
+    <a href="{% url 'admin_email_config_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> 添加配置
+    </a>
+</div>
+
+<div class="card-modern">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-modern">
+                <thead>
+                    <tr>
+                        <th>用户名</th>
+                        <th>邮箱地址</th>
+                        <th>发件人名称</th>
+                        <th>SMTP服务器</th>
+                        <th>默认</th>
+                        <th>每日上限</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for config in configs %}
+                    <tr>
+                        <td>{{ config.user.real_name|default:config.user.username }}</td>
+                        <td>{{ config.email }}</td>
+                        <td>{{ config.from_name }}</td>
+                        <td>{{ config.smtp_host }}:{{ config.smtp_port }}</td>
+                        <td>
+                            {% if config.is_default %}
+                                <span class="badge bg-success">默认</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ config.daily_limit }}</td>
+                        <td>
+                            {% if config.is_active %}
+                                <span class="badge bg-success">启用</span>
+                            {% else %}
+                                <span class="badge bg-danger">禁用</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'admin_email_config_edit' config.id %}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button class="btn btn-sm btn-info test-email" data-id="{{ config.id }}" data-email="{{ config.email }}">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                            <a href="{% url 'admin_email_config_delete' config.id %}" class="btn btn-sm btn-danger" onclick="return confirm('确定删除？')">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center">暂无邮箱配置</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.test-email').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const configId = this.dataset.id;
+        const btnEl = this;
+        
+        btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btnEl.disabled = true;
+        
+        fetch(`/customers/admin/email-configs/${configId}/test/`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('测试邮件发送成功');
+                } else {
+                    alert('发送失败：' + data.message);
+                }
+                btnEl.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                btnEl.disabled = false;
+            });
+    });
+});
+</script>
+{% endblock %}

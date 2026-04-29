@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block page_title %}{% if step %}编辑步骤{% else %}添加步骤{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{% if step %}编辑{% else %}添加{% endif %}邮件步骤</h2>
+    <p class="text-muted">序列：{{ sequence.name }}</p>
+    
+    <form method="post" class="mt-4">
+        {% csrf_token %}
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">等待天数</label>
+                <input type="number" name="wait_days" class="form-control" value="{{ step.wait_days|default:0 }}">
+                <small class="text-muted">上一步发送后等待几天</small>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+                <label class="form-label">指定发送时间</label>
+                <input type="time" name="send_time" class="form-control" value="{{ step.send_time|default:'' }}">
+                <small class="text-muted">留空则立即发送</small>
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <div class="form-check">
+                <input type="checkbox" name="only_weekdays" class="form-check-input" id="onlyWeekdays" {% if step.only_weekdays %}checked{% endif %}>
+                <label class="form-check-label" for="onlyWeekdays">仅工作日发送</label>
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">邮件主题 *</label>
+            <input type="text" name="subject" class="form-control" value="{{ step.subject|default:'' }}" required>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">邮件内容 *</label>
+            <textarea name="template" class="form-control" rows="10" required>{{ step.template|default:'' }}</textarea>
+            <small class="text-muted">
+                支持变量：<br>
+                &#123;&#123; customer.company_name &#125;&#125; - 公司名称<br>
+                &#123;&#123; customer.contact_person &#125;&#125; - 联系人<br>
+                &#123;&#123; customer.email &#125;&#125; - 邮箱<br>
+                &#123;&#123; customer.phone &#125;&#125; - 电话<br>
+                &#123;&#123; customer.country &#125;&#125; - 国家
+            </small>
+        </div>
+        
+        <div class="mt-4">
+    <button type="submit" class="btn btn-primary">保存</button>
+    <a href="{% url 'email_sequence_detail' pk=sequence.id %}" class="btn btn-secondary">取消</a>
+</div>
+    </form>
+</div>
+{% endblock %}

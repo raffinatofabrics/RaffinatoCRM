@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block page_title %}{% if sequence %}编辑序列{% else %}新建序列{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{% if sequence %}编辑{% else %}新建{% endif %}邮件序列</h2>
+    
+    <form method="post" class="mt-4">
+        {% csrf_token %}
+        
+        <div class="mb-3">
+            <label class="form-label">序列名称 *</label>
+            <input type="text" name="name" class="form-control" value="{{ sequence.name|default:'' }}" required>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">描述</label>
+            <textarea name="description" class="form-control" rows="3">{{ sequence.description|default:'' }}</textarea>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">触发条件 *</label>
+                <select name="trigger_type" class="form-select" required>
+                    <option value="customer_created" {% if sequence.trigger_type == 'customer_created' %}selected{% endif %}>客户创建后</option>
+                    <option value="customer_tagged" {% if sequence.trigger_type == 'customer_tagged' %}selected{% endif %}>客户打标签后</option>
+                    <option value="email_opened" {% if sequence.trigger_type == 'email_opened' %}selected{% endif %}>邮件被打开后</option>
+                    <option value="link_clicked" {% if sequence.trigger_type == 'link_clicked' %}selected{% endif %}>链接被点击后</option>
+                    <option value="no_response_days" {% if sequence.trigger_type == 'no_response_days' %}selected{% endif %}>无回复X天后</option>
+                    <option value="order_created" {% if sequence.trigger_type == 'order_created' %}selected{% endif %}>创建订单后</option>
+                    <option value="order_completed" {% if sequence.trigger_type == 'order_completed' %}selected{% endif %}>订单完成后</option>
+                </select>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+                <label class="form-label">触发延迟（天）</label>
+                <input type="number" name="trigger_days" class="form-control" value="{{ sequence.trigger_days|default:0 }}">
+                <small class="text-muted">条件满足后延迟几天发送</small>
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">触发标签（可选）</label>
+            <input type="text" name="trigger_tag" class="form-control" value="{{ sequence.trigger_tag|default:'' }}" placeholder="仅当客户有此标签时触发">
+            <small class="text-muted">多个标签用逗号分隔</small>
+        </div>
+        
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="{% url 'email_sequence_list' %}" class="btn btn-secondary">取消</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

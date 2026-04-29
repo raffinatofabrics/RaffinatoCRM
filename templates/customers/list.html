@@ -1,0 +1,1312 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .btn-purple {
+        background-color: #9B59B6;
+        color: white;
+    }
+    .btn-purple:hover {
+        background-color: #8E44AD;
+        color: white;
+    }
+
+    /* 亮色模式弹窗 */
+    .modal-content {
+        background-color: #fff !important;
+        color: #333 !important;
+    }
+    .modal-header, .modal-footer {
+        border-color: #dee2e6 !important;
+    }
+    .modal-header .btn-close {
+        filter: invert(0);
+    }
+    .form-label {
+        color: #333 !important;
+    }
+    .form-control, .form-select {
+        background-color: #fff !important;
+        color: #333 !important;
+        border-color: #ced4da !important;
+    }
+
+    /* 暗色模式弹窗 */
+    body.dark-mode .modal-content {
+        background-color: #16213e !important;
+        color: #fff !important;
+    }
+    body.dark-mode .modal-header,
+    body.dark-mode .modal-footer {
+        border-color: #2c3e50 !important;
+    }
+    body.dark-mode .modal-header .btn-close {
+        filter: invert(1);
+    }
+    body.dark-mode .form-label {
+        color: #fff !important;
+    }
+    body.dark-mode .form-control,
+    body.dark-mode .form-select {
+        background-color: #0f3460 !important;
+        color: #fff !important;
+        border-color: #2c3e50 !important;
+    }
+
+    /* 进度条样式 */
+    .progress {
+        background-color: #e9ecef;
+        border-radius: 14px;
+    }
+    .progress-bar {
+        border-radius: 14px;
+        font-size: 11px;
+        font-weight: bold;
+        text-align: center;
+    }
+    .bg-success { background-color: #27AE60 !important; }
+    .bg-warning { background-color: #F39C12 !important; }
+    .bg-danger { background-color: #E74C3C !important; }
+    
+    body.dark-mode .progress {
+        background-color: #2c3e50;
+    }
+
+     /* 客户列表表格样式优化 */
+    .customer-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+    .customer-table th,
+    .customer-table td {
+        vertical-align: middle;
+        word-wrap: break-word;
+        padding: 8px 6px;
+        font-size: 13px;
+    }
+    .col-checkbox { width: 35px; }
+    .col-company { width: 150px; }
+    .col-contact { width: 70px; }
+    .col-email { width: 140px; }
+    .col-country { width: 60px; }
+    .col-level { width: 80px; }
+    .col-ai-score { width: 65px; }
+    .col-order-score { width: 65px; }
+    .col-type { width: 70px; }
+    .col-sales { width: 65px; }
+    .col-open-rate { width: 65px; }
+    .col-last-contact { width: 90px; }
+    .col-actions { width: 120px; }
+    
+    /* 让操作按钮不换行 */
+    .col-actions .btn-group {
+        display: flex;
+        flex-wrap: nowrap;
+    }
+    .col-actions .btn {
+        padding: 4px 6px;
+        font-size: 12px;
+    }
+
+    /* 标签样式 */
+    .tag-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        color: white;
+        margin-right: 4px;
+        margin-bottom: 2px;
+    }
+    
+    body.dark-mode .customer-table {
+        color: #fff;
+    }
+    body.dark-mode .table-bordered,
+    body.dark-mode .table-bordered th,
+    body.dark-mode .table-bordered td {
+        border-color: #2c3e50;
+    }
+    
+    .table-responsive-custom {
+        overflow-x: auto;
+        margin-bottom: 20px;
+    }
+
+.dropdown-result {
+    position: absolute;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    max-height: 250px;
+    overflow-y: auto;
+    width: 100%;
+    left: 0;
+    top: 100%;
+    margin-top: 2px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.dropdown-result div {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+.dropdown-result div:hover {
+    background-color: #f0f0f0;
+}
+.dropdown-result div:last-child {
+    border-bottom: none;
+}
+body.dark-mode .dropdown-result {
+    background: #1e293b;
+    border-color: #2c3e50;
+}
+body.dark-mode .dropdown-result div {
+    border-bottom-color: #2c3e50;
+    color: #fff;
+}
+body.dark-mode .dropdown-result div:hover {
+    background-color: #0f3460;
+}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>客户列表</h2>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+        <i class="fas fa-plus"></i> 手动添加客户
+    </button>
+</div>
+
+<!-- 标签筛选栏 -->
+<div class="row mb-2">
+    <div class="col-md-12">
+        <div class="btn-group flex-wrap" role="group" style="gap: 5px;">
+            <a href="?{% if keyword %}keyword={{ keyword }}&{% endif %}{% if current_level %}level={{ current_level }}&{% endif %}" class="btn btn-sm {% if not current_tag %}btn-primary{% else %}btn-outline-secondary{% endif %}">全部</a>
+            {% for tag in all_tags %}
+            <a href="?tag={{ tag.id }}{% if keyword %}&keyword={{ keyword }}{% endif %}{% if current_level %}&level={{ current_level }}{% endif %}" class="btn btn-sm {% if current_tag|stringformat:'s' == tag.id|stringformat:'s' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                {{ tag.name }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <form method="get" class="row g-2 align-items-end" id="filterForm">
+            <!-- 搜索框（实时搜索） -->
+            <div class="col-md-3 position-relative">
+                <label class="form-label small">客户搜索</label>
+                <input type="text" id="keywordSearch" class="form-control" placeholder="输入公司名/联系人/邮箱" autocomplete="off" value="{{ keyword }}">
+                <div id="searchDropdown" class="dropdown-result" style="display: none;"></div>
+            </div>
+            
+            <!-- 等级筛选 -->
+            <div class="col-auto">
+                <label class="form-label small">客户等级</label>
+                <select name="level" class="form-select" style="width: 130px;">
+                    <option value="">全部等级</option>
+                    {% for value, label in level_choices %}
+                    <option value="{{ value }}" {% if current_level == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- 排序 -->
+            <div class="col-auto">
+                <label class="form-label small">排序方式</label>
+                <select name="sort" class="form-select" style="width: 160px;">
+                    <option value="-last_contact_time" {% if sort_by == '-last_contact_time' %}selected{% endif %}>上次联系（最近优先）</option>
+                    <option value="last_contact_time" {% if sort_by == 'last_contact_time' %}selected{% endif %}>上次联系（最久优先）</option>
+                    <option value="-created_at" {% if sort_by == '-created_at' %}selected{% endif %}>创建时间（最新优先）</option>
+                    <option value="-ai_score" {% if sort_by == '-ai_score' %}selected{% endif %}>AI意向分（从高到低）</option>
+                    <option value="ai_score" {% if sort_by == 'ai_score' %}selected{% endif %}>AI意向分（从低到高）</option>
+                </select>
+            </div>
+            
+            <!-- 按钮组 -->
+            <div class="col-auto">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">筛选</button>
+                    <a href="{% url 'customer_list' %}" class="btn btn-secondary">重置</a>
+                    <button type="button" id="exportBtn" class="btn btn-success">
+                        <i class="fas fa-file-excel"></i> 导出
+                    </button>
+                    <button type="button" id="batchSendBtn" class="btn btn-primary" disabled>
+                        <i class="fas fa-envelope"></i> 批量发送 (<span id="selectedCount">0</span>)
+                    </button>
+                    <button type="button" id="batchVerifyBtn" class="btn btn-info">
+                        <i class="fas fa-envelope"></i> 批量验证
+                    </button>
+                    <button type="button" id="batchUpdateScoreBtn" class="btn btn-purple">
+                        <i class="fas fa-chart-line"></i> 更新评分
+                    </button>
+                    <button type="button" id="batchDeleteBtn" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> 批量删除
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="table-responsive-custom">
+    <table class="table table-bordered table-hover table-modern customer-table">
+        <thead>
+            <tr>
+                <th class="col-checkbox"><input type="checkbox" id="selectAll"></th>
+                <th class="col-company">公司名</th>
+                <th class="col-contact">联系人</th>
+                <th class="col-email">邮箱</th>
+                <th class="col-country" style="display: none;">国家</th>
+                <th class="col-level">等级</th>
+                <th class="col-ai-score">AI意向分</th>
+                <th class="col-order-score">订单价值</th>
+                <th class="col-type">客户类型</th>
+                <th class="col-sales">业务员</th>
+                <th class="col-open-rate" style="display: none;">打开率</th>
+                <th class="col-last-contact">上次联系</th>
+                <th class="col-actions">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for customer in page_obj %}
+            <tr>
+                <td class="col-checkbox">
+                    <input type="checkbox" class="customer-checkbox" value="{{ customer.id }}">
+                </td>
+                <td class="col-company">
+                    <strong>{{ customer.company_name|default:"-" }}</strong>
+                    <div class="mt-1">
+                        {% for relation in customer.tag_relations.all %}
+                        <span class="tag-badge" style="background-color: {{ relation.tag.color }};">
+                            {{ relation.tag.name }}
+                        </span>
+                        {% endfor %}
+                        <button class="btn btn-sm btn-outline-secondary add-tag-btn" data-id="{{ customer.id }}" style="padding: 0px 4px; font-size: 10px;">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </td>
+                <td class="col-contact">{{ customer.contact_person|default:"-" }}</td>
+                <td class="col-email" style="word-break: break-all;">
+                    {{ customer.email|default:"-" }}
+                    {% if customer.email_verify_status == 'valid' %}
+                        <i class="fas fa-check-circle text-success" title="已验证有效"></i>
+                    {% elif customer.email_verify_status == 'invalid' %}
+                        <i class="fas fa-times-circle text-danger" title="无效邮箱"></i>
+                    {% elif customer.email_verify_status == 'pending' %}
+                        <button class="btn btn-sm btn-outline-secondary verify-email-btn" data-id="{{ customer.id }}" style="padding: 2px 6px; font-size: 11px; margin-left: 5px;">
+                            <i class="fas fa-envelope"></i> 验证
+                        </button>
+                    {% endif %}
+                </td>
+                <td class="col-country" style="display: none;">{{ customer.country|default:"-" }}</td>
+                <td class="col-level">
+                    <select class="form-select form-select-sm level-select" data-id="{{ customer.id }}" style="width: 100px;">
+                        <option value="potential" {% if customer.level == 'potential' %}selected{% endif %}>潜在</option>
+                        <option value="intermediate" {% if customer.level == 'intermediate' %}selected{% endif %}>中级</option>
+                        <option value="advanced" {% if customer.level == 'advanced' %}selected{% endif %}>高级</option>
+                        <option value="vip" {% if customer.level == 'vip' %}selected{% endif %}>VIP</option>
+                    </select>
+                </td>
+                <td class="col-ai-score">
+                    <div class="progress" style="height: 24px; width: 70px;">
+                        <div class="progress-bar bg-{% if customer.ai_score >= 70 %}success{% elif customer.ai_score >= 40 %}warning{% else %}danger{% endif %}" 
+                             style="width: {{ customer.ai_score|default:0 }}%; line-height: 24px;">
+                            {{ customer.ai_score|default:0 }}
+                        </div>
+                    </div>
+                </td>
+                <td class="col-order-score">
+                    <div class="progress" style="height: 24px; width: 70px;">
+                        <div class="progress-bar bg-{% if customer.order_score >= 70 %}success{% elif customer.order_score >= 40 %}warning{% else %}danger{% endif %}" 
+                             style="width: {{ customer.order_score|default:0 }}%; line-height: 24px;">
+                            {{ customer.order_score|default:0 }}
+                        </div>
+                    </div>
+                </td>
+                <td class="col-type">
+                    {% with ai_score=customer.ai_score|default:0 order_score=customer.order_score|default:0 %}
+                        {% if ai_score >= 50 and order_score >= 50 %}
+                            <span class="badge bg-danger">⭐ 核心</span>
+                        {% elif ai_score >= 50 and order_score < 50 %}
+                            <span class="badge bg-warning">🚀 潜力</span>
+                        {% elif ai_score < 50 and order_score >= 50 %}
+                            <span class="badge bg-info">📦 存量</span>
+                        {% else %}
+                            <span class="badge bg-secondary">🌱 培育</span>
+                        {% endif %}
+                    {% endwith %}
+                </td>
+<td class="col-sales">
+    {% if customer.assigned_sales %}
+        {{ customer.assigned_sales.username }}
+    {% else %}
+        <span class="text-muted">未分配</span>
+    {% endif %}
+</td>
+                <td class="col-open-rate" style="display: none;">
+    <span class="text-muted">-</span>
+</td>
+                <td class="col-last-contact">{{ customer.last_contact_time|date:"Y-m-d"|default:"未联系" }}</td>
+                <td class="col-actions">
+    <div class="btn-group btn-group-sm">
+        <button class="btn btn-primary send-email" data-id="{{ customer.id }}" data-email="{{ customer.email }}" title="发送邮件">
+            <i class="fas fa-envelope"></i>
+        </button>
+        <a href="{% url 'customer_detail' customer.id %}" class="btn btn-info" title="详情">
+            <i class="fas fa-eye"></i>
+        </a>
+        {% if request.user.profile.role == 'admin' or request.user.profile.role == 'dept_leader' %}
+        <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#assignModal" 
+                data-customer-id="{{ customer.id }}" data-customer-name="{{ customer.company_name }}" title="分配销售">
+            <i class="fas fa-user-plus"></i>
+        </button>
+        {% endif %}
+        <a href="javascript:void(0);" class="btn btn-sm btn-danger" onclick="deleteCustomer({{ customer.id }}, this);">
+            <i class="fas fa-trash"></i>
+        </a>
+    </div>
+</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="12" class="text-center">暂无客户数据</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- 分页 -->
+<nav>
+    <ul class="pagination">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page=1{% if keyword %}&keyword={{ keyword }}{% endif %}{% if current_level %}&level={{ current_level }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">首页</a></li>
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if keyword %}&keyword={{ keyword }}{% endif %}{% if current_level %}&level={{ current_level }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">上一页</a></li>
+        {% endif %}
+        
+        <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+        
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if keyword %}&keyword={{ keyword }}{% endif %}{% if current_level %}&level={{ current_level }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">下一页</a></li>
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if keyword %}&keyword={{ keyword }}{% endif %}{% if current_level %}&level={{ current_level }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">末页</a></li>
+        {% endif %}
+    </ul>
+</nav>
+
+<!-- 标签管理弹窗 -->
+<div class="modal fade" id="tagModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">管理标签</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="currentTags"></div>
+                <div class="mt-3">
+                    <label class="form-label">添加标签</label>
+                    <div class="input-group">
+                        <select id="tagSelect" class="form-select">
+                            <option value="">选择已有标签</option>
+                            {% for tag in all_tags %}
+                            <option value="{{ tag.id }}">{{ tag.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="text" id="newTagName" class="form-control" placeholder="或输入新标签">
+                        <button class="btn btn-primary" id="addTagBtn">添加</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 手动添加客户弹窗 -->
+<div class="modal fade" id="addCustomerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addCustomerForm">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">手动添加客户</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">公司名称 *</label>
+                        <input type="text" name="company_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">联系人</label>
+                        <input type="text" name="contact_person" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">邮箱</label>
+                        <input type="email" name="email" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">电话</label>
+                        <input type="text" name="phone" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">国家</label>
+                        <input type="text" name="country" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">客户等级</label>
+                        <select name="level" class="form-select">
+                            <option value="potential">潜在客户</option>
+                            <option value="intermediate">中级客户</option>
+                            <option value="advanced">高级客户</option>
+                            <option value="vip">VIP客户</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">备注</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存客户</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 批量发送邮件弹窗 -->
+<div class="modal fade" id="batchSendModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">批量发送邮件</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>已选择 <strong id="selectedCountDisplay">0</strong> 个客户</p>
+                
+                <div class="mb-3">
+                    <label class="form-label">发件邮箱</label>
+                    <select id="batchSenderSelect" class="form-select" required>
+                        <option value="">请选择发件邮箱</option>
+                        {% for config in user.email_configs.all %}
+                        <option value="{{ config.id }}" {% if config.is_default %}selected{% endif %}>
+                            {{ config.from_name }} &lt;{{ config.email }}&gt;
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">邮件主题</label>
+                    <input type="text" id="batchSendSubject" class="form-control" placeholder="邮件主题">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">邮件内容</label>
+                    <textarea id="batchSendContent" class="form-control" rows="8" placeholder="邮件内容"></textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">或者选择模板（会覆盖上面的内容）</label>
+                    <select id="batchTemplateSelect" class="form-select">
+                        <option value="">请选择模板</option>
+                    </select>
+                </div>
+                
+                <div id="batchPreview" class="mt-3" style="display: none;">
+                    <hr>
+                    <h6>邮件预览：</h6>
+                    <div id="batchPreviewSubject" class="fw-bold"></div>
+                    <div id="batchPreviewContent" class="mt-2 p-2 border rounded" style="max-height: 300px; overflow: auto;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="confirmBatchSend">发送邮件</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+// 等级修改
+document.querySelectorAll('.level-select').forEach(select => {
+    select.addEventListener('change', function() {
+        const customerId = this.dataset.id;
+        const newLevel = this.value;
+        
+        fetch(`/${customerId}/update-level/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ level: newLevel })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        });
+    });
+});
+
+// 邮箱验证
+document.querySelectorAll('.verify-email-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const customerId = this.dataset.id;
+        const originalText = this.innerHTML;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        this.disabled = true;
+        
+        fetch(`/${customerId}/verify-email/`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('验证失败：' + data.message);
+                    this.innerHTML = originalText;
+                    this.disabled = false;
+                }
+            })
+            .catch(err => {
+                alert('验证失败：网络错误');
+                this.innerHTML = originalText;
+                this.disabled = false;
+            });
+    });
+});
+
+// 批量验证邮箱
+document.getElementById('batchVerifyBtn')?.addEventListener('click', function() {
+    if (confirm('确定要批量验证待验证的邮箱吗？（最多50个）')) {
+        const originalText = this.innerHTML;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
+        this.disabled = true;
+        
+        fetch('/batch-verify-emails/')
+            .then(r => r.json())
+            .then(data => {
+                alert(`验证完成！有效: ${data.valid_count}，无效: ${data.invalid_count}`);
+                location.reload();
+            })
+            .catch(err => {
+                alert('验证失败');
+                this.innerHTML = originalText;
+                this.disabled = false;
+            });
+    }
+});
+
+// 批量更新评分
+document.getElementById('batchUpdateScoreBtn')?.addEventListener('click', function() {
+    if (confirm('确定要更新所有客户的评分吗？')) {
+        const originalText = this.innerHTML;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 更新中...';
+        this.disabled = true;
+        
+        fetch('/batch-update-scores/')
+            .then(r => r.json())
+            .then(data => {
+                alert(`评分更新完成！共更新 ${data.updated_count} 个客户`);
+                location.reload();
+            })
+            .catch(err => {
+                alert('更新失败');
+                this.innerHTML = originalText;
+                this.disabled = false;
+            });
+    }
+});
+
+// 选择功能
+const selectAllCheckbox = document.getElementById('selectAll');
+const customerCheckboxes = document.querySelectorAll('.customer-checkbox');
+const batchSendBtn = document.getElementById('batchSendBtn');
+const selectedCountSpan = document.getElementById('selectedCount');
+
+function updateSelection() {
+    const checked = document.querySelectorAll('.customer-checkbox:checked');
+    const count = checked.length;
+    if (selectedCountSpan) selectedCountSpan.textContent = count;
+    if (batchSendBtn) batchSendBtn.disabled = count === 0;
+    return checked;
+}
+
+if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', function() {
+        customerCheckboxes.forEach(cb => {
+            cb.checked = selectAllCheckbox.checked;
+        });
+        updateSelection();
+    });
+}
+
+customerCheckboxes.forEach(cb => {
+    cb.addEventListener('change', function() {
+        updateSelection();
+        if (selectAllCheckbox) {
+            const allChecked = customerCheckboxes.length === document.querySelectorAll('.customer-checkbox:checked').length;
+            selectAllCheckbox.checked = allChecked;
+        }
+    });
+});
+
+// 导出功能
+document.getElementById('exportBtn')?.addEventListener('click', function() {
+    const keyword = document.querySelector('input[name="keyword"]')?.value || '';
+    const level = document.querySelector('select[name="level"]')?.value || '';
+    const sort = document.querySelector('select[name="sort"]')?.value || '';
+    
+    let url = "{% url 'export_customers' %}?";
+    if (keyword) url += "keyword=" + encodeURIComponent(keyword) + "&";
+    if (level) url += "level=" + encodeURIComponent(level) + "&";
+    if (sort) url += "sort=" + encodeURIComponent(sort);
+    
+    window.location.href = url;
+});
+
+// 批量删除
+document.getElementById('batchDeleteBtn')?.addEventListener('click', function() {
+    const checked = document.querySelectorAll('.customer-checkbox:checked');
+    const customerIds = Array.from(checked).map(cb => cb.value);
+    
+    if (customerIds.length === 0) {
+        alert('请先选择客户');
+        return;
+    }
+    
+    if (confirm(`确定要删除选中的 ${customerIds.length} 个客户吗？`)) {
+        fetch('/batch-delete/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ customer_ids: customerIds })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert(`成功删除 ${data.deleted_count} 个客户`);
+                location.reload();
+            } else {
+                alert('删除失败：' + data.message);
+            }
+        });
+    }
+});
+
+// 批量发送按钮
+const batchSendBtnElement = document.getElementById('batchSendBtn');
+if (batchSendBtnElement) {
+    batchSendBtnElement.addEventListener('click', function() {
+        const checked = document.querySelectorAll('.customer-checkbox:checked');
+        const customerIds = Array.from(checked).map(cb => cb.value);
+        
+        if (customerIds.length === 0) {
+            alert('请先选择客户');
+            return;
+        }
+        
+        const countDisplay = document.getElementById('selectedCountDisplay');
+        if (countDisplay) {
+            countDisplay.innerText = customerIds.length;
+        }
+        
+        // 加载模板列表
+        fetch('/templates/api/templates/')
+            .then(response => response.json())
+            .then(templates => {
+                let templateOptions = '<option value="">请选择模板</option>';
+                templates.forEach(t => {
+                    templateOptions += `<option value="${t.id}">${t.name}</option>`;
+                });
+                document.getElementById('batchTemplateSelect').innerHTML = templateOptions;
+                
+                const modal = new bootstrap.Modal(document.getElementById('batchSendModal'));
+                modal.show();
+            });
+    });
+}
+
+// 选择模板时填充内容
+const batchTemplateSelect = document.getElementById('batchTemplateSelect');
+if (batchTemplateSelect) {
+    batchTemplateSelect.addEventListener('change', function() {
+        const templateId = this.value;
+        if (templateId) {
+            // 使用我们之前创建的 get-template-content 接口
+            fetch('/get-template-content/?template_id=' + templateId)
+                .then(r => r.json())
+                .then(data => {
+                    console.log('模板数据:', data);  // 调试用
+                    if (data.success) {
+                        document.getElementById('batchSendSubject').value = data.subject;
+                        document.getElementById('batchSendContent').value = data.content;
+                        document.getElementById('batchPreviewSubject').innerText = data.subject;
+                        document.getElementById('batchPreviewContent').innerHTML = data.content;
+                        document.getElementById('batchPreview').style.display = 'block';
+                    } else {
+                        alert('加载模板失败：' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('加载模板失败:', error);
+                    alert('加载模板失败');
+                });
+        } else {
+            document.getElementById('batchPreview').style.display = 'none';
+        }
+    });
+}
+// 确认批量发送
+const confirmBatchSendBtn = document.getElementById('confirmBatchSend');
+if (confirmBatchSendBtn) {
+    confirmBatchSendBtn.addEventListener('click', function() {
+        const subject = document.getElementById('batchSendSubject')?.value;
+        const content = document.getElementById('batchSendContent')?.value;
+        const senderConfigId = document.getElementById('batchSenderSelect')?.value;
+        const customerIds = Array.from(document.querySelectorAll('.customer-checkbox:checked')).map(cb => cb.value);
+        
+        if (!senderConfigId) {
+            alert('请选择发件邮箱');
+            return;
+        }
+        if (!subject) {
+            alert('请输入邮件主题');
+            return;
+        }
+        if (!content) {
+            alert('请输入邮件内容');
+            return;
+        }
+        if (customerIds.length === 0) {
+            alert('请先选择客户');
+            return;
+        }
+        
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发送中...';
+        btn.disabled = true;
+        
+        fetch('/batch-send-email/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                customer_ids: customerIds,
+                subject: subject,
+                content: content,
+                sender_config_id: senderConfigId
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert(`发送完成！成功: ${data.success_count}, 失败: ${data.fail_count}`);
+                location.reload();
+            } else {
+                alert('发送失败：' + data.message);
+            }
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        })
+        .catch(err => {
+            alert('发送失败：网络错误');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    });
+}
+// 单个发送邮件
+document.querySelectorAll('.send-email').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const customerId = this.dataset.id;
+        const customerEmail = this.dataset.email;
+        
+        fetch('/api/user-email-configs/')
+            .then(r => r.json())
+            .then(configs => {
+                let senderOptions = '<option value="">请选择发件邮箱</option>';
+                configs.forEach(c => {
+                    senderOptions += `<option value="${c.id}" ${c.is_default ? 'selected' : ''}>${c.from_name} &lt;${c.email}&gt;</option>`;
+                });
+                
+                fetch('/templates/api/templates/')
+                    .then(r => r.json())
+                    .then(templates => {
+                        let templateOptions = '<option value="">请选择模板</option>';
+                        templates.forEach(t => {
+                            templateOptions += `<option value="${t.id}">${t.name}</option>`;
+                        });
+                        
+                        const modalHtml = `
+                            <div class="modal fade" id="sendEmailModalList" tabindex="-1">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">发送邮件给 ${customerEmail}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="mb-3">
+                                                <label class="form-label">发件邮箱</label>
+                                                <select id="senderSelect" class="form-select">${senderOptions}</select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">收件人</label>
+                                                <input type="text" id="sendTo" class="form-control" value="${customerEmail}" readonly>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">邮件主题</label>
+                                                <input type="text" id="sendSubject" class="form-control" placeholder="邮件主题">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">邮件内容</label>
+                                                <textarea id="sendContent" class="form-control" rows="8" placeholder="邮件内容"></textarea>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">或者选择模板（会覆盖上面的内容）</label>
+                                                <select id="templateSelect" class="form-select">${templateOptions}</select>
+                                            </div>
+                                            <div id="preview" class="mt-3" style="display:none;">
+                                                <hr>
+                                                <h6>预览：</h6>
+                                                <div id="previewSubject" class="fw-bold"></div>
+                                                <div id="previewContent" class="mt-2"></div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                            <button type="button" class="btn btn-primary" id="confirmSendList">发送</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // 移除已存在的弹窗
+                        const existingModal = document.getElementById('sendEmailModalList');
+                        if (existingModal) {
+                            existingModal.remove();
+                        }
+                        
+                        document.body.insertAdjacentHTML('beforeend', modalHtml);
+                        const modal = new bootstrap.Modal(document.getElementById('sendEmailModalList'));
+                        modal.show();
+                        
+                        // 选择模板时填充内容
+                        document.getElementById('templateSelect').addEventListener('change', function() {
+                            const templateId = this.value;
+                            if (templateId) {
+                                fetch('/customers/' + customerId + '/get-template-content/?template_id=' + templateId)
+                                    .then(r => r.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            document.getElementById('sendSubject').value = data.subject;
+                                            document.getElementById('sendContent').value = data.content;
+                                            document.getElementById('previewSubject').innerText = data.subject;
+                                            document.getElementById('previewContent').innerHTML = data.content;
+                                            document.getElementById('preview').style.display = 'block';
+                                        } else {
+                                            alert('加载模板失败：' + data.message);
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('加载模板失败:', error);
+                                        alert('加载模板失败');
+                                    });
+                            } else {
+                                document.getElementById('preview').style.display = 'none';
+                            }
+                        });
+                        
+                        // 确认发送
+                        document.getElementById('confirmSendList').addEventListener('click', function() {
+                            const to = document.getElementById('sendTo').value;
+                            const subject = document.getElementById('sendSubject').value;
+                            const content = document.getElementById('sendContent').value;
+                            const senderConfigId = document.getElementById('senderSelect').value;
+                            
+                            if (!senderConfigId) {
+                                alert('请选择发件邮箱');
+                                return;
+                            }
+                            if (!subject) {
+                                alert('请输入邮件主题');
+                                return;
+                            }
+                            if (!content) {
+                                alert('请输入邮件内容');
+                                return;
+                            }
+                            
+                            fetch('/customers/' + customerId + '/send-email/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}'
+                                },
+                                body: JSON.stringify({
+                                    to: to,
+                                    subject: subject,
+                                    content: content,
+                                    sender_config_id: senderConfigId
+                                })
+                            })
+                            .then(r => r.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert('邮件发送成功！');
+                                    modal.hide();
+                                    document.getElementById('sendEmailModalList').remove();
+                                } else {
+                                    alert('发送失败：' + (data.message || '未知错误'));
+                                }
+                            })
+                            .catch(error => {
+                                console.error('发送失败:', error);
+                                alert('发送失败：' + error);
+                            });
+                        });
+                    });
+            });
+    });
+});
+
+// 标签管理
+let currentCustomerId = null;
+
+document.querySelectorAll('.add-tag-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        currentCustomerId = this.dataset.id;
+        loadCustomerTags(currentCustomerId);
+        const modal = new bootstrap.Modal(document.getElementById('tagModal'));
+        modal.show();
+    });
+});
+
+function loadCustomerTags(customerId) {
+    fetch(`/api/customer/${customerId}/tags/`)
+        .then(r => r.json())
+        .then(tags => {
+            const container = document.getElementById('currentTags');
+            if (!tags || tags.length === 0) {
+                container.innerHTML = '<p class="text-muted">暂无标签</p>';
+                return;
+            }
+            container.innerHTML = tags.map(tag => `
+                <span class="tag-badge" style="background-color: ${tag.color}; margin-right: 8px; padding: 4px 10px;">
+                    ${tag.name}
+                    <i class="fas fa-times" style="margin-left: 6px; cursor: pointer;" onclick="removeTag(${tag.id})"></i>
+                </span>
+            `).join('');
+        });
+}
+
+window.removeTag = function(tagId) {
+    fetch(`/api/customer/${currentCustomerId}/remove-tag/${tagId}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            loadCustomerTags(currentCustomerId);
+            setTimeout(() => location.reload(), 500);
+        } else {
+            alert('移除标签失败');
+        }
+    });
+};
+
+document.getElementById('addTagBtn')?.addEventListener('click', function() {
+    const tagSelect = document.getElementById('tagSelect');
+    const newTagName = document.getElementById('newTagName')?.value.trim() || '';
+    
+    let tagId = tagSelect?.value;
+    let tagName = newTagName;
+    
+    if (!tagId && !tagName) {
+        alert('请选择或输入标签');
+        return;
+    }
+    
+    fetch(`/api/customer/${currentCustomerId}/add-tag/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ tag_id: tagId, tag_name: tagName })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            if (document.getElementById('newTagName')) document.getElementById('newTagName').value = '';
+            if (tagSelect) tagSelect.value = '';
+            loadCustomerTags(currentCustomerId);
+            setTimeout(() => location.reload(), 500);
+        } else {
+            alert('添加失败：' + data.message);
+        }
+    });
+});
+
+// 手动添加客户
+document.getElementById('addCustomerForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
+    submitBtn.disabled = true;
+    
+    fetch('/add/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('客户添加成功！');
+            location.reload();
+        } else {
+            alert('添加失败：' + data.message);
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    })
+    .catch(err => {
+        alert('添加失败：网络错误');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+function deleteCustomer(customerId, btn) {
+    if (confirm('确定要删除该客户吗？')) {
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        fetch(`/${customerId}/delete/`, {
+            method: 'POST',  // 改为 POST
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('删除失败：' + data.message);
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        })
+        .catch(error => {
+            alert('删除失败：网络错误');
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        });
+    }
+}
+
+// 实时搜索下拉
+var keywordSearch = document.getElementById('keywordSearch');
+var searchDropdown = document.getElementById('searchDropdown');
+
+if (keywordSearch) {
+    var searchTimeout;
+    
+    // 输入时搜索
+    keywordSearch.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        var keyword = this.value.trim();
+        
+        if (keyword.length < 1) {
+            searchDropdown.style.display = 'none';
+            return;
+        }
+        
+        searchTimeout = setTimeout(function() {
+            fetch('/api/customer-search/?q=' + encodeURIComponent(keyword))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (searchDropdown) {
+                        if (data.length === 0) {
+                            searchDropdown.innerHTML = '<div class="text-muted p-2">暂无匹配客户</div>';
+                        } else {
+                            var html = '';
+                            for (var i = 0; i < data.length; i++) {
+                                html += '<div data-id="' + data[i].id + '" data-name="' + data[i].company_name + '" class="p-2" style="cursor: pointer; border-bottom: 1px solid #eee;">' + data[i].company_name + '</div>';
+                            }
+                            searchDropdown.innerHTML = html;
+                        }
+                        searchDropdown.style.display = 'block';
+                    }
+                })
+                .catch(function(error) {
+                    console.error('搜索失败:', error);
+                });
+        }, 300);
+    });
+    
+    // 点击下拉选项，跳转到客户详情
+if (searchDropdown) {
+    searchDropdown.addEventListener('click', function(e) {
+        var item = e.target.closest('div[data-id]');
+        if (item && item.dataset.id) {
+            window.location.href = '/' + item.dataset.id + '/';
+        }
+    });
+}
+    
+    // 点击其他地方关闭下拉框
+    document.addEventListener('click', function(e) {
+        if (keywordSearch && searchDropdown && !keywordSearch.contains(e.target) && !searchDropdown.contains(e.target)) {
+            searchDropdown.style.display = 'none';
+        }
+    });
+}
+// 初始化选择状态
+updateSelection();
+</script>
+<!-- 分配销售弹窗 -->
+<div class="modal fade" id="assignModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">分配客户给销售</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>客户：<strong id="assignCustomerName"></strong></p>
+                <div class="mb-3">
+                    <label class="form-label">选择销售</label>
+                    <select id="assignSalesSelect" class="form-select">
+                        <option value="">请选择</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">备注</label>
+                    <textarea id="assignNotes" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="confirmAssignBtn">确认分配</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>    
+    // 获取本部门的销售列表
+    function loadSalesList() {
+        fetch('/customers/api/sales-list/')
+            .then(response => response.json())
+            .then(data => {
+                const select = document.getElementById('assignSalesSelect');
+                select.innerHTML = '<option value="">请选择</option>';
+                if (data.sales) {
+                    data.sales.forEach(sales => {
+                        select.innerHTML += `<option value="${sales.id}">${sales.username}${sales.real_name ? ' - ' + sales.real_name : ''}</option>`;
+                    });
+                } else {
+                    select.innerHTML = '<option value="">暂无销售</option>';
+                }
+            })
+            .catch(error => {
+                console.error('加载销售列表失败:', error);
+            });
+    }
+    
+    // 打开弹窗时
+    const assignModal = document.getElementById('assignModal');
+    if (assignModal) {
+        assignModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            currentCustomerId = button.getAttribute('data-customer-id');
+            const customerName = button.getAttribute('data-customer-name');
+            document.getElementById('assignCustomerName').textContent = customerName;
+            loadSalesList();
+        });
+    }
+    
+    // 确认分配
+    const confirmAssignBtn = document.getElementById('confirmAssignBtn');
+    if (confirmAssignBtn) {
+        confirmAssignBtn.addEventListener('click', function() {
+            const salesId = document.getElementById('assignSalesSelect').value;
+            const notes = document.getElementById('assignNotes').value;
+            
+            if (!salesId) {
+                alert('请选择销售');
+                return;
+            }
+            
+            fetch('/customers/api/assign-customer/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    customer_id: currentCustomerId,
+                    sales_id: salesId,
+                    notes: notes
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('分配成功');
+                    location.reload();
+                } else {
+                    alert('分配失败：' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('分配失败：网络错误');
+            });
+        });
+    }
+    
+    // 获取CSRF Token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}

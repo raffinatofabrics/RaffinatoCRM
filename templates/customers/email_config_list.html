@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block page_title %}邮箱配置{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>邮箱配置</h2>
+    <a href="{% url 'email_config_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> 添加邮箱
+    </a>
+</div>
+
+<div class="card-modern">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-modern">
+                <thead>
+                    <tr>
+                        <th>邮箱地址</th>
+                        <th>发件人名称</th>
+                        <th>SMTP服务器</th>
+                        <th>默认</th>
+                        <th>每日上限</th>
+                        <th>今日已发</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for config in configs %}
+                    <tr>
+                        <td>{{ config.email }}</td>
+                        <td>{{ config.from_name }}</td>
+                        <td>{{ config.smtp_host }}:{{ config.smtp_port }}</td>
+                        <td>
+                            {% if config.is_default %}
+                                <span class="level-badge level-advanced">默认</span>
+                            {% else %}
+                                <span class="level-badge level-potential">备用</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ config.daily_limit }}</td>
+                        <td>{{ config.sent_today }}</td>
+                        <td>
+                            {% if config.is_active %}
+                                <span class="level-badge level-advanced">启用</span>
+                            {% else %}
+                                <span class="level-badge level-potential">禁用</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'email_config_edit' config.id %}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button class="btn btn-sm btn-info test-email" data-id="{{ config.id }}" data-email="{{ config.email }}">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                            <a href="{% url 'email_config_delete' config.id %}" class="btn btn-sm btn-danger" onclick="return confirm('确定删除？')">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                         </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center">暂无邮箱配置，点击上方按钮添加</a> 暂无邮箱配置，点击上方按钮添加</th> </a> 暂无邮箱配置，点击上方按钮添加</th> </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// 测试邮箱
+document.querySelectorAll('.test-email').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const configId = this.dataset.id;
+        const email = this.dataset.email;
+        
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+        
+        fetch(`/customers/email-configs/${configId}/test/`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`测试邮件已发送到 ${email}`);
+                } else {
+                    alert('发送失败：' + data.message);
+                }
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                btn.disabled = false;
+            });
+    });
+});
+</script>
+{% endblock %}

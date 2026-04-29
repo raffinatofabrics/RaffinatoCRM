@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block page_title %}邮件发送记录{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>邮件发送记录</h2>
+    
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>收件人</th>
+                    <th>客户</th>
+                    <th>主题</th>
+                    <th>状态</th>
+                    <th>发送时间</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.recipient }}</td>
+                    <td>{% if log.customer %}{{ log.customer.company_name }}{% else %}-{% endif %}</td>
+                    <td>{{ log.subject|truncatechars:50 }}</td>
+                    <td>
+                        {% if log.status == 'success' %}
+                            <span class="badge bg-success">成功</span>
+                        {% elif log.status == 'failed' %}
+                            <span class="badge bg-danger">失败</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ log.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ log.sent_at|date:"Y-m-d H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">暂无发送记录</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

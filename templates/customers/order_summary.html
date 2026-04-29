@@ -1,0 +1,473 @@
+{% extends 'base.html' %}
+
+{% block page_title %}订单汇总报表{% endblock %}
+
+{% block content %}
+<style>
+    .summary-card {
+        background: #f8f9fa;
+        border-left: 4px solid #007bff;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+    }
+    body.dark-mode .summary-card {
+        background: #1e293b;
+        border-left-color: #667eea;
+    }
+    .summary-card .total {
+        font-size: 22px;
+        font-weight: bold;
+        color: #8B0000;
+    }
+    body.dark-mode .summary-card .total {
+        color: #f59e0b;
+    }
+    .rank-1 { background-color: #FFD700; }
+    .rank-2 { background-color: #C0C0C0; }
+    .rank-3 { background-color: #CD7F32; }
+    .filter-bar {
+        background: #f8f9fa;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    body.dark-mode .filter-bar {
+        background: #16213e;
+    }
+    .dropdown-result {
+        position: absolute;
+        z-index: 1000;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        max-height: 200px;
+        overflow-y: auto;
+        width: calc(100% - 2px);
+    }
+    body.dark-mode .dropdown-result {
+        background: #1e293b;
+        border-color: #2c3e50;
+    }
+    .dropdown-result div {
+        padding: 8px 12px;
+        cursor: pointer;
+    }
+    .dropdown-result div:hover {
+        background-color: #f0f0f0;
+    }
+    body.dark-mode .dropdown-result div:hover {
+        background-color: #0f3460;
+    }
+    .position-relative {
+        position: relative;
+    }
+/* 暗色模式下汇总卡片文字 */
+body.dark-mode .summary-card,
+body.dark-mode .summary-card p,
+body.dark-mode .summary-card h4,
+body.dark-mode .summary-card .total {
+    color: #ffffff !important;
+}
+
+/* 确保汇总卡片内的数字也显示白色 */
+body.dark-mode .summary-card .total {
+    color: #f59e0b !important;  /* 保留橙色突出数字 */
+}
+
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>订单汇总报表</h2>
+</div>
+
+<!-- 选项卡 -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item"><a class="nav-link {% if report_type == 'customer' %}active{% endif %}" href="?type=customer">按客户汇总</a></li>
+    <li class="nav-item"><a class="nav-link {% if report_type == 'product' %}active{% endif %}" href="?type=product">按产品汇总</a></li>
+    <li class="nav-item"><a class="nav-link {% if report_type == 'date' %}active{% endif %}" href="?type=date">按时间汇总</a></li>
+    <li class="nav-item"><a class="nav-link {% if report_type == 'rank' %}active{% endif %}" href="?type=rank">按销售额汇总</a></li>
+</ul>
+
+<!-- 筛选表单 -->
+<form method="get" id="filterForm" class="mb-4">
+    <input type="hidden" name="type" value="{{ report_type }}">
+    <div class="row g-2 align-items-end">
+        <div class="col-auto">
+            <label class="form-label small">开始日期</label>
+            <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+        </div>
+        <div class="col-auto">
+            <label class="form-label small">结束日期</label>
+            <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+        </div>
+        <div class="col-auto">
+            <label class="form-label small">业务类型</label>
+            <select name="business_type" class="form-select" onchange="this.form.submit()">
+                <option value="">全部</option>
+                <option value="international" {% if business_type == 'international' %}selected{% endif %}>外贸</option>
+                <option value="domestic" {% if business_type == 'domestic' %}selected{% endif %}>内贸</option>
+            </select>
+        </div>
+
+        {% if report_type == 'customer' %}
+        <div class="col-auto position-relative" style="min-width: 220px;">
+            <label class="form-label small">客户名称</label>
+            <input type="text" id="customerSearch" class="form-control" placeholder="输入客户名称" autocomplete="off" value="{{ selected_customer_name|default:'' }}">
+            <input type="hidden" name="customer_id" id="customerId" value="{{ selected_customer|default:'' }}">
+            <div id="customerDropdown" class="dropdown-result" style="display: none;"></div>
+        </div>
+        {% endif %}
+
+       {% if report_type == 'product' %}
+<div class="col-auto position-relative" style="min-width: 220px;">
+    <label class="form-label small">产品名称</label>
+    <input type="text" id="productSearchInput" class="form-control" placeholder="输入产品名称" autocomplete="off" value="{{ selected_product|default:'' }}">
+    <input type="hidden" name="product_name" id="productNameHidden" value="{{ selected_product|default:'' }}">
+    <div id="productDropdown" class="dropdown-result" style="display: none;"></div>
+</div>
+{% endif %}
+
+        {% if report_type == 'date' %}
+        <div class="col-auto">
+            <label class="form-label small">年份</label>
+            <select name="year" class="form-select" onchange="this.form.submit()">
+                {% for y in years %}
+                <option value="{{ y.year }}" {% if current_year == y.year %}selected{% endif %}>{{ y.year }}年</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <label class="form-label small">月份</label>
+            <select name="month" class="form-select" onchange="this.form.submit()">
+                <option value="">全年</option>
+                {% for m in months %}
+                <option value="{{ m }}" {% if current_month == m %}selected{% endif %}>{{ m }}月</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <label class="form-label small">视图</label>
+            <select name="view" class="form-select" onchange="this.form.submit()">
+                <option value="date" {% if view_type == 'date' %}selected{% endif %}>按日期</option>
+                <option value="product" {% if view_type == 'product' %}selected{% endif %}>按产品</option>
+            </select>
+        </div>
+        {% endif %}
+
+        {% if report_type == 'rank' %}
+        <div class="col-auto">
+            <label class="form-label small">显示数量</label>
+            <select name="rank_limit" class="form-select" onchange="this.form.submit()">
+                <option value="10" {% if rank_limit == 10 %}selected{% endif %}>Top 10</option>
+                <option value="20" {% if rank_limit == 20 %}selected{% endif %}>Top 20</option>
+                <option value="50" {% if rank_limit == 50 %}selected{% endif %}>Top 50</option>
+                <option value="0" {% if rank_limit == 0 %}selected{% endif %}>全部</option>
+            </select>
+        </div>
+        {% endif %}
+
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">查询</button>
+        </div>
+        <div class="col-auto">
+            <a href="?type={{ report_type }}" class="btn btn-secondary">重置</a>
+        </div>
+        <div class="col-auto">
+            <button type="button" id="exportBtn" class="btn btn-success">导出Excel</button>
+        </div>
+    </div>
+</form>
+
+
+<!-- 汇总卡片 -->
+<div class="summary-card">
+    <h4>汇总信息</h4>
+    {% if report_type == 'customer' %}
+        {% if selected_customer %}
+            <p>客户：<strong>{{ summary.customer_name|default:'-' }}</strong></p>
+            <p>总订单数：<span class="total">{{ summary.total_orders|default:0 }}</span> 单</p>
+            <p>人民币金额：¥ {{ summary.rmb_amount|default:0|floatformat:2 }}</p>
+            <p>美元金额：$ {{ summary.usd_amount|default:0|floatformat:2 }}</p>
+        {% else %}
+            <p>统计客户数：<span class="total">{{ summary.total_customers|default:0 }}</span> 家</p>
+            <p>总订单数：<span class="total">{{ summary.total_orders|default:0 }}</span> 单</p>
+            <p>人民币总额：¥ {{ summary.rmb_amount|default:0|floatformat:2 }}</p>
+            <p>美元总额：$ {{ summary.usd_amount|default:0|floatformat:2 }}</p>
+        {% endif %}
+    {% elif report_type == 'product' %}
+        <p>产品：<strong>{{ summary.product_name|default:'全部产品' }}</strong></p>
+        <p>总销售数量：<span class="total">{{ summary.total_quantity|default:0|floatformat:0 }}</span> 米</p>
+        <p>人民币金额：¥ {{ summary.rmb_amount|default:0|floatformat:2 }}</p>
+        <p>美元金额：$ {{ summary.usd_amount|default:0|floatformat:2 }}</p>
+    {% elif report_type == 'date' %}
+        <p>时间段：<strong>{% if date_from %}{{ date_from }} 至 {{ date_to }}{% else %}{{ current_year }}年{% if current_month %} {{ current_month }}月{% endif %}{% endif %}</strong></p>
+        <p>总订单数：<span class="total">{{ summary.total_orders|default:0 }}</span> 单</p>
+        <p>人民币合计：¥ {{ rmb_total|default:0|floatformat:2 }}</p>
+        <p>美元合计：$ {{ usd_total|default:0|floatformat:2 }}</p>
+    {% elif report_type == 'rank' %}
+        <p>统计客户数：<span class="total">{{ summary.total_customers|default:0 }}</span> 家</p>
+        <p>人民币销售额：¥ {{ rmb_total|default:0|floatformat:2 }}</p>
+        <p>美元销售额：$ {{ usd_total|default:0|floatformat:2 }}</p>
+    {% else %}
+        <p>总订单数：<span class="total">{{ total_orders_count|default:0 }}</span> 单</p>
+        <p>人民币合计：¥ {{ rmb_total|default:0|floatformat:2 }}</p>
+        <p>美元合计：$ {{ usd_total|default:0|floatformat:2 }}</p>
+    {% endif %}
+</div>
+
+<!-- 明细表格 -->
+<div class="table-responsive">
+    <table class="table table-bordered" id="summaryTable">
+        <thead>
+            <tr>
+                {% if report_type == 'customer' %}
+                    {% if selected_customer %}
+                        <th>订单号</th><th>日期</th><th>产品名称</th><th>规格</th><th>数量</th><th>单位</th><th>单价</th><th>金额</th><th>订单金额</th><th>状态</th>
+                    {% else %}
+                        <th>客户名称</th><th>订单数</th><th>人民币金额</th><th>美元金额</th><th>总金额</th>
+                    {% endif %}
+                {% elif report_type == 'product' %}
+                    <th>产品名称</th><th>规格</th><th>总数量</th><th>人民币金额</th><th>美元金额</th>
+                {% elif report_type == 'date' %}
+                    {% if view_type == 'date' %}
+                        <th>日期</th><th>订单数</th><th>人民币金额</th><th>美元金额</th><th>操作</th>
+                    {% else %}
+                        <th>产品名称</th><th>规格</th><th>总数量</th><th>人民币金额</th><th>美元金额</th>
+                    {% endif %}
+                {% elif report_type == 'rank' %}
+                    <th>排名</th><th>客户名称</th><th>订单数</th><th>人民币金额</th><th>美元金额</th><th>总金额</th><th>占比</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            {% if report_type == 'customer' %}
+                {% if selected_customer %}
+                    {% for item in result %}
+                    <tr>
+                        <td>{{ item.order_no }}</td><td>{{ item.order_date|date:"Y-m-d" }}</td><td>{{ item.product_name|default:'-' }}</td><td>{{ item.specification|default:'-' }}</td><td>{{ item.quantity|floatformat:0 }}</td><td>{{ item.unit|default:'米' }}</td><td>{{ item.unit_price|floatformat:2 }}</td><td>{{ item.amount|floatformat:2 }}</td><td>{{ item.order_amount|floatformat:2 }}</td><td>{{ item.status }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    {% for item in result %}
+                    <tr>
+                        <td>{{ item.customer_name }}</td><td>{{ item.order_count }}</td><td>¥ {{ item.rmb_amount|default:0|floatformat:2 }}</td><td>$ {{ item.usd_amount|default:0|floatformat:2 }}</td><td>{{ item.total_amount|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                {% endif %}
+            {% elif report_type == 'product' %}
+                {% for item in result %}
+                <tr>
+                    <td>{{ item.product_name|default:'-' }}</td><td>{{ item.specification|default:'-' }}</td><td>{{ item.total_quantity|floatformat:0 }}</td><td>¥ {{ item.rmb_amount|default:0|floatformat:2 }}</td><td>$ {{ item.usd_amount|default:0|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            {% elif report_type == 'date' %}
+                {% if view_type == 'date' %}
+                    {% for item in result %}
+                    <tr>
+                        <td>{{ item.date|date:"Y-m-d" }}</td><td>{{ item.daily_count }}</td><td>¥ {{ item.rmb_amount|default:0|floatformat:2 }}</td><td>$ {{ item.usd_amount|default:0|floatformat:2 }}</td><td><a href="{% url 'order_list' %}?date_from={{ item.date|date:'Y-m-d' }}&date_to={{ item.date|date:'Y-m-d' }}" class="btn btn-sm btn-info">查看</a></td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    {% for item in result %}
+                    <tr>
+                        <td>{{ item.product_name|default:'-' }}</td><td>{{ item.specification|default:'-' }}</td><td>{{ item.total_quantity|floatformat:0 }}</td><td>¥ {{ item.rmb_amount|default:0|floatformat:2 }}</td><td>$ {{ item.usd_amount|default:0|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                {% endif %}
+            {% elif report_type == 'rank' %}
+    {% for item in result %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ item.customer_name }}</td>
+        <td>{{ item.order_count }}</td>
+        <td>¥ {{ item.rmb_amount|default:0|floatformat:2 }}</td>
+        <td>$ {{ item.usd_amount|default:0|floatformat:2 }}</td>
+        <td>{{ item.total_amount|floatformat:2 }}</td>
+        <td>{{ item.percentage|floatformat:1 }}%</td>
+    </tr>
+    {% endfor %}
+            {% else %}
+                <tr><td colspan="10" class="text-center">暂无数据</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+// 客户搜索下拉（输入即搜索 + 点击下拉）
+var customerSearch = document.getElementById('customerSearch');
+var customerId = document.getElementById('customerId');
+var customerDropdown = document.getElementById('customerDropdown');
+
+if (customerSearch) {
+    var timeout;
+    
+    // 输入时搜索
+    customerSearch.addEventListener('input', function() {
+        clearTimeout(timeout);
+        var keyword = this.value;
+        if (keyword.length < 1) {
+            if (customerDropdown) customerDropdown.style.display = 'none';
+            return;
+        }
+        timeout = setTimeout(function() {
+            fetch('/api/customer-search/?q=' + encodeURIComponent(keyword))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (customerDropdown) {
+                        if (data.length === 0) {
+                            customerDropdown.innerHTML = '<div class="text-muted">暂无客户</div>';
+                        } else {
+                            var html = '';
+                            for (var i = 0; i < data.length; i++) {
+                                html += '<div data-id="' + data[i].id + '" data-name="' + data[i].company_name + '">' + data[i].company_name + '</div>';
+                            }
+                            customerDropdown.innerHTML = html;
+                        }
+                        customerDropdown.style.display = 'block';
+                    }
+                });
+        }, 300);
+    });
+    
+    // 点击输入框时显示所有客户
+    customerSearch.addEventListener('focus', function() {
+        var keyword = this.value;
+        if (keyword.length < 1) {
+            fetch('/api/customer-search/?q=')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (customerDropdown) {
+                        if (data.length === 0) {
+                            customerDropdown.innerHTML = '<div class="text-muted">暂无客户</div>';
+                        } else {
+                            var html = '';
+                            for (var i = 0; i < data.length; i++) {
+                                html += '<div data-id="' + data[i].id + '" data-name="' + data[i].company_name + '">' + data[i].company_name + '</div>';
+                            }
+                            customerDropdown.innerHTML = html;
+                        }
+                        customerDropdown.style.display = 'block';
+                    }
+                });
+        }
+    });
+    
+    // 选择下拉项
+    if (customerDropdown) {
+        customerDropdown.addEventListener('click', function(e) {
+            var item = e.target.closest('div');
+            if (item && item.dataset.id) {
+                customerSearch.value = item.dataset.name;
+                customerId.value = item.dataset.id;
+                customerDropdown.style.display = 'none';
+                document.getElementById('filterForm').submit();
+            }
+        });
+    }
+    
+    // 点击其他地方关闭下拉框
+    document.addEventListener('click', function(e) {
+        if (customerSearch && customerDropdown && !customerSearch.contains(e.target) && !customerDropdown.contains(e.target)) {
+            customerDropdown.style.display = 'none';
+        }
+    });
+}
+
+// 产品搜索下拉（输入即搜索 + 点击下拉）
+var productSearchInput = document.getElementById('productSearchInput');
+var productNameHidden = document.getElementById('productNameHidden');
+var productDropdown = document.getElementById('productDropdown');
+
+if (productSearchInput) {
+    var productTimeout;
+    
+    // 输入时搜索
+    productSearchInput.addEventListener('input', function() {
+        clearTimeout(productTimeout);
+        var keyword = this.value;
+        if (keyword.length < 1) {
+            if (productDropdown) productDropdown.style.display = 'none';
+            return;
+        }
+        productTimeout = setTimeout(function() {
+            fetch('/api/product-search/?q=' + encodeURIComponent(keyword))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (productDropdown) {
+                        if (data.length === 0) {
+                            productDropdown.innerHTML = '<div class="text-muted">暂无产品</div>';
+                        } else {
+                            var html = '';
+                            for (var i = 0; i < data.length; i++) {
+                                html += '<div data-name="' + data[i].name + '">' + data[i].name + '</div>';
+                            }
+                            productDropdown.innerHTML = html;
+                        }
+                        productDropdown.style.display = 'block';
+                    }
+                });
+        }, 300);
+    });
+    
+    // 点击输入框时显示所有产品
+    productSearchInput.addEventListener('focus', function() {
+        var keyword = this.value;
+        if (keyword.length < 1) {
+            fetch('/api/product-search/?q=')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (productDropdown) {
+                        if (data.length === 0) {
+                            productDropdown.innerHTML = '<div class="text-muted">暂无产品</div>';
+                        } else {
+                            var html = '';
+                            for (var i = 0; i < data.length; i++) {
+                                html += '<div data-name="' + data[i].name + '">' + data[i].name + '</div>';
+                            }
+                            productDropdown.innerHTML = html;
+                        }
+                        productDropdown.style.display = 'block';
+                    }
+                });
+        }
+    });
+    
+    // 选择下拉项
+    if (productDropdown) {
+        productDropdown.addEventListener('click', function(e) {
+            var item = e.target.closest('div');
+            if (item && item.dataset.name) {
+                productSearchInput.value = item.dataset.name;
+                productNameHidden.value = item.dataset.name;
+                productDropdown.style.display = 'none';
+                document.getElementById('filterForm').submit();
+            }
+        });
+    }
+    
+    // 点击其他地方关闭下拉框
+    document.addEventListener('click', function(e) {
+        if (productSearchInput && productDropdown && !productSearchInput.contains(e.target) && !productDropdown.contains(e.target)) {
+            productDropdown.style.display = 'none';
+        }
+    });
+}
+// 导出Excel
+var exportBtn = document.getElementById('exportBtn');
+if (exportBtn) {
+    exportBtn.addEventListener('click', function() {
+        var table = document.getElementById('summaryTable');
+        if (table) {
+            var ws = XLSX.utils.table_to_sheet(table);
+            var wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '订单汇总');
+            XLSX.writeFile(wb, '订单汇总_' + new Date().toISOString().slice(0,19).replace(/:/g, '-') + '.xlsx');
+        }
+    });
+}
+
+</script>
+{% endblock %}

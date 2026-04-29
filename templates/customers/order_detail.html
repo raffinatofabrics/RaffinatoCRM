@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+
+{% block page_title %}订单详情 - {{ order.order_no }}{% endblock %}
+
+{% block content %}
+<style>
+    body.dark-mode tfoot tr {
+        background-color: #0f3460 !important;
+    }
+    body.dark-mode tfoot td {
+        color: #fff !important;
+    }
+    body.dark-mode .table-modern td,
+    body.dark-mode .table-modern th {
+        color: #fff !important;
+    }
+/* 暗色模式弹窗 */
+body.dark-mode .modal-content {
+    background-color: #16213e !important;
+    color: #fff !important;
+}
+body.dark-mode .modal-header,
+body.dark-mode .modal-footer {
+    border-color: #2c3e50 !important;
+}
+body.dark-mode .modal-header .btn-close {
+    filter: invert(1);
+}
+body.dark-mode .form-label {
+    color: #fff !important;
+}
+body.dark-mode .form-control {
+    background-color: #0f3460 !important;
+    color: #fff !important;
+    border-color: #2c3e50 !important;
+}
+body.dark-mode .form-control[readonly] {
+    background-color: #16213e !important;
+    color: #aaa !important;
+}
+</style>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <a href="{% url 'order_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回列表
+        </a>
+        <a href="{% url 'order_print' order.id %}?seal=1" class="btn btn-info" target="_blank">
+            <i class="fas fa-print"></i> 打印
+        </a>
+        <a href="{% url 'order_edit' order.id %}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> 调整订单
+        </a>
+        
+        <!-- 新增：PDF 导出下拉按钮 -->
+<div class="btn-group">
+    <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="fas fa-file-pdf"></i> 导出PDF
+    </button>
+    <ul class="dropdown-menu">
+        <li>
+            <button class="dropdown-item" onclick="downloadPDF('quotation')">
+                <i class="fas fa-file-pdf"></i> 报价单
+            </button>
+        </li>
+        <li>
+            <button class="dropdown-item" onclick="downloadPDF('proforma')">
+                <i class="fas fa-file-pdf"></i> 形式发票
+            </button>
+        </li>
+        <li>
+            <button class="dropdown-item" onclick="downloadPDF('commercial')">
+                <i class="fas fa-file-pdf"></i> 商业发票
+            </button>
+        </li>
+        <li>
+            <button class="dropdown-item" onclick="downloadPDF('packing')">
+                <i class="fas fa-file-pdf"></i> 装箱单
+            </button>
+        </li>
+    </ul>
+</div>
+
+<script>
+function downloadPDF(docType) {
+    const orderId = {{ order.id }};
+    // 修改这里：将 order 改为 orders
+    window.location.href = `/customers/orders/${orderId}/export/${docType}/`;
+}
+</script>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card-modern">
+            <div class="card-header">
+                <h5 class="mb-0">订单信息</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr><th style="width: 120px;">订单号：</th><td>{{ order.order_no }}</td></tr>
+                    <tr><th>客户：</th><td>{{ order.customer.company_name }}</td></tr>
+                    <tr><th>业务类型：</th><td>{% if order.business_type == 'international' %}外贸{% else %} 内贸{% endif %}</td></tr>
+                    <tr><th>订单日期：</th><td>{{ order.order_date|date:"Y-m-d" }}</td></tr>
+                    <tr>
+                        <th>状态：</th>
+                        <td>
+                            {% if order.status == 'draft' %}
+                                <span class="level-badge level-potential">草稿</span>
+                            {% elif order.status == 'confirmed' %}
+                                <span class="level-badge level-intermediate">已确认</span>
+                            {% elif order.status == 'shipped' %}
+                                <span class="level-badge level-advanced">已发货</span>
+                            {% elif order.status == 'completed' %}
+                                <span class="level-badge level-vip">已完成</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr><th>销售员：</th><td>{{ order.sales_person|default:"-" }}</td></tr>
+                    <tr><th>创建时间：</th><td>{{ order.created_at|date:"Y-m-d H:i" }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+   <div class="col-md-6 mb-4">
+        <div class="card-modern">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">金额汇总</h5>
+                <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editCostModal">
+                    <i class="fas fa-edit"></i> 编辑成本
+                </button>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                    <th style="width: 120px;">产品合计：</th>
+                    <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.subtotal|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <th>成本合计：</th>
+                    <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.total_cost|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <th>利润：</th>
+                    <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.profit|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <th>利润率：</th>
+                    <td>{{ order.profit_margin|floatformat:1 }}%</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card-modern">
+    <div class="card-header">
+        <h5 class="mb-0">产品明细</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-modern">
+                <thead>
+                    <tr>
+                        <th>产品名称</th>
+                        <th>规格色号</th>
+                        <th>数量</th>
+                        <th>单位</th>
+                        <th>单价(元)</th>
+                        <th>金额(元)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in order.items %}
+                    <tr>
+                        <td>{{ item.product_name }}</td>
+                        <td>{{ item.specification|default:"-" }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.unit|default:"米" }}</td>
+                        <!-- 产品明细表格中的单价和金额 -->
+<td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ item.unit_price|floatformat:2 }}</td>
+<td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ item.amount|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr style="background-color: #f5f5f5;">
+                        <td colspan="5" class="text-end"><strong>合计：</strong></td>
+                        <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.subtotal|floatformat:2 }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if order.notes %}
+<div class="card-modern mt-4">
+    <div class="card-header">
+        <h5 class="mb-0">备注</h5>
+    </div>
+    <div class="card-body">
+        <p>{{ order.notes|linebreaks }}</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- 编辑成本弹窗 -->
+<div class="modal fade" id="editCostModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editCostForm" method="post" action="{% url 'update_order_cost' order.id %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑成本/利润 - {{ order.order_no }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">产品合计</label>
+                        <input type="text" id="productTotal" class="form-control" value="{{ order.subtotal }}" readonly>
+                    </div>
+                    <hr>
+                    <h6>成本明细</h6>
+                    <div class="mb-3">
+    <label class="form-label">面料成本</label>
+    <input type="number" name="fabric_cost" id="fabricCost" class="form-control" step="0.01">
+</div>
+<div class="mb-3">
+    <label class="form-label">运费</label>
+    <input type="number" name="shipping_cost" id="shippingCost" class="form-control" step="0.01">
+</div>
+<div class="mb-3">
+    <label class="form-label">报关费</label>
+    <input type="number" name="customs_cost" id="customsCost" class="form-control" step="0.01">
+</div>
+<div class="mb-3">
+    <label class="form-label">其他费用</label>
+    <input type="number" name="other_cost" id="otherCost" class="form-control" step="0.01">
+</div>
+                    <div class="mb-3">
+                        <label class="form-label">总成本</label>
+                        <input type="text" id="totalCostDisplay" class="form-control" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">利润</label>
+                        <input type="text" id="profitDisplay" class="form-control" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">利润率 (%)</label>
+                        <input type="text" id="profitMarginDisplay" class="form-control" readonly>
+                    </div>
+                    <input type="hidden" name="total_cost" id="totalCostHidden">
+                    <input type="hidden" name="profit" id="profitHidden">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+// 成本计算
+const productTotal = parseFloat(document.getElementById('productTotal')?.value) || 0;
+const fabricCost = document.getElementById('fabricCost');
+const shippingCost = document.getElementById('shippingCost');
+const customsCost = document.getElementById('customsCost');
+const otherCost = document.getElementById('otherCost');
+const totalCostDisplay = document.getElementById('totalCostDisplay');
+const profitDisplay = document.getElementById('profitDisplay');
+const profitMarginDisplay = document.getElementById('profitMarginDisplay');
+const totalCostHidden = document.getElementById('totalCostHidden');
+const profitHidden = document.getElementById('profitHidden');
+
+// 清空输入框的初始值
+if (fabricCost) fabricCost.value = '';
+if (shippingCost) shippingCost.value = '';
+if (customsCost) customsCost.value = '';
+if (otherCost) otherCost.value = '';
+
+function calculateCosts() {
+    const fabric = fabricCost.value === '' ? 0 : parseFloat(fabricCost.value);
+    const shipping = shippingCost.value === '' ? 0 : parseFloat(shippingCost.value);
+    const customs = customsCost.value === '' ? 0 : parseFloat(customsCost.value);
+    const other = otherCost.value === '' ? 0 : parseFloat(otherCost.value);
+    
+    const totalCost = fabric + shipping + customs + other;
+    const profit = productTotal - totalCost;
+    let margin = 0;
+    if (productTotal > 0) {
+        margin = (profit / productTotal) * 100;
+    }
+    
+    totalCostDisplay.value = totalCost.toFixed(2);
+    profitDisplay.value = profit.toFixed(2);
+    profitMarginDisplay.value = margin.toFixed(2) + '%';
+    
+    totalCostHidden.value = totalCost;
+    profitHidden.value = profit;
+}
+
+fabricCost.addEventListener('input', calculateCosts);
+shippingCost.addEventListener('input', calculateCosts);
+customsCost.addEventListener('input', calculateCosts);
+otherCost.addEventListener('input', calculateCosts);
+
+// 初始化计算
+calculateCosts();
+</script>{% endblock %}

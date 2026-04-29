@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block page_title %}编辑客户 - {{ customer.company_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-3">
+        <a href="{% url 'customer_detail' customer.id %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回详情
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card-modern">
+            <div class="card-header">
+                <h5 class="mb-0">编辑客户信息</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">公司名称 *</label>
+                            <input type="text" name="company_name" class="form-control" value="{{ customer.company_name }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">联系人</label>
+                            <input type="text" name="contact_person" class="form-control" value="{{ customer.contact_person|default:'' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+    <div class="col-md-6">
+        <label class="form-label">邮箱</label>
+        <input type="email" name="email" class="form-control" value="{{ customer.email|default:'' }}">
+        <div class="form-text">可选</div>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">电话</label>
+        <input type="text" name="phone" class="form-control" value="{{ customer.phone|default:'' }}">
+    </div>
+</div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">国家</label>
+                            <input type="text" name="country" class="form-control" value="{{ customer.country|default:'' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">省份</label>
+                            <input type="text" name="province" class="form-control" value="{{ customer.province|default:'' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">城市</label>
+                            <input type="text" name="city" class="form-control" value="{{ customer.city|default:'' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">地址</label>
+                        <textarea name="address" class="form-control" rows="2">{{ customer.address|default:'' }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+    <label class="form-label">网站</label>
+    <input type="text" name="website" class="form-control" value="{{ customer.website|default:'' }}">
+    <div class="form-text">可选，格式如：www.example.com 或 https://example.com</div>
+</div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">保存修改</button>
+                        <a href="{% url 'customer_detail' customer.id %}" class="btn btn-secondary">取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

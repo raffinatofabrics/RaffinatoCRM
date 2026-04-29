@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block page_title %}邮件自动化{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>自动化邮件序列</h2>
+        <a href="{% url 'email_sequence_create' %}" class="btn btn-primary">+ 新建序列</a>
+    </div>
+    
+    <div class="row">
+        {% for seq in sequences %}
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ seq.name }}</h5>
+                    <p class="card-text text-muted">{{ seq.description|truncatewords:20 }}</p>
+                    
+                    <div class="mb-2">
+                        <span class="badge bg-secondary">{{ seq.get_trigger_type_display }}</span>
+                        <span class="badge {% if seq.status == 'active' %}bg-success{% elif seq.status == 'paused' %}bg-warning{% else %}bg-secondary{% endif %}">
+                            {{ seq.get_status_display }}
+                        </span>
+                    </div>
+                    
+                    <p class="small">步骤数: {{ seq.steps.count }} | 已发送: {{ seq.total_sent }} 封</p>
+                    
+                    <div class="btn-group">
+                        <a href="{% url 'email_sequence_detail' seq.id %}" class="btn btn-sm btn-outline-primary">详情</a>
+                        <a href="{% url 'email_sequence_edit' seq.id %}" class="btn btn-sm btn-outline-secondary">编辑</a>
+                        <a href="{% url 'email_sequence_delete' seq.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('确定删除吗？')">删除</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">暂无邮件序列，点击"新建序列"开始创建</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

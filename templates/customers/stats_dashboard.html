@@ -1,0 +1,376 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block page_title %}业务数据统计大屏{% endblock %}
+
+{% block content %}
+<style>
+    .stats-container {
+        background-color: #f1f5f9;
+        min-height: 100vh;
+        padding: 20px;
+    }
+    .stats-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .stats-card h4 {
+        margin-bottom: 20px;
+        color: #1e293b;
+        border-left: 4px solid #667eea;
+        padding-left: 15px;
+    }
+    .kpi-card {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border-radius: 16px;
+        padding: 20px;
+        text-align: center;
+    }
+    /* 亮色模式下的 KPI 卡片颜色覆盖 */
+    .kpi-card:nth-child(2) {
+        background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    }
+    .kpi-card:nth-child(3) {
+        background: linear-gradient(135deg, #10b981, #059669) !important;
+    }
+    .kpi-card:nth-child(4) {
+        background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    }
+    .kpi-number {
+        font-size: 32px;
+        font-weight: bold;
+    }
+    .kpi-label {
+        font-size: 14px;
+        opacity: 0.9;
+        margin-top: 8px;
+    }
+    
+    /* 暗色模式 */
+    body.dark-mode .stats-container {
+        background-color: #0f172a;
+    }
+    body.dark-mode .stats-card {
+        background-color: #1e293b;
+    }
+    body.dark-mode .stats-card h4 {
+        color: #f1f5f9;
+    }
+
+/* 亮色模式标题 */
+.stats-container h2 {
+    color: #1e293b;
+}
+
+/* 暗色模式标题 */
+body.dark-mode .stats-container h2 {
+    color: #f1f5f9;
+}
+</style>
+
+<div class="stats-container">
+    <h2 class="mb-4" style="color: #1e293b;">业务数据统计大屏</h2>
+    
+  <!-- KPI 卡片 -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="kpi-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <div class="kpi-number">{{ today_domestic_count }}</div>
+            <div class="kpi-label">今日内贸订单</div>
+            <div class="small">¥{{ today_domestic_amount|floatformat:0 }}</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <div class="kpi-number">{{ today_international_count }}</div>
+            <div class="kpi-label">今日外贸订单</div>
+            <div class="small">${{ today_international_amount|floatformat:0 }}</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-card" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <div class="kpi-number">{{ month_domestic_count }}</div>
+            <div class="kpi-label">本月内贸订单</div>
+            <div class="small">¥{{ month_domestic_amount|floatformat:0 }}</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-card" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <div class="kpi-number">{{ month_international_count }}</div>
+            <div class="kpi-label">本月外贸订单</div>
+            <div class="small">${{ month_international_amount|floatformat:0 }}</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-card">
+            <div class="kpi-number">{{ total_customers|default:0 }}</div>
+            <div class="kpi-label">总客户数</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-card">
+            <div class="kpi-number">{{ reply_rate|default:0 }}%</div>
+            <div class="kpi-label">邮件回复率</div>
+        </div>
+    </div>
+</div>
+
+<!-- 业绩排名模块（根据角色显示） -->
+{% if show_ranking %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="stats-card">
+            <h4>销售业绩排名 
+                <small class="text-muted">
+                    {% if ranking_scope == 'department' %}
+                        （{{ user_dept_name }} - 部门内排名）
+                    {% else %}
+                        （全公司排名）
+                    {% endif %}
+                </small>
+            </h4>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>销售姓名</th>
+                            <th>客户数</th>
+                            <th>订单数</th>
+                            <th>订单总额</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sales in sales_ranking %}
+                        <tr {% if request.user == sales %}class="table-active"{% endif %}>
+                            <td><strong>{{ forloop.counter }}</strong></td>
+                            <td>{{ sales.username }}{% if request.user == sales %} <span class="badge bg-primary">我</span>{% endif %}</td>
+                            <td>{{ sales.customer_count|default:0 }}</td>
+                            <td>{{ sales.order_count|default:0 }}</td>
+                            <td>
+    {% if sales.user_dept == '外贸部' %}
+        ${{ sales.order_amount|default:0|floatformat:0 }}
+    {% else %}
+        ¥{{ sales.order_amount|default:0|floatformat:0 }}
+    {% endif %}
+</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center">暂无数据</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% if user_role != 'sales' %}
+    <!-- 图表行 -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="stats-card">
+                <h4>月度销售额趋势</h4>
+                <canvas id="salesChart" height="200"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="stats-card">
+                <h4>月度订单数趋势</h4>
+                <canvas id="ordersChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+<div class="row">
+        <div class="col-md-6">
+            <div class="stats-card">
+                <h4>产品销量排行 TOP10</h4>
+                <canvas id="productChart" height="300"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="stats-card">
+                <h4>客户销售额排行 TOP10</h4>
+                <canvas id="customerChart" height="300"></canvas>
+            </div>
+        </div> 
+   
+<div class="row">
+        <div class="col-md-6">
+            <div class="stats-card">
+                <h4>内外贸占比</h4>
+                <canvas id="businessTypeChart" height="200"></canvas>
+            </div>
+        </div>
+       <div class="col-md-6">
+            <div class="stats-card">
+                <h4>客户等级分布</h4>
+                <canvas id="levelChart" height="200"></canvas>
+            </div>
+        </div>
+            </div>
+
+
+    <div class="row">
+       <div class="col-md-6">
+            <div class="stats-card">
+                <h4>订单状态分布</h4>
+                <canvas id="statusChart" height="200"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="stats-card">
+                <h4>月度新增客户趋势</h4>
+                <canvas id="customersChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+{% endif %}
+        </div>
+</div>
+{% if user_role != 'sales' %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// 月度销售额趋势
+const salesCtx = document.getElementById('salesChart').getContext('2d');
+new Chart(salesCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for m in months %}'{{ m }}',{% endfor %}],
+        datasets: [{
+            label: '销售额(¥)',
+            data: [{% for s in monthly_sales %}{{ s }},{% endfor %}],
+            borderColor: '#667eea',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: true }
+});
+
+// 月度订单数趋势
+const ordersCtx = document.getElementById('ordersChart').getContext('2d');
+new Chart(ordersCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for m in months %}'{{ m }}',{% endfor %}],
+        datasets: [{
+            label: '订单数',
+            data: [{% for o in monthly_orders %}{{ o }},{% endfor %}],
+            borderColor: '#f59e0b',
+            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: true }
+});
+
+// 月度新增客户趋势
+const customersCtx = document.getElementById('customersChart').getContext('2d');
+new Chart(customersCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for m in months %}'{{ m }}',{% endfor %}],
+        datasets: [{
+            label: '新增客户数',
+            data: [{% for c in monthly_customers %}{{ c }},{% endfor %}],
+            backgroundColor: '#10b981',
+            borderRadius: 5
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: true }
+});
+
+// 客户等级分布
+const levelCtx = document.getElementById('levelChart').getContext('2d');
+new Chart(levelCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['VIP', '高级', '中级', '潜在'],
+        datasets: [{
+            data: [{{ level_data.vip }}, {{ level_data.advanced }}, {{ level_data.intermediate }}, {{ level_data.potential }}],
+            backgroundColor: ['#FFD700', '#27AE60', '#3498DB', '#95A5A6']
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: true }
+});
+
+// 内外贸占比
+const businessCtx = document.getElementById('businessTypeChart').getContext('2d');
+new Chart(businessCtx, {
+    type: 'pie',
+    data: {
+        labels: ['外贸', '内贸'],
+        datasets: [{
+            data: [{{ international_count }}, {{ domestic_count }}],
+            backgroundColor: ['#667eea', '#f59e0b']
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: true }
+});
+
+// 订单状态分布
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+new Chart(statusCtx, {
+    type: 'pie',
+    data: {
+        labels: ['草稿', '已确认', '已发货', '已完成'],
+        datasets: [{
+            data: [{{ status_data.draft }}, {{ status_data.confirmed }}, {{ status_data.shipped }}, {{ status_data.completed }}],
+            backgroundColor: ['#95A5A6', '#3498DB', '#f59e0b', '#27AE60']
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: true }
+});
+
+// 产品销量排行
+const productCtx = document.getElementById('productChart').getContext('2d');
+new Chart(productCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for p in product_names %}'{{ p|escapejs }}',{% endfor %}],
+        datasets: [{
+            label: '销售额(¥)',
+            data: [{% for a in product_amounts %}{{ a }},{% endfor %}],
+            backgroundColor: '#667eea',
+            borderRadius: 5
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        indexAxis: 'y',
+        plugins: { legend: { position: 'top' } }
+    }
+});
+
+// 客户销售额排行
+const customerCtx = document.getElementById('customerChart').getContext('2d');
+new Chart(customerCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for c in customer_names %}'{{ c|escapejs }}',{% endfor %}],
+        datasets: [{
+            label: '销售额(¥)',
+            data: [{% for a in customer_amounts %}{{ a }},{% endfor %}],
+            backgroundColor: '#10b981',
+            borderRadius: 5
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        indexAxis: 'y',
+        plugins: { legend: { position: 'top' } }
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

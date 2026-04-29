@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block page_title %}{% if config %}编辑邮箱{% else %}添加邮箱{% endif %}{% endblock %}
+
+{% block content %}
+<style>
+/* 其他样式... */
+
+/* 暗色模式复选框 */
+body.dark-mode input[type="checkbox"] {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background-color: #0f3460 !important;
+    border: 1px solid #667eea !important;
+    border-radius: 3px !important;
+    position: relative !important;
+    width: 18px !important;
+    height: 18px !important;
+    cursor: pointer !important;
+}
+
+body.dark-mode input[type="checkbox"]:checked {
+    background-color: #667eea !important;
+    border-color: #667eea !important;
+}
+
+body.dark-mode input[type="checkbox"]:checked::after {
+    content: "✓" !important;
+    position: absolute !important;
+    left: 2px !important;
+    top: -2px !important;
+    color: white !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+}
+</style>
+
+<div class="row">
+    <div class="col-md-12 mb-3">
+        <a href="{% url 'email_config_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回列表
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card-modern">
+            <div class="card-header">
+                <h5 class="mb-0">{% if config %}编辑邮箱{% else %}添加邮箱{% endif %}</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">邮箱地址 *</label>
+                            <input type="email" name="email" class="form-control" value="{{ config.email|default:'' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">发件人名称 *</label>
+                            <input type="text" name="from_name" class="form-control" value="{{ config.from_name|default:'' }}" required placeholder="如：张三 - Raffinato">
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">SMTP服务器 *</label>
+                            <input type="text" name="smtp_host" class="form-control" value="{{ config.smtp_host|default:'smtp.exmail.qq.com' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">SMTP端口 *</label>
+                            <input type="number" name="smtp_port" class="form-control" value="{{ config.smtp_port|default:587 }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">邮箱密码 *</label>
+                        <input type="password" name="smtp_password" class="form-control" value="{{ config.smtp_password|default:'' }}" required>
+                        <div class="form-text">授权码或登录密码</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">邮件签名（可选）</label>
+                        <textarea name="signature" class="form-control" rows="4" placeholder="例如：&#10;张三&#10;外贸业务员&#10;Raffinato纺织有限公司&#10;Tel: 138xxxxxxx">{{ config.signature|default:'' }}</textarea>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input type="checkbox" name="is_default" class="form-check-input" id="isDefault" {% if config.is_default %}checked{% endif %}>
+                                <label class="form-check-label" for="isDefault">设为默认发件箱</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">每日发送上限</label>
+                            <input type="number" name="daily_limit" class="form-control" value="{{ config.daily_limit|default:200 }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        <a href="{% url 'email_config_list' %}" class="btn btn-secondary">取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

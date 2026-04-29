@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raffinato CRM - 登录</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            min-height: 100vh;
+            background: url('/static/images/login-bg.png') no-repeat center center fixed;
+            background-size: cover;
+            background-position: center 15%;  /* 向上移动，让图片上半部分显示更多 */
+            font-family: 'Josefin Sans', 'Segoe UI', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.0);
+            z-index: 0;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 450px;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .login-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .login-header {
+            padding: 40px 30px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .login-header h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #1a1a2e;
+            font-family: 'Josefin Sans', sans-serif;
+        }
+
+        .login-header p {
+            font-size: 13px;
+            color: #555;
+            font-family: 'Josefin Sans', sans-serif;
+        }
+
+        .login-body {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        /* 透明输入框，无边框无下划线 */
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            background: transparent;
+            padding: 0;
+        }
+
+        .input-icon {
+            color: #999;
+            font-size: 18px;
+            width: 30px;
+        }
+
+        .form-control {
+            flex: 1;
+            padding: 12px 0;
+            border: none;
+            background: transparent;
+            font-size: 15px;
+            color: #333;
+            font-family: 'Josefin Sans', sans-serif;
+            outline: none;
+        }
+
+        .form-control::placeholder {
+            color: #aaa;
+            font-weight: 300;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 40px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Josefin Sans', sans-serif;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .error-message {
+            background: rgba(255, 68, 68, 0.9);
+            border-radius: 40px;
+            padding: 12px 20px;
+            margin-bottom: 25px;
+            color: white;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.03);
+            color: #666;
+            font-size: 12px;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 15px;
+            }
+            .login-header {
+                padding: 30px 20px 15px;
+            }
+            .login-body {
+                padding: 20px;
+            }
+        }
+    </style>
+    <script>
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+                (e.ctrlKey && e.key === 'U')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    </script>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>RaffinatoMade</h1>
+                <p>瑞菲纳朵商业信息管理系统</p>
+            </div>
+            <div class="login-body">
+                {% if form.errors %}
+                <div class="error-message">
+                    <i class="fas fa-exclamation-circle"></i> 用户名或密码错误，请重试
+                </div>
+                {% endif %}
+
+                <form method="post" action="{% url 'login' %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label>用户名/User</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon"><i class="fas fa-user"></i></span>
+                            <input type="text" name="username" class="form-control" placeholder="请输入用户名" required autofocus>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>密码/Password</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon"><i class="fas fa-lock"></i></span>
+                            <input type="password" name="password" class="form-control" placeholder="请输入密码" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-login">
+                        <i class="fas fa-sign-in-alt"></i> 登录系统
+                    </button>
+                    <input type="hidden" name="next" value="{{ next }}">
+                </form>
+            </div>
+            <div class="footer">
+    <div><i class="fas fa-shield-alt"></i> 安全登录 · 数据加密</div>
+    <div>Copyright © Raffinato Fabrics - All Rights Reserved.</div>
+</div>
+        </div>
+    </div>
+</body>
+</html>

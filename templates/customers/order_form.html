@@ -1,0 +1,420 @@
+{% extends 'base.html' %}
+
+{% block page_title %}新建订单{% endblock %}
+
+{% block content %}
+<style>
+    /* 亮色模式统一输入框样式 */
+    .form-control,
+    .form-select,
+    input,
+    select,
+    textarea {
+        background-color: #fff !important;
+        color: #333 !important;
+        border: 1px solid #ced4da !important;
+    }
+    
+    /* 暗色模式统一输入框样式 */
+    body.dark-mode .form-control,
+    body.dark-mode .form-select,
+    body.dark-mode input,
+    body.dark-mode select,
+    body.dark-mode textarea {
+        background-color: #0f3460 !important;
+        color: #fff !important;
+        border: 1px solid #2c3e50 !important;
+    }
+    
+    body.dark-mode .form-control:focus,
+    body.dark-mode input:focus {
+        background-color: #1a4a80 !important;
+        border-color: #2c3e50 !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }
+    
+    /* 表格内输入框与备注框一致 */
+    #itemsTable .form-control,
+    #itemsTable .form-select {
+        background-color: #fff !important;
+        color: #333 !important;
+        border: 1px solid #ced4da !important;
+    }
+    
+    body.dark-mode #itemsTable .form-control,
+    body.dark-mode #itemsTable .form-select {
+        background-color: #0f3460 !important;
+        color: #fff !important;
+        border: 1px solid #2c3e50 !important;
+    }
+    
+    body.dark-mode #itemsTable .form-control:focus,
+    body.dark-mode #itemsTable .form-select:focus {
+        background-color: #1a4a80 !important;
+    }
+    
+    /* 修复日历图标 */
+    body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+    }
+    
+    /* 修复只读输入框 */
+    body.dark-mode input[readonly],
+    body.dark-mode .form-control[readonly] {
+        background-color: #16213e !important;
+        color: #aaa !important;
+        border: 1px solid #2c3e50 !important;
+    }
+    
+    body.dark-mode .input-group-text {
+        background-color: #0f3460 !important;
+        color: #fff !important;
+        border-color: #2c3e50 !important;
+    }
+    
+    body.dark-mode .table-bordered,
+    body.dark-mode .table-bordered td,
+    body.dark-mode .table-bordered th {
+        border-color: #2c3e50 !important;
+    }
+    
+    body.dark-mode .table-bordered th {
+        background-color: #0f3460 !important;
+        color: #fff !important;
+    }
+    
+    /* 按钮样式 */
+    body.dark-mode .btn-outline-primary {
+        border-color: #2c3e50 !important;
+        color: #ddd !important;
+    }
+    body.dark-mode .btn-outline-primary:hover {
+        background-color: #8B0000 !important;
+        border-color: #8B0000 !important;
+        color: #fff !important;
+    }
+    
+    body.dark-mode .btn-danger {
+        background-color: #e74c3c !important;
+        border-color: #e74c3c !important;
+    }
+    body.dark-mode .btn-danger:hover {
+        background-color: #c0392b !important;
+    }
+    
+    /* 统一行高 */
+    #itemsTable td {
+        vertical-align: middle !important;
+        padding: 6px 8px !important;
+    }
+    #itemsTable .form-control,
+    #itemsTable .form-select {
+        height: 34px !important;
+        padding: 4px 8px !important;
+        font-size: 13px !important;
+    }
+.dropdown-result {
+    position: absolute;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    width: 100%;
+    left: 0;
+    top: 100%;
+    margin-top: 2px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.dropdown-result div:hover {
+    background-color: #f0f0f0;
+}
+body.dark-mode .dropdown-result {
+    background: #1e293b;
+    border-color: #2c3e50;
+}
+body.dark-mode .dropdown-result div:hover {
+    background-color: #0f3460;
+}
+</style>
+
+<div class="row">
+    <div class="col-md-12 mb-3">
+        <a href="{% url 'order_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回列表
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card-modern">
+            <div class="card-header">
+                <h5 class="mb-0">新建订单</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="orderForm">
+                    {% csrf_token %}
+                    
+     <div class="row mb-3">
+    <div class="col-md-3">
+        <label class="form-label">订单号</label>
+        <input type="text" class="form-control" value="自动生成" disabled>
+    </div>
+    <div class="col-md-3">
+    <label class="form-label">业务类型</label>
+    {% if user_role == 'sales' %}
+        <input type="text" class="form-control" value="{% if user_dept == '外贸部' %}外贸{% else %}内贸{% endif %}" readonly>
+        <input type="hidden" name="business_type" value="{% if user_dept == '外贸部' %}international{% else %}domestic{% endif %}">
+    {% else %}
+        <select name="business_type" id="businessType" class="form-select" required>
+            <option value="international">外贸</option>
+            <option value="domestic">内贸</option>
+        </select>
+    {% endif %}
+</div>
+    <div class="col-md-3 position-relative">
+    <label class="form-label">客户 *</label>
+    <input type="text" id="customerSearch" class="form-control" placeholder="输入客户名称搜索" autocomplete="off" required>
+    <input type="hidden" name="customer" id="customerId" value="">
+    <div id="customerDropdown" class="dropdown-result" style="display: none;"></div>
+</div>
+    <div class="col-md-3">
+        <label class="form-label">订单日期</label>
+        <input type="date" name="order_date" class="form-control" required>
+    </div>
+</div>
+                    
+                    <hr>
+                    <h6>产品明细</h6>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="itemsTable">
+                            <thead>
+                                <tr>
+                                    <th>产品名称</th>
+                                    <th>规格色号</th>
+                                    <th>数量</th>
+                                    <th>单位</th>
+                                    <th id="unitPriceHeader">单价(¥)</th>
+                                    <th id="amountHeader">金额(¥)</th>
+                                    <th style="width: 60px;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemBody">
+                                <tr class="item-row">
+                                    <td><input type="text" name="product_name[]" class="form-control" placeholder="产品名称" required></td>
+                                    <td><input type="text" name="specification[]" class="form-control" placeholder="规格色号"></td>
+                                    <td><input type="number" name="quantity[]" class="form-control quantity" step="0.01" placeholder="0" required></td>
+                                    <td><input type="text" name="unit[]" class="form-control" value="米"></td>
+                                    <td><input type="number" name="unit_price[]" class="form-control unit-price" step="0.01" placeholder="0" required></td>
+                                    <td><input type="text" class="form-control amount" readonly></td>
+                                    <td><button type="button" class="btn btn-sm btn-danger remove-row" style="display:none;">×</button></td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="7">
+                                        <button type="button" id="addRowBtn" class="btn btn-sm btn-outline-primary">+ 添加产品</button>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <label class="form-label">合计金额</label>
+                            <input type="text" id="totalAmount" class="form-control" readonly value="¥ 0.00" style="font-weight:bold;">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">备注</label>
+                            <textarea name="notes" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">保存订单</button>
+                        <a href="{% url 'order_list' %}" class="btn btn-secondary">取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const itemBody = document.getElementById('itemBody');
+    const addRowBtn = document.getElementById('addRowBtn');
+    
+    // 设置默认日期
+    if (!document.querySelector('input[name="order_date"]').value) {
+        document.querySelector('input[name="order_date"]').value = new Date().toISOString().split('T')[0];
+    }
+
+    // ========== 统一的业务类型获取方式 ==========
+    function getCurrentBusinessType() {
+        // 优先级1：隐藏字段（销售用户）
+        const hiddenInput = document.querySelector('input[name="business_type"]');
+        if (hiddenInput && hiddenInput.value) {
+            return hiddenInput.value;
+        }
+        // 优先级2：下拉框（管理员/主管）
+        const select = document.getElementById('businessType');
+        if (select && select.value) {
+            return select.value;
+        }
+        return 'domestic';
+    }
+
+    // ========== 更新货币符号 ==========
+    function updateCurrencyDisplay() {
+        const type = getCurrentBusinessType();
+        const currency = type === 'international' ? '$' : '¥';
+        const unitPriceHeader = document.getElementById('unitPriceHeader');
+        const amountHeader = document.getElementById('amountHeader');
+        if (unitPriceHeader) unitPriceHeader.innerHTML = '单价(' + currency + ')';
+        if (amountHeader) amountHeader.innerHTML = '金额(' + currency + ')';
+        calculateTotal();
+    }
+
+    // ========== 监听业务类型变化 ==========
+    const businessTypeSelect = document.getElementById('businessType');
+    if (businessTypeSelect) {
+        businessTypeSelect.addEventListener('change', function() {
+            updateCurrencyDisplay();
+        });
+    }
+
+    // ========== 计算单行金额 ==========
+    function calculateRow(row) {
+        const qty = parseFloat(row.querySelector('.quantity').value) || 0;
+        const price = parseFloat(row.querySelector('.unit-price').value) || 0;
+        const amount = (qty * price).toFixed(2);
+        row.querySelector('.amount').value = amount;
+        calculateTotal();
+    }
+
+    // ========== 计算总金额 ==========
+    function calculateTotal() {
+        let total = 0;
+        document.querySelectorAll('.amount').forEach(function(el) {
+            total += parseFloat(el.value) || 0;
+        });
+        const type = getCurrentBusinessType();
+        const currency = type === 'international' ? '$' : '¥';
+        const totalAmountInput = document.getElementById('totalAmount');
+        if (totalAmountInput) totalAmountInput.value = currency + ' ' + total.toFixed(2);
+    }
+
+    // ========== 产品行事件监听 ==========
+    itemBody.addEventListener('input', function(e) {
+        if (e.target.classList.contains('quantity') || e.target.classList.contains('unit-price')) {
+            const row = e.target.closest('.item-row');
+            if (row) calculateRow(row);
+        }
+    });
+
+    // ========== 添加产品行 ==========
+    addRowBtn.addEventListener('click', function() {
+        const lastRow = itemBody.querySelector('.item-row');
+        const newRow = lastRow.cloneNode(true);
+        newRow.querySelectorAll('input').forEach(function(input) {
+            if (input.name === 'unit[]') {
+                input.value = '米';
+            } else {
+                input.value = '';
+            }
+        });
+        const deleteBtn = newRow.querySelector('.remove-row');
+        if (deleteBtn) deleteBtn.style.display = 'inline-block';
+        itemBody.appendChild(newRow);
+    });
+
+    // ========== 删除产品行 ==========
+    itemBody.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-row')) {
+            const rows = itemBody.querySelectorAll('.item-row');
+            if (rows.length > 1) {
+                e.target.closest('.item-row').remove();
+                calculateTotal();
+            } else {
+                alert('至少保留一个产品');
+            }
+        }
+    });
+
+    // ========== 初始化货币符号 ==========
+    updateCurrencyDisplay();
+});
+
+// ========== 客户搜索功能 ==========
+var customerSearch = document.getElementById('customerSearch');
+var customerId = document.getElementById('customerId');
+var customerDropdown = document.getElementById('customerDropdown');
+
+if (customerSearch) {
+    var timeout;
+    
+    customerSearch.addEventListener('input', function() {
+        clearTimeout(timeout);
+        var keyword = this.value;
+        if (keyword.length < 1) {
+            customerDropdown.style.display = 'none';
+            return;
+        }
+        timeout = setTimeout(function() {
+            fetch('/api/customer-search/?q=' + encodeURIComponent(keyword))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (customerDropdown) {
+                        if (data.length === 0) {
+                            customerDropdown.innerHTML = '<div class="text-muted p-2">暂无客户</div>';
+                        } else {
+                            var html = '';
+                            for (var i = 0; i < data.length; i++) {
+                                html += '<div data-id="' + data[i].id + '" data-name="' + data[i].company_name + '" class="p-2" style="cursor: pointer; border-bottom: 1px solid #eee;">' + data[i].company_name + '</div>';
+                            }
+                            customerDropdown.innerHTML = html;
+                        }
+                        customerDropdown.style.display = 'block';
+                    }
+                });
+        }, 300);
+    });
+    
+    if (customerDropdown) {
+        customerDropdown.addEventListener('click', function(e) {
+            var item = e.target.closest('div[data-id]');
+            if (item && item.dataset.id) {
+                customerSearch.value = item.dataset.name;
+                customerId.value = item.dataset.id;
+                customerDropdown.style.display = 'none';
+            }
+        });
+    }
+    
+    document.addEventListener('click', function(e) {
+        if (customerSearch && customerDropdown && !customerSearch.contains(e.target) && !customerDropdown.contains(e.target)) {
+            customerDropdown.style.display = 'none';
+        }
+    });
+}
+
+// ========== 表单提交验证 ==========
+var orderForm = document.querySelector('form');
+if (orderForm) {
+    orderForm.addEventListener('submit', function(e) {
+        var customerIdVal = document.getElementById('customerId').value;
+        if (!customerIdVal) {
+            alert('请选择客户');
+            e.preventDefault();
+            return false;
+        }
+    });
+}
+</script>
+{% endblock %}

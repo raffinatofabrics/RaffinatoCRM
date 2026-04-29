@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block page_title %}{{ sequence.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>{{ sequence.name }}</h2>
+            <p class="text-muted">{{ sequence.description }}</p>
+        </div>
+        <div>
+            {% if sequence.status == 'draft' %}
+            <a href="{% url 'email_sequence_toggle' sequence.id %}?action=activate" class="btn btn-success">启用</a>
+            {% elif sequence.status == 'active' %}
+            <a href="{% url 'email_sequence_toggle' sequence.id %}?action=pause" class="btn btn-warning">暂停</a>
+            <a href="{% url 'email_sequence_toggle' sequence.id %}?action=stop" class="btn btn-danger">停止</a>
+            {% elif sequence.status == 'paused' %}
+            <a href="{% url 'email_sequence_toggle' sequence.id %}?action=activate" class="btn btn-success">恢复</a>
+            {% endif %}
+            <a href="{% url 'email_sequence_edit' sequence.id %}" class="btn btn-outline-primary">编辑</a>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3>{{ steps.count }}</h3>
+                    <p class="text-muted">邮件步骤</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3>{{ sequence.total_sent }}</h3>
+                    <p class="text-muted">已发送</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3>{{ affected_customers|length }}</h3>
+                    <p class="text-muted">受影响客户</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+<h4>邮件步骤</h4>
+<a href="{% url 'email_sequence_add_step' sequence.id %}" class="btn btn-sm btn-primary mb-3">+ 添加步骤</a>
+
+<div class="list-group mb-4">
+    {% for step in steps %}
+    <div class="list-group-item" style="background-color: #16213e !important; border-color: #0f3460; color: #fff;">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong style="color: #fff;">{{ step.step_order }}. {{ step.subject }}</strong>
+                <p class="small" style="color: #aaa;">等待 {{ step.wait_days }} 天后发送</p>
+            </div>
+            <div>
+                <a href="{% url 'email_sequence_edit_step' step.id %}" class="btn btn-sm btn-outline-secondary">编辑</a>
+                <a href="{% url 'email_sequence_delete_step' step.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('确定删除吗？')">删除</a>
+            </div>
+        </div>
+        <div class="mt-2 p-2 rounded small" style="background-color: #0f3460; color: #ddd;">
+            {{ step.template|truncatewords:30 }}
+        </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-info" style="background-color: #16213e; color: #fff; border-color: #0f3460;">暂无步骤，点击"添加步骤"开始配置</div>
+    {% endfor %}
+</div>
+    <div class="mt-4">
+        <a href="{% url 'email_sequence_list' %}" class="btn btn-secondary">返回列表</a>
+        <a href="{% url 'email_sequence_queue' %}" class="btn btn-info">查看邮件队列</a>
+    </div>
+</div>
+{% endblock %}

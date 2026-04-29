@@ -1,0 +1,344 @@
+{% extends 'base.html' %}
+
+{% block page_title %}用户管理{% endblock %}
+
+{% block content %}
+<style>
+/* 暗色模式弹窗 */
+body.dark-mode .modal-content {
+    background-color: #16213e !important;
+    color: #fff !important;
+}
+body.dark-mode .modal-header,
+body.dark-mode .modal-footer {
+    border-color: #2c3e50 !important;
+}
+body.dark-mode .modal-header .btn-close {
+    filter: invert(1);
+}
+body.dark-mode .form-label {
+    color: #fff !important;
+}
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+    background-color: #0f3460 !important;
+    color: #fff !important;
+    border-color: #2c3e50 !important;
+}
+</style>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>用户管理</h2>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+        <i class="fas fa-plus"></i> 添加用户
+    </button>
+</div>
+
+<div class="card-modern">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-modern">
+                <thead>
+                    <tr>
+                        <th>用户名</th>
+                        <th>真实姓名</th>
+                        <th>角色</th>
+                        <th>部门</th>
+                        <th>邮箱</th>
+                        <th>手机号</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+    {% for user in users %}
+    <tr>
+        <td>{{ user.username }}</td>
+        <td>{{ user.real_name|default:"-" }}</td>
+        <td>
+            {% if user.profile %}
+                {{ user.profile.get_role_display }}
+            {% else %}
+                <span class="text-muted">未设置</span>
+            {% endif %}
+        </td>
+        <td>
+            {% if user.profile and user.profile.department %}
+                {{ user.profile.department.name }}
+            {% else %}
+                <span class="text-muted">未设置</span>
+            {% endif %}
+        </td>
+        <td>{{ user.email|default:"-" }}</td>
+        <td>{{ user.phone|default:"-" }}</td>
+        <td>
+            <button class="btn btn-sm btn-warning edit-user" data-id="{{ user.id }}">
+    <i class="fas fa-edit"></i>
+</button>
+            <button class="btn btn-sm btn-danger delete-user" data-id="{{ user.id }}" data-name="{{ user.username }}">
+                <i class="fas fa-trash"></i>
+            </button>
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="7" class="text-center">暂无用户</td>
+    </tr>
+    {% endfor %}
+</tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 添加用户弹窗 -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" id="addModalContent">
+            <form id="addUserForm">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">添加用户</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">用户名 *</label>
+                        <input type="text" name="username" class="form-control" autocomplete="off" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">密码 *</label>
+                        <input type="password" name="password" class="form-control" autocomplete="new-password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">真实姓名</label>
+                        <input type="text" name="real_name" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">角色</label>
+                        <select name="role" class="form-select">
+    <option value="admin">管理员</option>
+    <option value="dept_leader">部门主管</option>
+    <option value="sales">销售人员</option>
+    <option value="readonly">只读用户</option>
+</select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">部门</label>
+                        <select name="department" class="form-select">
+    <option value="">请选择部门</option>
+    <option value="外贸部">外贸部</option>
+    <option value="内贸部">内贸部</option>
+</select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">邮箱</label>
+                        <input type="email" name="email" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">手机号</label>
+                        <input type="text" name="phone" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑用户弹窗 -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" id="editModalContent">
+            <form id="editUserForm">
+                {% csrf_token %}
+                <input type="hidden" name="user_id" id="editUserId">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑用户</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">用户名</label>
+                        <input type="text" id="editUsername" class="form-control" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">新密码（留空则不修改）</label>
+                        <input type="password" name="password" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">真实姓名</label>
+                        <input type="text" name="real_name" id="editRealName" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">角色</label>
+                        <select name="role" id="editRole" class="form-select">
+    <option value="admin">管理员</option>
+    <option value="dept_leader">部门主管</option>
+    <option value="sales">销售人员</option>
+    <option value="readonly">只读用户</option>
+</select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">部门</label>
+                        <select name="department" id="editDepartment" class="form-select">
+    <option value="">请选择部门</option>
+    <option value="外贸部">外贸部</option>
+    <option value="内贸部">内贸部</option>
+</select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">邮箱</label>
+                        <input type="email" name="email" id="editEmail" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">手机号</label>
+                        <input type="text" name="phone" id="editPhone" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// 添加用户
+document.getElementById('addUserForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch('/customers/user/create/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('添加成功');
+            location.reload();
+        } else {
+            alert('添加失败：' + data.message);
+        }
+    });
+});
+
+// 编辑用户
+document.querySelectorAll('.edit-user').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const userId = this.dataset.id;
+        
+        // 从后端获取用户数据
+        fetch(`/customers/user/${userId}/edit/`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('editUserId').value = data.id;
+                    document.getElementById('editUsername').value = data.username;
+                    document.getElementById('editRealName').value = data.real_name || '';
+                    document.getElementById('editRole').value = data.role;
+                    document.getElementById('editDepartment').value = data.department;
+                    document.getElementById('editEmail').value = data.email || '';
+                    document.getElementById('editPhone').value = data.phone || '';
+                    
+                    new bootstrap.Modal(document.getElementById('editUserModal')).show();
+                } else {
+                    alert('加载用户数据失败');
+                }
+            });
+    });
+});
+// 提交编辑
+document.getElementById('editUserForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const userId = document.getElementById('editUserId').value;
+    
+    fetch(`/customers/user/${userId}/edit/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('更新成功');
+            location.reload();
+        } else {
+            alert('更新失败：' + data.message);
+        }
+    });
+});
+
+// 删除用户
+document.querySelectorAll('.delete-user').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const userId = this.dataset.id;
+        const userName = this.dataset.name;
+        if (confirm(`确定删除用户 "${userName}" 吗？`)) {
+            fetch(`/customers/user/${userId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('删除成功');
+                    location.reload();
+                } else {
+                    alert('删除失败：' + data.message);
+                }
+            });
+        }
+    });
+});
+</script>
+<script>
+// 弹窗暗色模式适配
+function updateModalTheme() {
+    const isDark = document.body.classList.contains('dark-mode');
+    const bgColor = isDark ? '#16213e' : '#ffffff';
+    const textColor = isDark ? '#ffffff' : '#333333';
+    
+    const addModal = document.getElementById('addModalContent');
+    const editModal = document.getElementById('editModalContent');
+    
+    if (addModal) {
+        addModal.style.backgroundColor = bgColor;
+        addModal.style.color = textColor;
+    }
+    if (editModal) {
+        editModal.style.backgroundColor = bgColor;
+        editModal.style.color = textColor;
+    }
+}
+
+// 监听暗色模式切换
+const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+        if (mutation.attributeName === 'class') {
+            updateModalTheme();
+        }
+    });
+});
+observer.observe(document.body, { attributes: true });
+
+// 弹窗显示时更新
+document.getElementById('addUserModal')?.addEventListener('show.bs.modal', updateModalTheme);
+document.getElementById('editUserModal')?.addEventListener('show.bs.modal', updateModalTheme);
+
+// 初始化
+updateModalTheme();
+</script>
+{% endblock %}

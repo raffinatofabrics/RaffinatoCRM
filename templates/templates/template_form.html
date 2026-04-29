@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>{% if template %}编辑模板{% else %}新建模板{% endif %}</h2>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label class="form-label">模板名称</label>
+        <input type="text" name="name" class="form-control" value="{{ template.name|default:'' }}" required>
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label">邮件主题</label>
+        <input type="text" name="subject" class="form-control" value="{{ template.subject|default:'' }}" required>
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label">邮件正文</label>
+        <textarea name="content" id="editor" rows="10">{{ template.content|default:'' }}</textarea>
+    </div>
+    
+    <button type="submit" class="btn btn-primary">保存</button>
+    <a href="{% url 'template_list' %}" class="btn btn-secondary">返回</a>
+</form>
+
+<script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+<script>
+    let editor;
+    
+    ClassicEditor
+        .create(document.querySelector('#editor'), {
+            toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'insertTable', 'undo', 'redo']
+        })
+        .then(newEditor => {
+            editor = newEditor;
+        })
+        .catch(error => {
+            console.error(error);
+        });
+    
+    // 表单提交前同步内容
+    document.querySelector('form').addEventListener('submit', function() {
+        if (editor) {
+            document.querySelector('#editor').value = editor.getData();
+        }
+    });
+</script>
+{% endblock %}

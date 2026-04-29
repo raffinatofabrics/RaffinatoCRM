@@ -1,0 +1,328 @@
+{% extends 'base.html' %}
+
+{% block page_title %}任务详情 - {{ task.name }}{% endblock %}
+
+{% block content %}
+<style>
+    /* 搜索结果表格样式优化 */
+    .results-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+    .results-table th, 
+    .results-table td {
+        word-wrap: break-word;
+        vertical-align: middle;
+    }
+    .col-url {
+        width: 30%;
+    }
+    .col-title {
+        width: 40%;
+    }
+    .col-status {
+        width: 15%;
+    }
+    .col-action {
+        width: 15%;
+    }
+    .result-url {
+        display: block;
+        max-width: 250px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .result-url:hover {
+        white-space: normal;
+        word-break: break-all;
+    }
+    .result-title {
+        display: block;
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .result-title:hover {
+        white-space: normal;
+        word-break: break-all;
+    }
+    .btn-group-sm .btn {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.75rem;
+    }
+</style>
+
+<div class="mb-3">
+    <a href="{% url 'search_task_list' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> 返回列表
+    </a>
+    <a href="{% url 'search_task_run' task.id %}" class="btn btn-primary">
+        <i class="fas fa-play"></i> 执行搜索
+    </a>
+    {% if results %}
+    <a href="{% url 'export_search_results' task.id %}" class="btn btn-success">
+        <i class="fas fa-file-excel"></i> 导出 Excel
+    </a>
+    {% endif %}
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card-modern">
+            <div class="card-header">
+                <h5 class="mb-0">任务信息</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr><th style="width: 120px;">任务名称：</th><td>{{ task.name }}</td></tr>
+                    <tr><th>业务类型：</th><td>{% if task.business_type == 'international' %}🌍 外贸{% else %}🇨🇳 内贸{% endif %}</td></tr>
+                    <tr><th>关键词：</th><td>{{ task.keywords|linebreaks }}</td></tr>
+                    <tr><th>排除词：</th><td>{{ task.exclude_words|default:"-"|linebreaks }}</td></tr>
+                    <tr><th>搜索数量：</th><td>{{ task.max_results }} 条</td></tr>
+                    <tr><th>状态：</th><td>
+                        {% if task.status == 'pending' %}⏳ 等待
+                        {% elif task.status == 'running' %}🔄 执行中
+                        {% elif task.status == 'completed' %}✅ 已完成
+                        {% else %}❌ 失败{% endif %}
+                    </td></tr>
+                    <tr><th>找到结果：</th><td>{{ task.total_found }} 条</td></tr>
+                    <tr><th>已导入：</th><td>{{ task.total_imported }} 条</td></tr>
+                    <tr><th>创建时间：</th><td>{{ task.created_at|date:"Y-m-d H:i" }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card-modern">
+            <div class="card-header">
+                <h5 class="mb-0">搜索结果</h5>
+            </div>
+            <div class="card-body">
+                {% if results and task.status != 'running' %}
+                <div class="mb-3 text-end">
+                    <button id="batchImportBtn" class="btn btn-success btn-sm">
+                        <i class="fas fa-download"></i> 批量导入全部 ({{ results|length }}条)
+                    </button>
+                </div>
+                {% endif %}
+                
+                <div class="table-responsive">
+                    <table class="table table-modern results-table">
+                        <thead>
+                            <tr>
+                                <th class="col-url">网站</th>
+                                <th class="col-title">标题</th>
+                                <th class="col-status">状态</th>
+                                <th class="col-action">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in results %}
+                            <tr>
+                                <td class="col-url">
+                                    <a href="{{ result.url }}" target="_blank" class="result-url" title="{{ result.url }}">
+                                        {{ result.url|truncatechars:50 }}
+                                    </a>
+                                </td>
+                                <td class="col-title">
+                                    <span class="result-title" title="{{ result.title }}">
+                                        {{ result.title|truncatechars:80|default:"-" }}
+                                    </span>
+                                </td>
+                                <td class="col-status">
+                                    {% if result.is_imported %}
+                                        <span class="level-badge level-advanced">已导入</span>
+                                    {% elif result.is_ignored %}
+                                        <span class="level-badge level-potential">已忽略</span>
+                                    {% else %}
+                                        <span class="level-badge level-intermediate">待处理</span>
+                                    {% endif %}
+                                </td>
+                                <td class="col-action">
+                                    {% if not result.is_imported and not result.is_ignored %}
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button class="btn btn-success import-result" data-id="{{ result.id }}">
+                                            <i class="fas fa-download"></i> 导入
+                                        </button>
+                                        <button class="btn btn-warning edit-result" data-id="{{ result.id }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-danger delete-result" data-id="{{ result.id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    {% elif result.is_imported %}
+                                        <span class="text-success">
+                                            <i class="fas fa-check-circle"></i> 已导入
+                                            {% if result.imported_to %}
+                                            <a href="{% url 'customer_detail' result.imported_to %}" class="btn btn-sm btn-outline-primary mt-1">
+                                                查看
+                                            </a>
+                                            {% endif %}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">
+                                            <i class="fas fa-ban"></i> 已忽略
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4">
+                                    <i class="fas fa-search fa-2x mb-2 d-block text-muted"></i>
+                                    暂无搜索结果，点击"执行搜索"开始
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 导入结果
+document.querySelectorAll('.import-result').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const resultId = this.dataset.id;
+        if (confirm('确定要导入这个客户吗？')) {
+            fetch(`/customers/search-results/${resultId}/import/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('导入成功！');
+                    location.reload();
+                } else {
+                    alert('导入失败：' + data.message);
+                }
+            });
+        }
+    });
+});
+
+// 批量导入
+const batchImportBtn = document.getElementById('batchImportBtn');
+if (batchImportBtn) {
+    batchImportBtn.addEventListener('click', function() {
+        const totalCount = {{ results|length }};
+        if (confirm(`确定要批量导入所有 ${totalCount} 条未处理的结果吗？\n导入过程可能需要一些时间，请耐心等待。`)) {
+            batchImportBtn.disabled = true;
+            batchImportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 导入中...';
+            
+            fetch(`/customers/search-tasks/{{ task.id }}/batch-import/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`导入完成！\n成功：${data.imported_count} 条\n失败：${data.errors.length} 条`);
+                    location.reload();
+                } else {
+                    alert('导入失败：' + (data.message || '未知错误'));
+                }
+            })
+            .catch(error => {
+                alert('导入出错：' + error);
+            })
+            .finally(() => {
+                batchImportBtn.disabled = false;
+                batchImportBtn.innerHTML = '<i class="fas fa-download"></i> 批量导入全部';
+            });
+        }
+    });
+}
+
+// 编辑结果（打开弹窗修改）
+document.querySelectorAll('.edit-result').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const resultId = this.dataset.id;
+        alert('编辑功能开发中');
+    });
+});
+
+// 忽略结果
+document.querySelectorAll('.delete-result').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const resultId = this.dataset.id;
+        if (confirm('确定要忽略这个结果吗？')) {
+            fetch(`/customers/search-results/${resultId}/ignore/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+    });
+});
+
+// 导入结果
+document.querySelectorAll('.import-result').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const resultId = this.dataset.id;
+        if (confirm('确定要导入这个客户吗？')) {
+            fetch(`/customers/search-results/${resultId}/import/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('导入成功！');
+                    location.reload();
+                } else if (data.is_duplicate) {
+                    // 重复客户提示
+                    const msg = `${data.message}\n\n已存在客户：${data.existing_customer.company_name}\n邮箱：${data.existing_customer.email || '无'}\n电话：${data.existing_customer.phone || '无'}\n\n是否继续导入？`;
+                    if (confirm(msg)) {
+                        // 强制导入（需要后端支持）
+                        forceImport(resultId);
+                    }
+                } else {
+                    alert('导入失败：' + data.message);
+                }
+            });
+        }
+    });
+});
+
+// 强制导入（忽略重复检测）
+function forceImport(resultId) {
+    fetch(`/customers/search-results/${resultId}/import/?force=true`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('导入成功！');
+            location.reload();
+        } else {
+            alert('导入失败：' + data.message);
+        }
+    });
+}
+</script>
+{% endblock %}

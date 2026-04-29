@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raffinato - 外贸客户管理系统</title>
+    
+    <script>
+    (function() {
+        const darkModeSaved = localStorage.getItem('darkMode');
+        if (darkModeSaved === 'true') {
+            document.documentElement.classList.add('dark-mode');
+        }
+    })();
+    </script>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+    <style>
+<style>
+    /* ========== 新颜色方案 ========== */
+:root {
+    --primary-color: #0f172a;
+    --primary-light: #1e293b;
+    --primary-dark: #020617;
+    --accent-color: #667eea;
+    --accent-light: #764ba2;
+    --success-color: #10b981;
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+    --text-color: #1e293b;
+    --text-light: #64748b;
+    --bg-color: #f1f5f9;
+    --card-bg: #ffffff;
+    --border-color: #eef2f6;
+}
+
+/* 侧边栏 */
+.sidebar {
+    background: linear-gradient(135deg, #1a2a3a 0%, #0f172a 100%);
+}
+
+.sidebar .nav-link.active {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* 主按钮（紫色渐变） */
+.btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border: none;
+    color: white;
+}
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5a67d8, #6b46c1);
+}
+
+/* 信息按钮（浅灰蓝） */
+.btn-info {
+    background-color: #475569;
+    border-color: #475569;
+    color: white;
+}
+.btn-info:hover {
+    background-color: #334155;
+    border-color: #334155;
+}
+
+/* 成功按钮 */
+.btn-success {
+    background-color: #10b981;
+    border: none;
+    color: white;
+}
+.btn-success:hover {
+    background-color: #059669;
+}
+
+/* 危险按钮 */
+.btn-danger {
+    background-color: #ef4444;
+    border: none;
+    color: white;
+}
+.btn-danger:hover {
+    background-color: #dc2626;
+}
+
+/* 警告按钮 */
+.btn-warning {
+    background-color: #f59e0b;
+    border: none;
+    color: white;
+}
+.btn-warning:hover {
+    background-color: #d97706;
+}
+
+/* 次要按钮 */
+.btn-secondary {
+    background-color: #e2e8f0;
+    border: none;
+    color: #475569;
+}
+.btn-secondary:hover {
+    background-color: #cbd5e1;
+    color: #1e293b;
+}
+
+/* 表格表头 */
+.table-modern thead th {
+    background-color: #f1f5f9;
+    color: #1e293b;
+    font-weight: 600;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+/* 暗色模式表格表头 */
+body.dark-mode .table-modern thead th {
+    background-color: #334155;
+    color: #f1f5f9;
+    border-bottom-color: #475569;
+}
+
+/* 表格行高亮 */
+.table-modern tbody tr:hover {
+    background-color: #f8fafc !important;
+}
+
+/* 暗色模式表格行高亮 */
+body.dark-mode .table-modern tbody tr:hover {
+    background-color: #475569 !important;
+}
+    /* 原有样式继续... */
+
+    /* 基础布局 */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    body {
+        overflow-x: hidden;
+    }
+    
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 260px;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        z-index: 1000;
+        overflow-y: auto;
+    }
+    
+    .main-content {
+        margin-left: 260px;
+        padding: 20px;
+        width: calc(100% - 260px);
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+    
+    /* 响应式 - 手机端 */
+    @media (max-width: 768px) {
+        .sidebar {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+        .sidebar.show {
+            transform: translateX(0);
+        }
+        .main-content {
+            margin-left: 0;
+            width: 100%;
+            padding: 15px;
+        }
+    }
+    
+    /* 明亮模式输入框聚焦样式 */
+    input:focus,
+    select:focus,
+    textarea:focus,
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #8B0000 !important;
+        box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.25) !important;
+        outline: none !important;
+    }
+    
+      /* 暗色模式 */
+    body.dark-mode {
+        background-color: #1a1a2e;
+    }
+    
+    body.dark-mode .main-content {
+        background-color: #1a1a2e;
+    }
+    
+    body.dark-mode .card-modern,
+    body.dark-mode .stat-card,
+    body.dark-mode .table-modern {
+        background-color: #16213e;
+    }
+    
+    body.dark-mode .card-modern .card-header {
+        background-color: #16213e;
+        color: #fff;
+        border-bottom-color: #2c3e50;
+    }
+    
+    body.dark-mode .table-modern thead th {
+        background-color: #0f3460;
+        color: #fff;
+    }
+    
+    body.dark-mode .table-modern tbody td {
+        color: #fff;
+    }
+    
+    /* 统一修复所有输入框 - 暗色模式 */
+    body.dark-mode input,
+    body.dark-mode select,
+    body.dark-mode textarea,
+    body.dark-mode .form-control,
+    body.dark-mode .form-select,
+    body.dark-mode input:focus,
+    body.dark-mode select:focus,
+    body.dark-mode textarea:focus,
+    body.dark-mode .form-control:focus,
+    body.dark-mode .form-select:focus {
+        background-color: #0f3460 !important;
+        color: #fff !important;
+        border: 1px solid #2c3e50 !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }
+    
+    /* 修复只读输入框 */
+    body.dark-mode input[readonly],
+    body.dark-mode .form-control[readonly] {
+        background-color: #16213e !important;
+        color: #aaa !important;
+        border: 1px dashed #2c3e50 !important;
+    }
+    
+    /* 修复表格边框 */
+    body.dark-mode .table,
+    body.dark-mode .table-bordered,
+    body.dark-mode .table-bordered td,
+    body.dark-mode .table-bordered th {
+        border-color: #2c3e50 !important;
+    }
+    
+    /* 修复表格行 */
+    body.dark-mode .table-bordered tr {
+        border-color: #2c3e50 !important;
+    }
+    
+    /* 修复输入框组 */
+    body.dark-mode .input-group-text {
+        background-color: #0f3460 !important;
+        color: #fff !important;
+        border-color: #2c3e50 !important;
+    }
+    
+    /* 修复按钮边框 */
+    body.dark-mode .btn-outline-primary,
+    body.dark-mode .btn-outline-secondary,
+    body.dark-mode .btn-outline-danger {
+        border-color: #2c3e50 !important;
+        color: #ddd !important;
+    }
+    
+    body.dark-mode .btn-outline-danger:hover {
+        background-color: #e74c3c !important;
+        color: #fff !important;
+    }
+
+    /* 修复上传文件表单 */
+    body.dark-mode input[type="file"] {
+        background-color: #0f3460 !important;
+        color: #fff !important;
+    }
+    
+    /* 修复邮件模板列表 */
+    body.dark-mode .table-modern tbody td,
+    body.dark-mode .table-modern tbody td * {
+        color: #fff !important;
+    }
+    
+    /* 修复发送记录表格 */
+    body.dark-mode .send-logs-table tbody td,
+    body.dark-mode .send-logs-table tbody td * {
+        color: #fff !important;
+    }
+    
+    /* 确保所有表格内容都是白色 */
+    body.dark-mode table tbody td,
+    body.dark-mode table tbody td * {
+        color: #fff !important;
+    }
+    
+    /* 修复邮件模板页面的卡片 */
+    body.dark-mode .card-body {
+        background-color: #16213e !important;
+        color: #fff !important;
+    }
+    
+    /* 修复邮件模板表头 */
+    body.dark-mode .table-modern thead th,
+    body.dark-mode table thead th {
+        background-color: #0f3460 !important;
+        color: #fff !important;
+    }
+    
+    /* 修复发送记录表头 */
+    body.dark-mode .send-logs-table thead th,
+    body.dark-mode #send-logs-table thead th {
+        background-color: #0f3460 !important;
+        color: #fff !important;
+    }
+    
+    /* 强制所有表头文字为白色 */
+    body.dark-mode thead th,
+    body.dark-mode thead th * {
+        color: #fff !important;
+    }
+    
+    /* 详情页表格文字 */
+    body.dark-mode .table-borderless th,
+    body.dark-mode .table-borderless td {
+        color: #fff !important;
+    }
+    
+    /* 卡片内文字 */
+    body.dark-mode .card-modern .card-body {
+        color: #fff !important;
+    }
+    
+    /* 所有表格标签 */
+    body.dark-mode table th,
+    body.dark-mode table td {
+        color: #fff !important;
+    }
+
+    /* 强制所有输入框 - 使用通配符 */
+    body.dark-mode input,
+    body.dark-mode input:focus,
+    body.dark-mode input[type="text"],
+    body.dark-mode input[type="number"],
+    body.dark-mode input[type="email"],
+    body.dark-mode input[type="date"],
+    body.dark-mode input[type="time"],
+    body.dark-mode input[type="tel"],
+    body.dark-mode input[type="url"],
+    body.dark-mode select,
+    body.dark-mode textarea,
+    body.dark-mode .form-control,
+    body.dark-mode .form-select,
+    body.dark-mode [class*="form-control"] {
+        background-color: #0f3460 !important;
+        background: #0f3460 !important;
+        color: #fff !important;
+        border-color: #2c3e50 !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }
+/* 强制暗色模式下的订单输入框 */
+body.dark-mode input.form-control,
+body.dark-mode input.form-control-sm,
+body.dark-mode input.product-name,
+body.dark-mode .item-row input.form-control,
+body.dark-mode .item-row input.form-control-sm,
+body.dark-mode .item-row input.form-control:focus,
+body.dark-mode .item-row input.form-control-sm:focus {
+    background-color: #0f3460 !important;
+    color: #fff !important;
+    border-color: #2c3e50 !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+    /* 亮色模式只读输入框 */
+    input[readonly],
+    .form-control[readonly] {
+        background-color: #e9ecef !important;
+        color: #6c757d !important;
+        border: 1px solid #ced4da !important;
+    }
+    
+    /* 暗色模式只读输入框 */
+    body.dark-mode input[readonly],
+    body.dark-mode .form-control[readonly] {
+        background-color: #16213e !important;
+        color: #aaa !important;
+        border: 1px solid #2c3e50 !important;
+    }
+/* 表格行高亮颜色 - 亮色模式 */
+.table-modern tbody tr:hover {
+    background-color: #e8f4f4 !important;
+}
+
+/* 表格行高亮颜色 - 暗色模式 */
+body.dark-mode .table-modern tbody tr:hover {
+    background-color: #1a4a80 !important;
+}
+
+    /* 修复表单标签颜色 */
+    body.dark-mode .form-label {
+        color: #fff !important;
+    }
+    
+    /* 修复提示文字颜色 */
+    body.dark-mode .form-text {
+        color: #aaa !important;
+    }
+    
+    /* 修复变量说明文字 */
+    body.dark-mode h6 {
+        color: #fff !important;
+    }
+    
+    body.dark-mode ul li {
+        color: #ddd !important;
+    }
+
+html.dark-mode body {
+    background-color: #1a1a2e;
+}
+html.dark-mode .main-content {
+    background-color: #1a1a2e;
+}
+
+:root {
+    --bg-color: #ffffff;
+    --text-color: #333333;
+    --card-bg: #f8f9fa;
+}
+
+body.dark-mode {
+    --bg-color: #1a1a2e;
+    --text-color: #ffffff;
+    --card-bg: #1e293b;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.2s, color 0.2s;
+}
+
+/* 强制修复邮件报表页面暗色模式 */
+[data-theme="dark"] .card-header {
+    background-color: #16213e !important;
+    border-bottom-color: #2d2d44 !important;
+}
+
+[data-theme="dark"] .card-header h5,
+[data-theme="dark"] .card-header .mb-0 {
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .table thead th {
+    background-color: #1e2a3e !important;
+    color: #e0e0e0 !important;
+    border-bottom-color: #3d4d5f !important;
+}
+</style>
+</head>
+<body>
+<body>
+<script>
+const darkModeSaved = localStorage.getItem('darkMode');
+if (darkModeSaved === 'true') {
+    document.body.classList.add('dark-mode');
+}
+</script>
+<!-- 加载动画 -->
+<div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
+    <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">加载中...</span>
+    </div>
+</div>
+
+<!-- 侧边栏 -->
+<div class="sidebar">
+    <div class="sidebar-logo" style="padding: 30px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <img src="/media/logo/logo.png" alt="Logo" style="max-width: 150px; max-height: 60px; margin-bottom: 10px;" onerror="this.style.display='none'; this.nextSibling.style.display='block';">
+        <h3 style="color: #8B0000; font-weight: bold; display: none;">Raffinato</h3>
+        <p style="color: rgba(255,255,255,0.5); font-size: 0.75rem;">Raffinato Fabrics</p>
+        <p style="color: rgba(255,255,255,0.5); font-size: 0.75rem;">Business Management System</p>
+    </div>
+    <!-- 当前日期显示（无边框） -->
+<div class="sidebar-date" style="padding: 15px 20px; text-align: center;">
+    <div id="currentDate" style="color: rgba(255,255,255,0.6); font-size: 13px;"></div>
+</div>
+    <ul class="nav flex-column" style="padding: 20px 0;">
+    <li class="nav-item"><a class="nav-link" href="{% url 'stats_dashboard' %}" data-url="{% url 'stats_dashboard' %}"><i class="fas fa-chart-line"></i> 业务大屏</a></li>
+    <li class="nav-item"><a class="nav-link" href="/customers/orders/" data-url="/customers/orders/"><i class="fas fa-shopping-cart"></i> 订单管理</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}" data-url="{% url 'dashboard' %}"><i class="fas fa-tachometer-alt"></i> 客户仪表</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'customer_list' %}" data-url="{% url 'customer_list' %}"><i class="fas fa-users"></i> 客户管理</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'order_summary' %}" data-url="{% url 'order_summary' %}"><i class="fas fa-chart-bar"></i> 订单汇总</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'search_task_list' %}" data-url="{% url 'search_task_list' %}"><i class="fas fa-search"></i> 搜索任务</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'import_customers' %}" data-url="{% url 'import_customers' %}"><i class="fas fa-upload"></i> 导入客户</a></li>
+    <li class="nav-item"><a class="nav-link" href="/templates/" data-url="/templates/"><i class="fas fa-envelope"></i> 邮件模板</a></li>
+    <li class="nav-item"><a class="nav-link" href="/send-logs/" data-url="/send-logs/"><i class="fas fa-history"></i> 发送记录</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'document_list' %}" data-url="{% url 'document_list' %}"><i class="fas fa-folder-open"></i> 公司文档</a></li>
+    {% if user.is_superuser or user.role == 'admin' %}
+    <li class="nav-item"><a class="nav-link" href="/email-configs/" data-url="/email-configs/"><i class="fas fa-envelope"></i> 邮箱配置</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'user_list' %}" data-url="{% url 'user_list' %}"><i class="fas fa-users-cog"></i> 用户管理</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'business_rules_settings' %}" data-url="{% url 'business_rules_settings' %}"><i class="fas fa-cog"></i> 业务规则</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'seal_list' %}" data-url="{% url 'seal_list' %}"><i class="fas fa-stamp"></i> 印章管理</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'company_settings' %}" data-url="{% url 'company_settings' %}"><i class="fas fa-building"></i> 公司设置</a></li>
+    <li class="nav-item"><a class="nav-link" href="/admin/" data-url="/admin/"><i class="fas fa-cog"></i> 后台管理</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'operation_log_list' %}" data-url="{% url 'operation_log_list' %}"><i class="fas fa-history"></i> 操作日志</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'backup_list' %}" data-url="{% url 'backup_list' %}"><i class="fas fa-database"></i> 数据备份</a></li>
+    {% endif %}
+</ul>
+</div>
+
+<!-- 主内容 -->
+<div class="main-content">
+<!-- 顶部栏 -->
+<div style="display: flex; justify-content: space-between; align-items: center; border-radius: 20px; padding: 15px 25px; margin-bottom: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.08);">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <button id="mobileMenuBtn" class="btn btn-sm btn-outline-secondary d-md-none" style="border-radius: 10px; padding: 8px 12px;">
+            <i class="fas fa-bars"></i>
+        </button>
+        <h1 style="font-size: 1.5rem; font-weight: 600; margin: 0;">{% block page_title %}客户管理{% endblock %}</h1>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <button id="darkModeToggle" class="btn btn-sm btn-outline-secondary" style="border-radius: 40px;">
+            <i class="fas fa-moon"></i> 暗色模式
+        </button>
+        <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" style="border-radius: 40px; padding: 8px 16px;" data-bs-toggle="dropdown">
+                <i class="fas fa-user"></i>
+                <span>{{ user.real_name|default:user.username }}</span>
+                <small class="text-muted ms-1">({{ user.get_role_display }})</small>
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'logout' %}">退出登录</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+    <script>
+    // 3秒后自动关闭提示消息
+    setTimeout(function() {
+        var alerts = document.querySelectorAll('.alert');
+        alerts.forEach(function(alert) {
+            var bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        });
+    }, 3000);
+    </script>
+
+    <!-- Toast 通知容器 -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
+        <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="3000">
+            <div class="toast-header">
+                <i class="fas fa-bell me-2"></i>
+                <strong class="me-auto">Raffinato CRM</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                操作成功！
+            </div>
+        </div>
+    </div>
+    
+    {% block content %}
+    {% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Toast 通知函数
+function showToast(message, type = 'success') {
+    const toastEl = document.getElementById('liveToast');
+    const toastBody = toastEl.querySelector('.toast-body');
+    const toastHeader = toastEl.querySelector('.toast-header');
+    
+    toastBody.textContent = message;
+    
+    if (type === 'success') {
+        toastHeader.style.backgroundColor = '#27AE60';
+        toastHeader.style.color = 'white';
+    } else if (type === 'error') {
+        toastHeader.style.backgroundColor = '#E74C3C';
+        toastHeader.style.color = 'white';
+    } else {
+        toastHeader.style.backgroundColor = '#3498DB';
+        toastHeader.style.color = 'white';
+    }
+    
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+}
+
+// 加载动画函数
+function showLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) overlay.style.display = 'flex';
+}
+
+function hideLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+// 链接点击显示加载动画
+document.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', function(e) {
+        if (this.href && !this.href.startsWith('javascript:')) {
+            showLoading();
+        }
+    });
+});
+
+document.querySelectorAll('form').forEach(form => {
+    form.addEventListener('submit', function() {
+        showLoading();
+    });
+});
+
+// ========== 暗色模式 ==========
+(function() {
+    if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark-mode');
+    }
+    
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    if (darkModeToggle) {
+        if (document.body.classList.contains('dark-mode')) {
+            darkModeToggle.innerHTML = '<i class="fas fa-sun"></i> 亮色模式';
+        }
+        
+        darkModeToggle.onclick = function(e) {
+            e.preventDefault();
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDark);
+            darkModeToggle.innerHTML = isDark ? '<i class="fas fa-sun"></i> 亮色模式' : '<i class="fas fa-moon"></i> 暗色模式';
+        };
+    }
+})();
+
+// ========== 移动端侧边栏 ==========
+const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+const sidebar = document.querySelector('.sidebar');
+
+if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        sidebar.classList.toggle('show');
+    });
+}
+
+const mainContent = document.querySelector('.main-content');
+if (mainContent) {
+    mainContent.addEventListener('click', function() {
+        if (window.innerWidth < 768) {
+            sidebar.classList.remove('show');
+        }
+    });
+}
+
+// ========== 侧边栏高亮（一个脚本搞定）==========
+function setActiveMenu() {
+    var currentPath = window.location.pathname;
+    var navLinks = document.querySelectorAll('.sidebar .nav-link');
+    
+    // 先移除所有高亮
+    navLinks.forEach(function(link) {
+        link.classList.remove('active');
+    });
+    
+    // 专门处理订单管理
+    if (currentPath.indexOf('/customers/orders/') !== -1) {
+        var orderLink = document.querySelector('.sidebar .nav-link[href="/customers/orders/"]');
+        if (orderLink) orderLink.classList.add('active');
+    }
+    
+    // 处理其他菜单
+    navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        
+        // 跳过已经高亮的订单管理
+        if (href === '/customers/orders/') return;
+        
+        // 完全匹配
+        if (currentPath === href) {
+            link.classList.add('active');
+        }
+        // 首页
+        else if (href === '/stats-dashboard/' && (currentPath === '/' || currentPath === '')) {
+            link.classList.add('active');
+        }
+        // 客户管理子页面
+        else if (href === '/customers/' && currentPath.startsWith('/customers/') && currentPath !== '/customers/') {
+            link.classList.add('active');
+        }
+        // 其他菜单部分匹配
+        else if (href !== '/' && currentPath.startsWith(href) && href.length > 1) {
+            link.classList.add('active');
+        }
+    });
+}
+// ========== 侧边栏滚动位置保存 ==========
+(function() {
+    var sidebar = document.querySelector('.sidebar');
+    if (!sidebar) return;
+    
+    var savedTop = sessionStorage.getItem('sidebarScrollTop');
+    if (savedTop) {
+        setTimeout(function() { sidebar.scrollTop = parseInt(savedTop); }, 50);
+    }
+    
+    sidebar.addEventListener('scroll', function() {
+        sessionStorage.setItem('sidebarScrollTop', sidebar.scrollTop);
+    });
+})();
+
+// ========== 侧边栏日历显示 ==========
+function setSidebarDate() {
+    var dateContainer = document.getElementById('currentDate');
+    if (dateContainer) {
+        var now = new Date();
+        var year = now.getFullYear();
+        var month = now.getMonth() + 1;
+        var day = now.getDate();
+        var weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+        var weekday = weekdays[now.getDay()];
+        dateContainer.innerHTML = year + '年' + month + '月' + day + '日<br>' + weekday;
+    }
+}
+
+// 页面加载时执行高亮和日历
+setActiveMenu();
+setSidebarDate();
+
+// 点击后延迟重新高亮
+document.querySelectorAll('.sidebar .nav-link').forEach(function(link) {
+    link.addEventListener('click', function() {
+        setTimeout(setActiveMenu, 100);
+    });
+});
+
+// 定时刷新日历（确保订单管理页面日历不消失）
+setInterval(setSidebarDate, 500);
+</script>
+<script>
+// 禁用右键菜单
+document.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    return false;
+});
+
+// 禁用 F12 和开发者工具快捷键
+document.addEventListener('keydown', function(e) {
+    // F12
+    if (e.key === 'F12') {
+        e.preventDefault();
+        return false;
+    }
+    // Ctrl+Shift+I
+    if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+        e.preventDefault();
+        return false;
+    }
+    // Ctrl+Shift+C
+    if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        return false;
+    }
+    // Ctrl+U (查看源代码)
+    if (e.ctrlKey && e.key === 'u') {
+        e.preventDefault();
+        return false;
+    }
+    // Ctrl+S (保存页面)
+    if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        return false;
+    }
+});
+</script>
+</body>
+</html>

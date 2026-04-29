@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block page_title %}邮件发送队列{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>邮件发送队列</h2>
+            <a href="{% url 'email_sequence_list' %}" class="btn btn-sm btn-secondary mt-2">← 返回邮件序列</a>
+        </div>
+        <div>
+            <a href="?status=" class="btn btn-sm btn-outline-secondary">全部</a>
+            <a href="?status=pending" class="btn btn-sm btn-outline-warning">等待中</a>
+            <a href="?status=sent" class="btn btn-sm btn-outline-success">已发送</a>
+            <a href="?status=failed" class="btn btn-sm btn-outline-danger">失败</a>
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>客户</th>
+                    <th>序列</th>
+                    <th>步骤</th>
+                    <th>计划发送时间</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in queue_items %}
+                <tr>
+                    <td>{{ item.customer.company_name }}</td>
+                    <td>{{ item.sequence.name }}</td>
+                    <td>步骤 {{ item.step.step_order }}</td>
+                    <td>{{ item.scheduled_time|date:"Y-m-d H:i" }}</td>
+                    <td>
+                        <span class="badge {% if item.status == 'pending' %}bg-warning{% elif item.status == 'sent' %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ item.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if item.status == 'pending' %}
+                        <a href="{% url 'email_sequence_cancel' item.id %}" class="btn btn-sm btn-danger" onclick="return confirm('取消发送？')">取消</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">暂无邮件队列</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

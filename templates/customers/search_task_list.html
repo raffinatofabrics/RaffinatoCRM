@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+
+{% block page_title %}搜索任务{% endblock %}
+
+{% block content %}
+<style>
+    .batch-delete-bar {
+        display: none;
+        margin-bottom: 15px;
+        padding: 10px;
+        background-color: #fff3cd;
+        border-radius: 5px;
+        border: 1px solid #ffc107;
+    }
+    body.dark-mode .batch-delete-bar {
+        background-color: #2c3e50;
+        border-color: #f39c12;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>搜索任务</h2>
+    <a href="{% url 'search_task_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> 新建搜索任务
+    </a>
+</div>
+
+<!-- 批量删除工具栏 -->
+<div id="batchDeleteBar" class="batch-delete-bar">
+    <div class="d-flex justify-content-between align-items-center">
+        <span>
+            <i class="fas fa-check-circle text-success"></i>
+            已选择 <strong id="selectedCount">0</strong> 个任务
+        </span>
+        <button type="button" id="batchDeleteBtn" class="btn btn-danger btn-sm">
+            <i class="fas fa-trash"></i> 批量删除
+        </button>
+    </div>
+</div>
+
+<div class="card-modern">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-modern">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" id="selectAll">
+                        </th>
+                        <th>任务名称</th>
+                        <th>业务类型</th>
+                        <th>关键词</th>
+                        <th>搜索数量</th>
+                        <th>状态</th>
+                        <th>找到结果</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" class="task-checkbox" value="{{ task.id }}">
+                        </td>
+                        <td>{{ task.name }}</td>
+                        <td>
+                            {% if task.business_type == 'international' %}
+                                🌍 外贸
+                            {% else %}
+                                🇨🇳 内贸
+                            {% endif %}
+                        </td>
+                        <td>{{ task.keywords|truncatechars:30 }}</td>
+                        <td>{{ task.max_results }}</td>
+                        <td>
+                            {% if task.status == 'pending' %}
+                                <span class="level-badge level-potential">等待</span>
+                            {% elif task.status == 'running' %}
+                                <span class="level-badge level-intermediate">执行中</span>
+                            {% elif task.status == 'completed' %}
+                                <span class="level-badge level-advanced">已完成</span>
+                            {% else %}
+                                <span class="level-badge level-potential">失败</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ task.total_found }}</td>
+                        <td>{{ task.created_at|date:"Y-m-d H:i" }}</td>
+                        <td>
+    <div class="btn-group btn-group-sm">
+        <a href="{% url 'search_task_detail' task.id %}" class="btn btn-info" title="详情">
+            <i class="fas fa-eye"></i>
+        </a>
+        <a href="{% url 'search_task_run' task.id %}" class="btn btn-primary" title="执行">
+            <i class="fas fa-play"></i>
+        </a>
+        <button class="btn btn-danger delete-task-btn" data-id="{{ task.id }}" title="删除">
+            <i class="fas fa-trash"></i>
+        </button>
+    </div>
+</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center">暂无搜索任务，点击上方按钮创建</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// 获取元素
+const selectAllCheckbox = document.getElementById('selectAll');
+const taskCheckboxes = document.querySelectorAll('.task-checkbox');
+const batchDeleteBar = document.getElementById('batchDeleteBar');
+const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+const selectedCountSpan = document.getElementById('selectedCount');
+
+// 更新选择状态
+function updateSelection() {
+    const checked = document.querySelectorAll('.task-checkbox:checked');
+    const count = checked.length;
+    
+    if (selectedCountSpan) {
+        selectedCountSpan.textContent = count;
+    }
+    
+    // 显示/隐藏批量删除工具栏
+    if (batchDeleteBar) {
+        batchDeleteBar.style.display = count > 0 ? 'block' : 'none';
+    }
+    
+    return checked;
+}
+
+// 全选功能
+if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', function() {
+        taskCheckboxes.forEach(cb => {
+            cb.checked = selectAllCheckbox.checked;
+        });
+        updateSelection();
+    });
+}
+
+// 单个复选框变化
+taskCheckboxes.forEach(cb => {
+    cb.addEventListener('change', function() {
+        updateSelection();
+        // 更新全选状态
+        if (selectAllCheckbox) {
+            const allChecked = taskCheckboxes.length === document.querySelectorAll('.task-checkbox:checked').length;
+            selectAllCheckbox.checked = allChecked;
+        }
+    });
+});
+
+// 批量删除
+if (batchDeleteBtn) {
+    batchDeleteBtn.addEventListener('click', function() {
+        const checked = document.querySelectorAll('.task-checkbox:checked');
+        const taskIds = Array.from(checked).map(cb => cb.value);
+        
+        if (taskIds.length === 0) {
+            alert('请先选择要删除的任务');
+            return;
+        }
+        
+        if (confirm(`确定要删除选中的 ${taskIds.length} 个搜索任务吗？此操作不可恢复！`)) {
+            const originalText = batchDeleteBtn.innerHTML;
+            batchDeleteBtn.disabled = true;
+            batchDeleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 删除中...';
+            
+            // 使用 Django URL 反向解析
+            fetch("{% url 'batch_delete_search_tasks' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ task_ids: taskIds })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`成功删除 ${data.deleted_count} 个任务`);
+                    location.reload();
+                } else {
+                    alert('删除失败：' + data.message);
+                    batchDeleteBtn.disabled = false;
+                    batchDeleteBtn.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('删除失败：网络错误，请稍后重试');
+                batchDeleteBtn.disabled = false;
+                batchDeleteBtn.innerHTML = originalText;
+            });
+        }
+    });
+}
+// 单个删除任务
+document.querySelectorAll('.delete-task-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const taskId = this.dataset.id;
+        const taskName = this.closest('tr').querySelector('td:nth-child(2)').innerText;
+        
+        if (confirm(`确定要删除任务 "${taskName}" 吗？`)) {
+            const originalHtml = this.innerHTML;
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            fetch(`/search-tasks/${taskId}/delete/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('删除成功');
+                    location.reload();
+                } else {
+                    alert('删除失败：' + data.message);
+                    this.disabled = false;
+                    this.innerHTML = originalHtml;
+                }
+            })
+            .catch(error => {
+                alert('删除失败：网络错误');
+                this.disabled = false;
+                this.innerHTML = originalHtml;
+            });
+        }
+        // 点取消时什么都不做
+    });
+});
+// 初始化
+updateSelection();
+</script>
+{% endblock %}

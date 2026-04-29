@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block page_title %}上传文档{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card-modern">
+            <div class="card-header">
+                <h5 class="mb-0">上传文档</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">文档标题 *</label>
+                        <input type="text" name="title" class="form-control" required placeholder="如：2026年面料价格表">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">文档类型 *</label>
+                        <select name="doc_type" class="form-select" required>
+                            <option value="">请选择</option>
+                            {% for value, label in doc_types %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">选择文件 *</label>
+                        <input type="file" name="file" class="form-control" required>
+                        <div class="form-text">支持 PDF、Word、Excel、图片等格式</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">版本号（可选）</label>
+                        <input type="text" name="version" class="form-control" placeholder="如：v1.0、2026版">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">文档说明（可选）</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="简要说明文档内容..."></textarea>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">上传</button>
+                        <a href="{% url 'document_list' %}" class="btn btn-secondary">取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,767 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block page_title %}客户详情 - {{ customer.company_name }}{% endblock %}
+
+{% block content %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+<style>
+    /* 暗色模式修复 */
+    body.dark-mode .card-modern,
+    body.dark-mode .card-body {
+        background-color: #16213e !important;
+        color: #fff !important;
+    }
+    
+    body.dark-mode .table th,
+    body.dark-mode .table td {
+        color: #fff !important;
+    }
+    
+    body.dark-mode .table-borderless th,
+    body.dark-mode .table-borderless td {
+        color: #fff !important;
+    }
+    
+    body.dark-mode .card-header {
+        background-color: #0f3460 !important;
+        color: #fff !important;
+    }
+    
+    body.dark-mode .card-header h5 {
+        color: #fff !important;
+    }
+    
+    body.dark-mode .nav-tabs .nav-link {
+        color: #ddd !important;
+    }
+    
+    body.dark-mode .nav-tabs .nav-link.active {
+        background-color: #0f3460 !important;
+        color: #fff !important;
+        border-color: #2c3e50 !important;
+    }
+    
+    body.dark-mode .modal-content {
+        background-color: #16213e !important;
+        color: #fff !important;
+    }
+    
+    body.dark-mode .modal-header,
+    body.dark-mode .modal-footer {
+        border-color: #2c3e50 !important;
+    }
+    
+    body.dark-mode .modal-header .btn-close {
+        filter: invert(1);
+    }
+    
+    body.dark-mode .modal-title {
+        color: #fff !important;
+    }
+    
+    body.dark-mode .form-label {
+        color: #fff !important;
+    }
+    
+    body.dark-mode .form-control,
+    body.dark-mode .form-select {
+        background-color: #0f3460 !important;
+        color: #fff !important;
+        border-color: #2c3e50 !important;
+    }
+    
+    body.dark-mode .form-control:focus,
+    body.dark-mode .form-select:focus {
+        background-color: #1a4a80 !important;
+        border-color: #667eea !important;
+    }
+    
+    body.dark-mode .alert-warning {
+        background-color: #2c3e50 !important;
+        border-color: #f39c12 !important;
+        color: #f39c12 !important;
+    }
+    
+    body.dark-mode hr {
+        border-color: #2c3e50 !important;
+    }
+    
+    body.dark-mode input[type="checkbox"] {
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        background-color: #0f3460 !important;
+        border: 1px solid #667eea !important;
+        border-radius: 3px !important;
+        position: relative !important;
+        width: 18px !important;
+        height: 18px !important;
+        cursor: pointer !important;
+    }
+    
+    body.dark-mode input[type="checkbox"]:checked {
+        background-color: #667eea !important;
+        border-color: #667eea !important;
+    }
+    
+    body.dark-mode input[type="checkbox"]:checked::after {
+        content: "✓" !important;
+        position: absolute !important;
+        left: 2px !important;
+        top: -2px !important;
+        color: white !important;
+        font-size: 14px !important;
+        font-weight: bold !important;
+    }
+    
+    body.dark-mode .form-check-label {
+        color: #fff !important;
+    }
+</style>
+
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <a href="{% url 'customer_list' %}?t={{ timestamp }}" class="btn btn-secondary" onclick="return goToList()">
+    <i class="fas fa-arrow-left"></i> 返回列表
+</a>
+
+<script>
+function goToList() {
+    // 强制刷新父页面
+    window.location.href = "{% url 'customer_list' %}?t=" + new Date().getTime();
+    return false;
+}
+</script>
+        <!-- AI 生成邮件按钮 -->
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#aiEmailModal">
+            <i class="fas fa-robot"></i> AI 生成邮件
+        </button>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-3" id="customerTabs" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basicInfo" type="button">基本信息</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" id="comm-tab" data-bs-toggle="tab" data-bs-target="#communications" type="button">沟通记录</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" id="email-tab" data-bs-toggle="tab" data-bs-target="#sendLogs" type="button">邮件记录</button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- 基本信息 -->
+    <div class="tab-pane fade show active" id="basicInfo">
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card-modern">
+                    <div class="card-header">
+                        <h5 class="mb-0">基本信息</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-borderless">
+                            <tr><th>公司名：</th><td>{{ customer.company_name }}</td>
+                            <tr><th>联系人：</th><td>{{ customer.contact_person|default:"-" }}</td>
+                            <tr><th>邮箱：</th><td>{{ customer.email }}</td>
+                            <tr><th>电话：</th><td>{{ customer.phone|default:"-" }}</td>
+                            <tr><th>国家：</th><td>{{ customer.country|default:"-" }}</td>
+                            <tr><th>客户等级：</th><td>
+                                <select id="levelSelect" class="form-select form-select-sm" style="width: 120px;">
+                                    <option value="potential" {% if customer.level == 'potential' %}selected{% endif %}>潜在客户</option>
+                                    <option value="intermediate" {% if customer.level == 'intermediate' %}selected{% endif %}>中级客户</option>
+                                    <option value="advanced" {% if customer.level == 'advanced' %}selected{% endif %}>高级客户</option>
+                                    <option value="vip" {% if customer.level == 'vip' %}selected{% endif %}>VIP客户</option>
+                                </select>
+                            </td>
+                            <tr><th>上次联系：</th><td>{{ customer.last_contact_time|date:"Y-m-d H:i"|default:"未联系" }}</td>
+                        </table>
+                        <button id="sendEmailBtn" class="btn btn-primary"><i class="fas fa-envelope"></i> 发送邮件</button>
+                        <a href="{% url 'customer_edit' customer.id %}" class="btn btn-warning"><i class="fas fa-edit"></i> 编辑客户</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 沟通记录 -->
+    <div class="tab-pane fade" id="communications">
+        <div class="card-modern">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">沟通记录</h5>
+                <button class="btn btn-sm btn-primary" onclick="showAddCommunicationModal()">
+                    <i class="fas fa-plus"></i> 添加记录
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="communicationList">
+                    <div class="text-center py-3">加载中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 邮件记录 -->
+<div class="tab-pane fade" id="sendLogs">
+    <div class="card-modern">
+        <div class="card-header">
+            <h5 class="mb-0">邮件往来记录</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-modern">
+                    <thead>
+                        <tr>
+                            <th>发送时间</th>
+                            <th>主题</th>
+                            <th>打开状态</th>
+                            <th>打开次数</th>
+                            <th>点击状态</th>
+                            <th>回复状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in send_logs %}
+                        <tr>
+                            <td>{{ log.sent_at|date:"Y-m-d H:i" }}</td>
+                            <td>{{ log.subject|truncatechars:40 }}</td>
+                            <td>
+                                {% if log.opened %}
+                                    <span class="badge bg-success">已打开</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">未打开</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ log.open_count|default:0 }}</td>
+                            <td>
+                                {% if log.clicked %}
+                                    <span class="badge bg-success">已点击</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">未点击</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if log.has_replied %}
+                                    <span class="badge bg-info">已回复</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">待回复</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center">暂无邮件记录</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- AI 生成邮件弹窗 -->
+<div class="modal fade" id="aiEmailModal" tabindex="-1" aria-labelledby="aiEmailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="aiEmailModalLabel">
+                    <i class="fas fa-robot"></i> AI 生成开发信
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- 新增：邮件主题输入框 -->
+                <div class="mb-3">
+                    <label class="form-label">邮件主题 <span class="text-danger">*</span></label>
+                    <input type="text" id="emailSubjectInput" class="form-control" placeholder="请输入邮件主题，如：产品报价咨询、合作邀请...">
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">邮件风格</label>
+                        <select id="emailStyle" class="form-select">
+                            <option value="formal">📧 正式专业</option>
+                            <option value="friendly">😊 友好亲切</option>
+                            <option value="concise">📝 简洁明了</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">邮件语言</label>
+                        <select id="emailLanguage" class="form-select">
+                            <option value="english">🇬🇧 English</option>
+                            <option value="chinese">🇨🇳 中文</option>
+                            <option value="italian">🇮🇹 Italian</option>
+                            <option value="german">🇩🇪 German</option>
+                            <option value="french">🇫🇷 French</option>
+                            <option value="spanish">🇪🇸 Spanish</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">生成的邮件主题</label>
+                    <input type="text" id="emailSubject" class="form-control" readonly>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">生成的邮件正文</label>
+                    <textarea id="emailBody" class="form-control" rows="10" readonly></textarea>
+                </div>
+                
+                <div class="alert alert-info" id="aiLoading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i> AI 正在生成邮件，请稍候...
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" id="generateEmailBtn">
+                    <i class="fas fa-magic"></i> 生成邮件
+                </button>
+                <button type="button" class="btn btn-success" id="useEmailBtn" style="display: none;">
+                    <i class="fas fa-envelope"></i> 使用此邮件
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 发送邮件弹窗 -->
+<div class="modal fade" id="sendEmailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">发送邮件给 {{ customer.email }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <select id="templateSelect" class="form-select">
+                    <option value="">请选择模板</option>
+                </select>
+                <div id="preview" style="display:none; margin-top: 15px;">
+                    <hr><h6>预览：</h6>
+                    <div id="previewSubject" class="fw-bold"></div>
+                    <div id="previewContent"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="confirmSend">发送</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加/编辑沟通记录弹窗 -->
+<div class="modal fade" id="communicationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="communicationModalTitle">添加沟通记录</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="communicationForm" onsubmit="event.preventDefault(); return false;">
+                    {% csrf_token %}
+                    <input type="hidden" name="log_id" id="editLogId">
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">沟通渠道</label>
+                            <select name="channel" id="channel" class="form-select" required>
+                                <option value="email">邮件</option>
+                                <option value="phone">电话</option>
+                                <option value="wechat">微信</option>
+                                <option value="whatsapp">WhatsApp</option>
+                                <option value="visit">线下拜访</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">方向</label>
+                            <select name="direction" id="direction" class="form-select" required>
+                                <option value="outgoing">发出</option>
+                                <option value="incoming">收到</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">主题</label>
+                        <input type="text" name="subject" id="subject" class="form-control">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">沟通内容</label>
+                        <textarea name="content" id="content" class="form-control" rows="4" required></textarea>
+                    </div>
+                    
+                    <div class="row" id="phoneFields" style="display: none;">
+                        <div class="col-md-12 mb-3">
+                            <label>通话时长</label>
+                            <div class="row">
+                                <div class="col-6"><input type="number" name="call_minutes" id="call_minutes" class="form-control" placeholder="分钟" value="0"></div>
+                                <div class="col-6"><input type="number" name="call_seconds" id="call_seconds" class="form-control" placeholder="秒" value="0"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label>附件</label>
+                        <input type="file" name="attachment" id="attachment" class="form-control">
+                    </div>
+                    
+                    <hr>
+                    <div class="form-check mb-3">
+                        <input type="checkbox" name="followup_needed" id="followup_needed" class="form-check-input" value="on">
+                        <label class="form-check-label" for="followup_needed">需要跟进</label>
+                    </div>
+                    
+                    <div class="row" id="followupFields" style="display: none;">
+                        <div class="col-md-6 mb-3">
+                            <label>下次跟进日期</label>
+                            <input type="date" name="followup_date" id="followup_date" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>跟进备注</label>
+                            <input type="text" name="followup_note" id="followup_note" class="form-control">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveCommunicationBtn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const customerId = {{ customer.id }};
+
+// 监听渠道变化
+document.getElementById('channel').addEventListener('change', function() {
+    document.getElementById('phoneFields').style.display = this.value === 'phone' ? 'flex' : 'none';
+});
+
+// 监听跟进复选框
+document.getElementById('followup_needed').addEventListener('change', function() {
+    document.getElementById('followupFields').style.display = this.checked ? 'flex' : 'none';
+});
+
+// 加载沟通记录
+function loadCommunications() {
+    fetch(`/customers/communication/${customerId}/list/`)
+        .then(r => r.json())
+        .then(data => {
+            const container = document.getElementById('communicationList');
+            if (data.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">暂无沟通记录</div>';
+                return;
+            }
+            container.innerHTML = data.map(log => `
+                <div class="border-bottom pb-3 mb-3">
+                    <div>
+                        <span class="badge bg-secondary">${log.channel_display}</span>
+                        <span class="badge ${log.direction === 'outgoing' ? 'bg-primary' : 'bg-success'}">${log.direction_display}</span>
+                        <span class="ms-2 small">${log.created_at} · ${log.created_by}</span>
+                        <button class="btn btn-sm btn-outline-warning float-end" onclick="editCommunication(${log.id})"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-outline-danger float-end me-1" onclick="deleteCommunication(${log.id})"><i class="fas fa-trash"></i></button>
+                    </div>
+                    ${log.subject ? `<div class="mt-2"><strong>${log.subject}</strong></div>` : ''}
+                    <div class="mt-1">${log.content}</div>
+                    ${log.followup_needed ? `<div class="mt-2 alert alert-warning py-1 small">需要跟进：${log.followup_date || ''} ${log.followup_note || ''}</div>` : ''}
+                </div>
+            `).join('');
+        });
+}
+
+// 显示添加沟通记录弹窗
+function showAddCommunicationModal() {
+    document.getElementById('communicationForm').reset();
+    document.getElementById('editLogId').value = '';
+    document.getElementById('phoneFields').style.display = 'none';
+    document.getElementById('followupFields').style.display = 'none';
+    document.getElementById('followup_needed').checked = false;
+    document.getElementById('communicationModalTitle').innerText = '添加沟通记录';
+    new bootstrap.Modal(document.getElementById('communicationModal')).show();
+}
+
+// 编辑沟通记录
+function editCommunication(logId) {
+    fetch(`/customers/communication/${logId}/detail/`)
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('editLogId').value = data.id;
+            document.getElementById('channel').value = data.channel;
+            document.getElementById('direction').value = data.direction;
+            document.getElementById('subject').value = data.subject;
+            document.getElementById('content').value = data.content;
+            document.getElementById('call_minutes').value = data.call_minutes;
+            document.getElementById('call_seconds').value = data.call_seconds;
+            document.getElementById('followup_needed').checked = data.followup_needed;
+            document.getElementById('followup_date').value = data.followup_date;
+            document.getElementById('followup_note').value = data.followup_note;
+            document.getElementById('phoneFields').style.display = data.channel === 'phone' ? 'flex' : 'none';
+            document.getElementById('followupFields').style.display = data.followup_needed ? 'flex' : 'none';
+            document.getElementById('communicationModalTitle').innerText = '编辑沟通记录';
+            new bootstrap.Modal(document.getElementById('communicationModal')).show();
+        });
+}
+
+// 删除沟通记录
+function deleteCommunication(logId) {
+    if (confirm('确定删除？')) {
+        fetch(`/customers/communication/${logId}/delete/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'}
+        })
+        .then(r => r.json())
+        .then(data => { if (data.success) loadCommunications(); });
+    }
+}
+
+// 保存沟通记录
+document.getElementById('saveCommunicationBtn').addEventListener('click', function() {
+    const logId = document.getElementById('editLogId').value;
+    const formData = new FormData(document.getElementById('communicationForm'));
+    const url = logId ? `/customers/communication/${logId}/edit/` : `/customers/communication/${customerId}/create/`;
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}'},
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('communicationModal')).hide();
+            loadCommunications();
+        } else {
+            alert('保存失败：' + data.message);
+        }
+    });
+});
+
+// 等级修改
+document.getElementById('levelSelect').addEventListener('change', function() {
+    fetch(`/customers/{{ customer.id }}/update-level/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+        body: JSON.stringify({ level: this.value })
+    }).then(() => location.reload());
+});
+
+// 发送邮件
+document.getElementById('sendEmailBtn').addEventListener('click', function() {
+    fetch('/templates/api/templates/')
+        .then(r => r.json())
+        .then(templates => {
+            let html = '<option value="">请选择模板</option>';
+            templates.forEach(t => html += `<option value="${t.id}">${t.name}</option>`);
+            document.getElementById('templateSelect').innerHTML = html;
+            new bootstrap.Modal(document.getElementById('sendEmailModal')).show();
+        });
+});
+
+// 模板预览
+document.getElementById('templateSelect').addEventListener('change', function() {
+    if (this.value) {
+        fetch(`/templates/api/preview/${this.value}/?customer_id={{ customer.id }}`)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('previewSubject').innerText = data.subject;
+                document.getElementById('previewContent').innerHTML = data.content;
+                document.getElementById('preview').style.display = 'block';
+            });
+    } else {
+        document.getElementById('preview').style.display = 'none';
+    }
+});
+
+// 确认发送
+document.getElementById('confirmSend').addEventListener('click', function() {
+    const templateId = document.getElementById('templateSelect').value;
+    if (!templateId) return alert('请选择模板');
+    fetch(`/customers/{{ customer.id }}/send-email/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+        body: JSON.stringify({ template_id: templateId })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) alert('发送成功');
+        else alert('发送失败：' + data.message);
+    });
+});
+
+// ========== AI 生成邮件 ==========
+// 获取 CSRF token 的函数
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const generateBtn = document.getElementById('generateEmailBtn');
+if (generateBtn) {
+    generateBtn.addEventListener('click', function() {
+        const subject = document.getElementById('emailSubjectInput').value;
+        const style = document.getElementById('emailStyle')?.value || 'formal';
+        const language = document.getElementById('emailLanguage')?.value || 'english';
+        
+        if (!subject.trim()) {
+            alert('请输入邮件主题');
+            return;
+        }
+        
+        const loadingDiv = document.getElementById('aiLoading');
+        if (loadingDiv) loadingDiv.style.display = 'block';
+        generateBtn.disabled = true;
+        
+        fetch("/ai/generate-email/{{ customer.id }}/", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: `subject=${encodeURIComponent(subject)}&style=${style}&language=${language}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('emailSubject').value = data.subject;
+                document.getElementById('emailBody').value = data.body;
+                document.getElementById('useEmailBtn').style.display = 'inline-block';
+            } else {
+                alert('生成失败：' + (data.message || '未知错误'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('请求失败：' + error);
+        })
+        .finally(() => {
+            if (loadingDiv) loadingDiv.style.display = 'none';
+            generateBtn.disabled = false;
+        });
+    });
+}
+// 使用邮件
+const useBtn = document.getElementById('useEmailBtn');
+if (useBtn) {
+    useBtn.addEventListener('click', function() {
+        const subject = document.getElementById('emailSubject')?.value || '';
+        const body = document.getElementById('emailBody')?.value || '';
+        
+        const subjectField = document.getElementById('id_subject');
+        const bodyField = document.getElementById('id_body');
+        
+        if (subjectField) subjectField.value = subject;
+        if (bodyField) bodyField.value = body;
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('aiEmailModal'));
+        if (modal) modal.hide();
+        
+        alert('邮件内容已填充，可以编辑后发送');
+    });
+}
+
+// AI 分析客户
+document.getElementById('analyzeCustomerBtn')?.addEventListener('click', function() {
+    const modal = new bootstrap.Modal(document.getElementById('aiAnalysisModal'));
+    const resultDiv = document.getElementById('analysisResult');
+    resultDiv.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin"></i> AI 分析中...</div>';
+    modal.show();
+    
+    fetch(`/customers/customer/{{ customer.id }}/analyze/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // 根据分数设置颜色
+            const aiColor = data.ai_score >= 70 ? 'success' : (data.ai_score >= 40 ? 'warning' : 'danger');
+            const orderColor = data.order_score >= 70 ? 'success' : (data.order_score >= 40 ? 'warning' : 'danger');
+            
+            resultDiv.innerHTML = `
+                <div class="row mb-4">
+                    <div class="col-6 text-center">
+                        <div class="display-4 text-${aiColor}">${data.ai_score}</div>
+                        <div class="text-muted">🤖 AI意向评分</div>
+                        <small class="text-muted">基于邮件互动、沟通记录</small>
+                    </div>
+                    <div class="col-6 text-center">
+                        <div class="display-4 text-${orderColor}">${data.order_score}</div>
+                        <div class="text-muted">💰 订单价值评分</div>
+                        <small class="text-muted">基于订单次数、金额</small>
+                    </div>
+                </div>
+                
+                <div class="alert alert-${data.customer_type_color} text-center">
+                    <h4>${data.customer_type_icon} ${data.customer_type}</h4>
+                    <p class="mb-0">${data.customer_type_strategy}</p>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6>📊 AI评分依据</h6>
+                                <ul class="small mb-0">
+                                    ${data.ai_reasons.map(r => `<li>${r}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6>📈 订单统计</h6>
+                                <ul class="small mb-0">
+                                    <li>订单数: ${data.order_stats.order_count} 次</li>
+                                    <li>总金额: ¥${(data.order_stats.total_amount || 0).toLocaleString()}</li>
+                                    <li>客单价: ¥${(data.order_stats.avg_amount || 0).toLocaleString()}</li>
+                                </ul>
+                                ${data.order_reasons.length > 0 && data.order_reasons[0] !== '暂无订单' ? `
+                                    <hr>
+                                    <strong>评分依据：</strong>
+                                    <ul class="small mb-0 mt-1">
+                                        ${data.order_reasons.map(r => `<li>${r}</li>`).join('')}
+                                    </ul>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <strong>🏷️ 标签：</strong>
+                    ${data.tags.map(tag => `<span class="badge bg-primary me-1">${tag}</span>`).join('')}
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `<div class="alert alert-danger">分析失败：${data.message}</div>`;
+        }
+    })
+    .catch(error => {
+        resultDiv.innerHTML = `<div class="alert alert-danger">请求失败：${error}</div>`;
+    });
+});
+
+// 初始化加载沟通记录
+loadCommunications();
+</script>
+{% endblock %}

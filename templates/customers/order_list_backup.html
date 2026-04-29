@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block page_title %}订单管理{% endblock %}
+
+{% block content %}
+<style>
+    body.dark-mode tfoot tr {
+        background-color: #0f3460 !important;
+    }
+    body.dark-mode tfoot td {
+        color: #fff !important;
+    }
+</style>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>订单管理</h2>
+    <a href="{% url 'order_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> 新建订单
+    </a>
+</div>
+
+<!-- 筛选栏 -->
+<div class="row mb-3">
+    <div class="col-md-8">
+        <form method="get" class="row g-2">
+            <div class="col-auto">
+                <select name="type" class="form-select" onchange="this.form.submit()">
+                    <option value="">全部类型</option>
+                    <option value="international" {% if current_type == 'international' %}selected{% endif %}>外贸</option>
+                    <option value="domestic" {% if current_type == 'domestic' %}selected{% endif %}>内贸</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <select name="status" class="form-select" onchange="this.form.submit()">
+                    <option value="">全部状态</option>
+                    <option value="draft" {% if current_status == 'draft' %}selected{% endif %}>草稿</option>
+                    <option value="confirmed" {% if current_status == 'confirmed' %}selected{% endif %}>已确认</option>
+                    <option value="shipped" {% if current_status == 'shipped' %}selected{% endif %}>已发货</option>
+                    <option value="completed" {% if current_status == 'completed' %}selected{% endif %}>已完成</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <a href="{% url 'order_list' %}" class="btn btn-secondary">重置</a>
+            </div>
+            <div class="col-auto">
+                <button type="button" id="batchDeleteOrdersBtn" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> 批量删除
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card-modern">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-modern">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" id="selectAllOrders">
+                        </th>
+                        <th>订单号</th>
+                        <th>客户</th>
+                        <th>类型</th>
+                        <th>订单日期</th>
+                        <th>金额</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td style="width: 40px;">
+                            <input type="checkbox" class="order-checkbox" value="{{ order.id }}">
+                        </td>
+                        <td>{{ order.order_no }}</a></td>
+                        <td>{{ order.customer.company_name }}</a></td>
+                        <td>{% if order.business_type == 'international' %}外贸{% else %}内贸{% endif %}</a></td>
+                        <td>{{ order.order_date|date:"Y-m-d" }}</td>
+                        <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.subtotal|floatformat:2 }}</td>
+                        <td>
+                            {% if order.status == 'draft' %}
+                                <span class="level-badge level-potential">草稿</span>
+                            {% elif order.status == 'confirmed' %}
+                                <span class="level-badge level-intermediate">已确认</span>
+                            {% elif order.status == 'shipped' %}
+                                <span class="level-badge level-advanced">已发货</span>
+                            {% elif order.status == 'completed' %}
+                                <span class="level-badge level-vip">已完成</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'order_detail' order.id %}" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'order_print' order.id %}?seal=1" class="btn btn-sm btn-warning" target="_blank">
+    <i class="fas fa-print"></i>
+</a>
+                            <a href="{% url 'order_delete' order.id %}" class="btn btn-sm btn-danger" onclick="return confirm('确定删除？')">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </a> 操作</th> </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center">暂无订单，点击上方按钮创建</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr style="background-color: #f5f5f5;">
+                        <td colspan="5"><strong>合计</strong></td>
+                        <td colspan="3"><strong>{% if current_type == 'international' %}${% else %}¥{% endif %} {{ total_amount|floatformat:2 }}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// 全选/取消全选
+const selectAllOrders = document.getElementById('selectAllOrders');
+const orderCheckboxes = document.querySelectorAll('.order-checkbox');
+const batchDeleteOrdersBtn = document.getElementById('batchDeleteOrdersBtn');
+
+if (selectAllOrders) {
+    selectAllOrders.addEventListener('change', function() {
+        orderCheckboxes.forEach(cb => {
+            cb.checked = selectAllOrders.checked;
+        });
+    });
+}
+
+// 批量删除订单
+if (batchDeleteOrdersBtn) {
+    batchDeleteOrdersBtn.addEventListener('click', function() {
+        const checked = document.querySelectorAll('.order-checkbox:checked');
+        const orderIds = Array.from(checked).map(cb => cb.value);
+        
+        if (orderIds.length === 0) {
+            alert('请先选择订单');
+            return;
+        }
+        
+        if (confirm(`确定要删除选中的 ${orderIds.length} 个订单吗？`)) {
+            fetch('/customers/orders/batch-delete/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ order_ids: orderIds })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`成功删除 ${data.deleted_count} 个订单`);
+                    location.reload();
+                } else {
+                    alert('删除失败：' + data.message);
+                }
+            });
+        }
+    });
+}
+</script>
+<script>
+window.addEventListener('beforeunload', function() {
+    if (window.opener && !window.opener.closed) {
+        window.opener.location.reload();
+    }
+});
+</script>
+{% endblock %}
