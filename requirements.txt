@@ -19,3 +19,4 @@ python-dateutil
 sqlparse
 asgiref
 typing_extensions
+whitenoise
