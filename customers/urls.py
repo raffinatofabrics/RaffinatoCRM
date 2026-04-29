@@ -1,9 +1,10 @@
 from django.urls import path
+from django.contrib.auth.decorators import login_required
 from . import views
 
 urlpatterns = [
-    # ========== 首页 - 业务数据大屏 ==========
-    path('', views.stats_dashboard, name='stats_dashboard'),
+    # ========== 首页 - 业务数据大屏（需要登录才能访问） ==========
+    path('', login_required(views.stats_dashboard), name='stats_dashboard'),
     
     # ========== 客户管理 ==========
     path('customers/', views.customer_list, name='customer_list'),
