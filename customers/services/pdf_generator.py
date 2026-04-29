@@ -67,7 +67,7 @@ class PDFGenerator:
     def _add_logo_and_title(self, elements, title_text):
         """添加 Logo 和标题（Logo靠左，标题居中）"""
         # Logo 路径
-        logo_path = os.path.join(settings.MEDIA_ROOT, 'logo', 'invoicelogo.png')
+        logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'invoicelogo.png')
         
         # 创建标题样式（居中，使用中文字体）
         title_style = ParagraphStyle(
