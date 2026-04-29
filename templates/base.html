@@ -538,22 +538,63 @@ if (darkModeSaved === 'true') {
             <i class="fas fa-moon"></i> 暗色模式
         </button>
         <div class="dropdown">
-    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" style="border-radius: 40px; padding: 8px 16px;" data-bs-toggle="dropdown">
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+            style="border-radius: 40px; padding: 8px 16px;" 
+            data-bs-toggle="dropdown">
         <i class="fas fa-user"></i>
         <span>{{ user.real_name|default:user.username }}</span>
         <small class="text-muted ms-1">({{ user.get_role_display }})</small>
     </button>
     <ul class="dropdown-menu">
         <li>
-            <form method="post" action="{% url 'logout' %}" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit" class="dropdown-item">退出登录</button>
-            </form>
+            <!-- 使用独立的退出按钮，不依赖任何表单 -->
+            <button type="button" class="dropdown-item" id="emergencyLogoutBtn">
+                <i class="fas fa-sign-out-alt me-2"></i>退出登录
+            </button>
         </li>
     </ul>
 </div>
     </div>
 </div>
+<script>
+// 完全独立的退出逻辑，绕过所有全局事件
+(function() {
+    const logoutBtn = document.getElementById('emergencyLogoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            
+            try {
+                // 获取 CSRF token
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                                 '{{ csrf_token }}';
+                
+                // 使用 fetch API 发送 POST 请求
+                const response = await fetch('/logout/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    window.location.href = '/login/';
+                } else {
+                    // 降级方案：直接跳转
+                    window.location.href = '/logout/?next=/login/';
+                }
+            } catch (error) {
+                // 最后的降级方案
+                window.location.href = '/logout/?next=/login/';
+            }
+        });
+    }
+})();
+</script>
     <script>
     // 3秒后自动关闭提示消息
     setTimeout(function() {

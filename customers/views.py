@@ -1262,11 +1262,12 @@ def order_list(request):
 import datetime
 
 @log_operation('create', 'order', '创建订单')
+@log_operation('create', 'order', '创建订单')
 def order_create(request):
     """创建订单（自动生成订单号）"""
     if request.method == 'POST':
         # 获取表单数据
-        customer_id = request.POST.get('customer')  # 注意这里是 'customer'
+        customer_id = request.POST.get('customer')
         
         # 验证客户是否已选择
         if not customer_id:
@@ -1287,7 +1288,6 @@ def order_create(request):
         subtotal = 0
         for i in range(len(product_names)):
             if product_names[i]:
-                # 处理空值
                 qty_str = quantities[i] if i < len(quantities) else ''
                 price_str = unit_prices[i] if i < len(unit_prices) else ''
                 
@@ -1307,18 +1307,35 @@ def order_create(request):
         # 获取客户
         customer = Customer.objects.get(id=customer_id)
         
-        # ========== 权限检查 ==========
+        # ========== 权限检查（修改这里）==========
         if request.user.is_authenticated and hasattr(request.user, 'profile'):
             role = request.user.profile.role
-            if role == 'sales':
+            dept = request.user.profile.department
+            
+            # 主管（dept_leader）的权限检查
+            if role == 'dept_leader':
+                # 主管只能创建自己部门的业务类型订单
+                if dept and dept.name == '外贸部':
+                    if business_type != 'international':
+                        messages.error(request, '您属于外贸部，只能创建外贸订单')
+                        return redirect('order_create')
+                elif dept and dept.name == '内贸部':
+                    if business_type != 'domestic':
+                        messages.error(request, '您属于内贸部，只能创建内贸订单')
+                        return redirect('order_create')
+                
+                # 主管只能看到自己部门的客户（已在GET中过滤）
+                if customer.department != dept:
+                    messages.error(request, '您没有权限为其他部门的客户创建订单')
+                    return redirect('order_create')
+            
+            elif role == 'sales':
                 # 销售人员只能为自己分配的客户创建订单
                 if customer.assigned_sales != request.user:
                     messages.error(request, '您没有权限为这个客户创建订单')
                     return redirect('order_create')
                 
                 # 销售人员只能创建自己部门的业务类型订单
-                from .models import Department
-                dept = request.user.profile.department
                 if dept and dept.name == '外贸部':
                     if business_type != 'international':
                         messages.error(request, '您属于外贸部，只能创建外贸订单')
@@ -1346,7 +1363,7 @@ def order_create(request):
         
         order_no = f'PO#{today_str}{type_prefix}{new_num:02d}'
         
-        # 创建订单
+        # 创建订单（自动使用当前用户的部门）
         order = Order.objects.create(
             order_no=order_no,
             customer=customer,
@@ -1355,7 +1372,9 @@ def order_create(request):
             items=items,
             subtotal=subtotal,
             notes=request.POST.get('notes', ''),
-            sales_person=request.user.username if hasattr(request, 'user') and request.user.is_authenticated else '管理员',
+            sales_person=request.user.username,
+            # 如果有部门字段，添加这行
+            # department=request.user.profile.department,
         )
         
         messages.success(request, f'订单 {order_no} 创建成功')
@@ -1365,22 +1384,27 @@ def order_create(request):
     import datetime
     customers = Customer.objects.filter(is_deleted=False)
     
-    # 销售人员只能看到自己客户的客户
     if request.user.is_authenticated and hasattr(request.user, 'profile'):
         role = request.user.profile.role
+        dept = request.user.profile.department
+        
         if role == 'sales':
+            # 销售人员只能看到自己分配的客户
             customers = customers.filter(assigned_sales=request.user)
         elif role == 'dept_leader':
-            dept = request.user.profile.department
+            # 主管只能看到自己部门的客户
             if dept:
                 customers = customers.filter(department=dept)
+        # admin 可以看到所有客户
     
     return render(request, 'customers/order_form.html', {
         'customers': customers,
         'today_date': datetime.date.today().strftime('%Y-%m-%d'),
         'user_role': request.user.profile.role if hasattr(request.user, 'profile') else 'admin',
         'user_dept': request.user.profile.department.name if hasattr(request.user, 'profile') and request.user.profile.department else '',
+        'user_department': request.user.profile.department,  # 添加这行，传递部门对象到模板
     })
+
 
 def order_detail(request, order_id):
     """订单详情"""

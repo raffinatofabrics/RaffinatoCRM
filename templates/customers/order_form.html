@@ -148,39 +148,32 @@ body.dark-mode .dropdown-result div:hover {
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-12">
-        <div class="card-modern">
-            <div class="card-header">
-                <h5 class="mb-0">新建订单</h5>
-            </div>
-            <div class="card-body">
-                <form method="post" id="orderForm">
-                    {% csrf_token %}
-                    
-     <div class="row mb-3">
+<div class="row mb-3">
     <div class="col-md-3">
         <label class="form-label">订单号</label>
         <input type="text" class="form-control" value="自动生成" disabled>
     </div>
     <div class="col-md-3">
-    <label class="form-label">业务类型</label>
-    {% if user_role == 'sales' %}
-        <input type="text" class="form-control" value="{% if user_dept == '外贸部' %}外贸{% else %}内贸{% endif %}" readonly>
-        <input type="hidden" name="business_type" value="{% if user_dept == '外贸部' %}international{% else %}domestic{% endif %}">
-    {% else %}
-        <select name="business_type" id="businessType" class="form-select" required>
-            <option value="international">外贸</option>
-            <option value="domestic">内贸</option>
-        </select>
-    {% endif %}
-</div>
+        <label class="form-label">业务类型</label>
+        {% if user_role == 'sales' or user_role == 'dept_leader' %}
+            {# 销售人员和主管：根据部门自动锁定 #}
+            <input type="text" class="form-control" value="{% if user_dept == '外贸部' %}外贸订单{% else %}内贸订单{% endif %}" readonly style="background-color: #e9ecef;">
+            <input type="hidden" name="business_type" value="{% if user_dept == '外贸部' %}international{% else %}domestic{% endif %}">
+            <small class="text-muted">您属于{{ user_dept }}，只能创建{{ user_dept }}订单</small>
+        {% else %}
+            {# 管理员：可以选择 #}
+            <select name="business_type" id="businessType" class="form-select" required>
+                <option value="international">外贸订单</option>
+                <option value="domestic">内贸订单</option>
+            </select>
+        {% endif %}
+    </div>
     <div class="col-md-3 position-relative">
-    <label class="form-label">客户 *</label>
-    <input type="text" id="customerSearch" class="form-control" placeholder="输入客户名称搜索" autocomplete="off" required>
-    <input type="hidden" name="customer" id="customerId" value="">
-    <div id="customerDropdown" class="dropdown-result" style="display: none;"></div>
-</div>
+        <label class="form-label">客户 *</label>
+        <input type="text" id="customerSearch" class="form-control" placeholder="输入客户名称搜索" autocomplete="off" required>
+        <input type="hidden" name="customer" id="customerId" value="">
+        <div id="customerDropdown" class="dropdown-result" style="display: none;"></div>
+    </div>
     <div class="col-md-3">
         <label class="form-label">订单日期</label>
         <input type="date" name="order_date" class="form-control" required>
