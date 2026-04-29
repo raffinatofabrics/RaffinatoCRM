@@ -538,15 +538,20 @@ if (darkModeSaved === 'true') {
             <i class="fas fa-moon"></i> 暗色模式
         </button>
         <div class="dropdown">
-            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" style="border-radius: 40px; padding: 8px 16px;" data-bs-toggle="dropdown">
-                <i class="fas fa-user"></i>
-                <span>{{ user.real_name|default:user.username }}</span>
-                <small class="text-muted ms-1">({{ user.get_role_display }})</small>
-            </button>
-            <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="{% url 'logout' %}">退出登录</a></li>
-            </ul>
-        </div>
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" style="border-radius: 40px; padding: 8px 16px;" data-bs-toggle="dropdown">
+        <i class="fas fa-user"></i>
+        <span>{{ user.real_name|default:user.username }}</span>
+        <small class="text-muted ms-1">({{ user.get_role_display }})</small>
+    </button>
+    <ul class="dropdown-menu">
+        <li>
+            <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="dropdown-item">退出登录</button>
+            </form>
+        </li>
+    </ul>
+</div>
     </div>
 </div>
     <script>
