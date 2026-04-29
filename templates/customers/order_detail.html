@@ -45,9 +45,9 @@ body.dark-mode .form-control[readonly] {
         <a href="{% url 'order_list' %}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> 返回列表
         </a>
-        <a href="{% url 'order_print' order.id %}?seal=1" class="btn btn-info" target="_blank">
-            <i class="fas fa-print"></i> 打印
-        </a>
+        <button class="btn btn-info" onclick="openPrintWindow('{% url 'order_print' order.id %}?seal=1')">
+    <i class="fas fa-print"></i> 打印
+</button>
         <a href="{% url 'order_edit' order.id %}" class="btn btn-warning">
             <i class="fas fa-edit"></i> 调整订单
         </a>
@@ -308,4 +308,27 @@ otherCost.addEventListener('input', calculateCosts);
 
 // 初始化计算
 calculateCosts();
-</script>{% endblock %}
+</script>
+<script>
+    let printWindow = null;
+
+    function openPrintWindow(url) {
+        printWindow = window.open(url, '_blank');
+        
+        if (printWindow) {
+            const checkInterval = setInterval(function() {
+                if (printWindow.closed) {
+                    clearInterval(checkInterval);
+                    window.location.reload();
+                }
+            }, 500);
+            
+            setTimeout(function() {
+                clearInterval(checkInterval);
+            }, 300000);
+        } else {
+            alert('请允许弹窗后重试');
+        }
+    }
+</script>
+{% endblock %}

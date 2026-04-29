@@ -1431,16 +1431,13 @@ def order_print(request, order_id):
     
     order = get_object_or_404(Order, id=order_id)
     show_seal = request.GET.get('seal', '0') == '1'
-    seal_id = request.GET.get('seal_id', '')
+    seal_path = request.GET.get('seal_path', '')
     
-    seals = CompanySeal.objects.all()
+    # 不再从数据库查询业务章
+    # seals = CompanySeal.objects.all()
     
-    selected_seal = None
-    if seal_id and show_seal:
-        try:
-            selected_seal = CompanySeal.objects.get(id=seal_id)
-        except:
-            pass
+    # 不再需要 selected_seal
+    # selected_seal = None
     
     # 计算大写金额
     chinese_amount = number_to_chinese(order.subtotal)
@@ -1448,9 +1445,8 @@ def order_print(request, order_id):
     return render(request, 'customers/order_print.html', {
         'order': order,
         'show_seal': show_seal,
-        'seals': seals,
-        'selected_seal': selected_seal,
-        'chinese_amount': chinese_amount,  # 传递大写金额
+        'seal_path': seal_path,  # 直接传图片路径
+        'chinese_amount': chinese_amount,
     })
 
 def number_to_chinese(amount):
