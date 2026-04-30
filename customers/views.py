@@ -4441,17 +4441,15 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 def reset_password(request):
-    """重置密码（临时使用）"""
+    """创建新管理员（临时使用）"""
     key = request.GET.get('key', '')
     if key == 'raffinato2024':
-        # 重置管理员密码或创建新管理员
-        admin = User.objects.filter(is_superuser=True).first()
-        if admin:
-            admin.set_password('admin123')
-            admin.save()
-            return HttpResponse(f'✅ 密码已重置！用户名: {admin.username}, 密码: admin123')
-        else:
-            User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
-            return HttpResponse('✅ 超级管理员已创建！用户名: admin, 密码: admin123')
+        # 删除旧用户（如果存在）
+        User.objects.filter(username='admin').delete()
+        
+        # 创建新超级管理员
+        User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
+        
+        return HttpResponse('✅ 超级管理员已创建！<br>用户名: admin<br>密码: admin123<br><a href="/admin/">点击登录</a>')
     else:
         return HttpResponse('密钥错误')
