@@ -138,6 +138,30 @@ body.dark-mode .dropdown-result {
 body.dark-mode .dropdown-result div:hover {
     background-color: #0f3460;
 }
+
+/* 去除产品明细表格上下的大横线 */
+#itemsTable {
+    border-top: none !important;
+    border-bottom: none !important;
+}
+
+#itemsTable thead {
+    border-top: none !important;
+    border-bottom: 2px solid #ced4da !important;
+}
+
+#itemsTable tbody tr:first-child td {
+    border-top: none !important;
+}
+
+#itemsTable tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+/* 暗色模式下的表格边框 */
+body.dark-mode #itemsTable thead {
+    border-bottom: 2px solid #2c3e50 !important;
+}
 </style>
 
 <div class="row">
@@ -397,17 +421,60 @@ if (customerSearch) {
     });
 }
 
-// ========== 表单提交验证 ==========
-var orderForm = document.querySelector('form');
-if (orderForm) {
-    orderForm.addEventListener('submit', function(e) {
-        var customerIdVal = document.getElementById('customerId').value;
-        if (!customerIdVal) {
-            alert('请选择客户');
-            e.preventDefault();
-            return false;
-        }
-    });
-}
+// ========== 表单提交验证（修复版）==========
+(function() {
+    var orderForm = document.getElementById('orderForm');
+    if (orderForm) {
+        console.log('✅ 找到订单表单，绑定提交事件');
+        
+        orderForm.addEventListener('submit', function(e) {
+            console.log('📝 表单提交事件触发');
+            
+            // 验证客户
+            var customerIdVal = document.getElementById('customerId')?.value;
+            if (!customerIdVal) {
+                alert('❌ 请先选择客户');
+                e.preventDefault();
+                return false;
+            }
+            
+            // 验证产品明细
+            var itemBody = document.getElementById('itemBody');
+            if (itemBody) {
+                var itemRows = itemBody.querySelectorAll('.item-row');
+                if (itemRows.length === 0) {
+                    alert('❌ 请至少添加一个产品明细');
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // 验证第一行是否有产品名称
+                var firstProduct = itemRows[0].querySelector('input[name="product_name[]"]');
+                if (!firstProduct || !firstProduct.value.trim()) {
+                    alert('❌ 请填写产品名称');
+                    e.preventDefault();
+                    return false;
+                }
+            }
+            
+            console.log('✅ 验证通过，表单将提交到:', orderForm.action);
+            return true;
+        });
+    } else {
+        console.error('❌ 找不到 id="orderForm" 的表单！');
+    }
+    
+    // 检查提交按钮
+    var submitBtn = document.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        console.log('✅ 找到提交按钮');
+        submitBtn.disabled = false;
+        submitBtn.addEventListener('click', function() {
+            console.log('🖱️ 保存按钮被点击');
+        });
+    } else {
+        console.error('❌ 找不到 type="submit" 的按钮！');
+    }
+})();
 </script>
 {% endblock %}

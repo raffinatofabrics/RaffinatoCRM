@@ -1610,6 +1610,40 @@ def order_summary(request):
     # 基础查询
     orders = Order.objects.all()
     
+    # ========== 权限过滤（添加这部分）==========
+    if request.user.is_authenticated and hasattr(request.user, 'profile'):
+        role = request.user.profile.role
+        dept = request.user.profile.department
+        
+        if role == 'sales':
+            # 销售人员：只能看到自己的订单
+            orders = orders.filter(sales_person=request.user.username)
+            
+        elif role == 'dept_leader':
+            # 主管：只能看到自己部门的订单
+            if dept and dept.name == '外贸部':
+                orders = orders.filter(business_type='international')
+                # 如果业务类型筛选器选择了内贸，强制改为外贸
+                if business_type == 'domestic':
+                    business_type = 'international'
+            elif dept and dept.name == '内贸部':
+                orders = orders.filter(business_type='domestic')
+                # 如果业务类型筛选器选择了外贸，强制改为内贸
+                if business_type == 'international':
+                    business_type = 'domestic'
+        
+        # admin 可以看到所有订单，不做过滤
+    
+    # 如果用户是主管，且没有选择业务类型，自动选择本部门的类型
+    if hasattr(request.user, 'profile') and request.user.profile.role == 'dept_leader':
+        dept = request.user.profile.department
+        if dept and not business_type:
+            if dept.name == '外贸部':
+                business_type = 'international'
+            elif dept.name == '内贸部':
+                business_type = 'domestic'
+    # ========== 权限过滤结束 ==========
+    
     # 日期筛选
     if date_from:
         orders = orders.filter(order_date__gte=date_from)
@@ -1643,15 +1677,25 @@ def order_summary(request):
             usd_total += amount
     total_orders_count = orders.count()
     
-    result = []
-    summary = {}
-    
+    # ========== 客户列表也根据权限过滤 ==========
     # 客户列表
-    customers = Customer.objects.filter(is_deleted=False).order_by('company_name')
+    if hasattr(request.user, 'profile') and request.user.profile.role == 'sales':
+        # 销售人员：只能看到自己分配的客户
+        customers = Customer.objects.filter(is_deleted=False, assigned_sales=request.user).order_by('company_name')
+    elif hasattr(request.user, 'profile') and request.user.profile.role == 'dept_leader':
+        # 主管：只能看到自己部门的客户
+        dept = request.user.profile.department
+        if dept:
+            customers = Customer.objects.filter(is_deleted=False, department=dept).order_by('company_name')
+        else:
+            customers = Customer.objects.filter(is_deleted=False).order_by('company_name')
+    else:
+        # 管理员：可以看到所有客户
+        customers = Customer.objects.filter(is_deleted=False).order_by('company_name')
     
-    # 产品列表
+    # 产品列表也根据权限过滤
     products = set()
-    for o in Order.objects.all():
+    for o in orders:
         for item in o.items:
             if item.get('product_name'):
                 products.add(item.get('product_name'))
@@ -1663,7 +1707,10 @@ def order_summary(request):
         selected_customer = Customer.objects.filter(id=customer_id).first()
         selected_customer_name = selected_customer.company_name if selected_customer else ''
     
-    # ================= 按客户汇总 =================
+    # ... 后面的代码保持不变 ...
+    result = []
+    summary = {}
+    
     # ================= 按客户汇总 =================
     if report_type == 'customer':
         if customer_id:
@@ -1843,8 +1890,15 @@ def order_summary(request):
         summary['usd_total'] = usd_total
         summary['total_amount'] = total_all
     
-    # 年份列表
-    years = Order.objects.dates('order_date', 'year')
+    # 年份列表（也根据权限过滤）
+    years = orders.dates('order_date', 'year')
+    
+    # 传递用户权限信息到模板
+    user_role = ''
+    user_dept = ''
+    if request.user.is_authenticated and hasattr(request.user, 'profile'):
+        user_role = request.user.profile.role
+        user_dept = request.user.profile.department.name if request.user.profile.department else ''
     
     context = {
         'report_type': report_type,
@@ -1867,9 +1921,13 @@ def order_summary(request):
         'rmb_total': rmb_total,
         'usd_total': usd_total,
         'total_orders_count': total_orders_count,
+        # 添加权限信息
+        'user_role': user_role,
+        'user_dept': user_dept,
     }
     
     return render(request, 'customers/order_summary.html', context)
+
 # ==================== 多邮箱配置 ====================
 
 from .models import UserEmailConfig

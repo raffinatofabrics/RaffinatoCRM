@@ -3,6 +3,16 @@
 {% block page_title %}订单汇总报表{% endblock %}
 
 {% block content %}
+<!-- 在页面顶部添加权限提示 -->
+{% if user_role == 'sales' %}
+<div class="alert alert-info mb-3">
+    <i class="fas fa-user"></i> 您正在查看自己的订单
+</div>
+{% elif user_role == 'dept_leader' %}
+<div class="alert alert-info mb-3">
+    <i class="fas fa-building"></i> 您正在查看{{ user_dept }}的订单
+</div>
+{% endif %}
 <style>
     .summary-card {
         background: #f8f9fa;
