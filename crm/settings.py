@@ -31,10 +31,13 @@ sys.path.insert(0, BASE_DIR / 'apps')
 SECRET_KEY = 'django-insecure-pfx$atxo^2@%g1=7vl_2%=m2@uv0phz#m&fegxu@2^-b#niv%5'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['*']
-
+ALLOWED_HOSTS = [
+    'crm.raffinato.cn',
+    'www.crm.raffinato.cn',
+    'raffinatocrm.onrender.com',  # Render 默认域名
+]
 
 # Application definition
 
@@ -198,3 +201,15 @@ BAIDU_SEARCH_CONFIG = {
 BOUNCE_IMAP_SERVER = os.environ.get('BOUNCE_IMAP_SERVER', 'imap.qq.com')
 BOUNCE_EMAIL = os.environ.get('BOUNCE_EMAIL', '')
 BOUNCE_EMAIL_PASSWORD = os.environ.get('BOUNCE_EMAIL_PASSWORD', '')
+
+# CSRF 配置
+CSRF_TRUSTED_ORIGINS = [
+    'https://crm.raffinato.cn',
+    'https://www.crm.raffinato.cn',
+    'https://raffinatocrm.onrender.com',
+]
+
+# 安全设置（HTTPS）
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
