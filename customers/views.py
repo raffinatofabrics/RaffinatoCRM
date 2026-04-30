@@ -2736,12 +2736,9 @@ def user_create(request):
     from .models import UserProfile, Department
     from django.db import transaction
     
-    # 修复：检查用户权限的正确方式
+    # 权限检查
     if not request.user.is_superuser:
-        if hasattr(request.user, 'userprofile'):
-            if request.user.userprofile.role != 'admin':
-                return JsonResponse({'success': False, 'message': '权限不足'})
-        else:
+        if not hasattr(request.user, 'userprofile') or request.user.userprofile.role != 'admin':
             return JsonResponse({'success': False, 'message': '权限不足'})
     
     if request.method == 'POST':
@@ -2764,19 +2761,17 @@ def user_create(request):
                     username=username,
                     password=password,
                     email=email,
-                    is_staff=True if role == 'admin' else False,
+                    is_staff=(role == 'admin'),
                 )
                 
-                # 获取部门
+                # 获取或创建部门
                 department = None
                 if department_name:
-                    try:
-                        department = Department.objects.get(name=department_name)
-                    except Department.DoesNotExist:
-                        pass
+                    department, _ = Department.objects.get_or_create(name=department_name)
+                    print(f"部门: {department.id} - {department.name}")
                 
-                # 使用 get_or_create 避免重复（修复关键点）
-                profile, created = UserProfile.objects.get_or_create(
+                # 创建或更新 Profile
+                profile, created = UserProfile.objects.update_or_create(
                     user=user,
                     defaults={
                         'role': role,
@@ -2784,13 +2779,17 @@ def user_create(request):
                     }
                 )
                 
-                if not created:
-                    # 如果已存在，更新它
-                    profile.role = role
-                    profile.department = department
-                    profile.save()
+                return JsonResponse({'success': True, 'message': '创建成功', 'department': department_name})
                 
-                return JsonResponse({'success': True, 'message': '创建成功'})
+        except Exception as e:
+            import traceback
+            return JsonResponse({
+                'success': False,
+                'message': f'创建失败: {str(e)}',
+                'trace': traceback.format_exc()
+            }, status=500)
+    
+    return JsonResponse({'success': False, 'message': '仅支持POST请求'})
                 
         except Exception as e:
             import traceback
