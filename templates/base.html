@@ -538,22 +538,27 @@ if (darkModeSaved === 'true') {
             <i class="fas fa-moon"></i> 暗色模式
         </button>
         <div class="dropdown">
-    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
-            style="border-radius: 40px; padding: 8px 16px;" 
-            data-bs-toggle="dropdown">
-        <i class="fas fa-user"></i>
-        <span>{{ user.real_name|default:user.username }}</span>
-        <small class="text-muted ms-1">({{ user.get_role_display }})</small>
-    </button>
-    <ul class="dropdown-menu">
-        <li>
-            <!-- 使用独立的退出按钮，不依赖任何表单 -->
-            <button type="button" class="dropdown-item" id="emergencyLogoutBtn">
-                <i class="fas fa-sign-out-alt me-2"></i>退出登录
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                    style="border-radius: 40px; padding: 8px 16px;" 
+                    data-bs-toggle="dropdown">
+                <i class="fas fa-user"></i>
+                <span>{{ user.real_name|default:user.username }}</span>
+                <small class="text-muted ms-1">
+                    ({% if user.profile.role == 'sales' %}业务员
+                     {% elif user.profile.role == 'dept_leader' %}主管
+                     {% elif user.profile.role == 'admin' %}管理员
+                     {% elif user.profile.role == 'readonly' %}只读用户
+                     {% else %}未知{% endif %})
+                </small>
             </button>
-        </li>
-    </ul>
-</div>
+            <ul class="dropdown-menu">
+                <li>
+                    <button type="button" class="dropdown-item" id="emergencyLogoutBtn">
+                        <i class="fas fa-sign-out-alt me-2"></i>退出登录
+                    </button>
+                </li>
+            </ul>
+        </div>
     </div>
 </div>
 <script>
