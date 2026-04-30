@@ -2768,7 +2768,6 @@ def user_create(request):
                 department = None
                 if department_name:
                     department, _ = Department.objects.get_or_create(name=department_name)
-                    print(f"部门: {department.id} - {department.name}")
                 
                 # 创建或更新 Profile
                 profile, created = UserProfile.objects.update_or_create(
@@ -2790,17 +2789,6 @@ def user_create(request):
             }, status=500)
     
     return JsonResponse({'success': False, 'message': '仅支持POST请求'})
-                
-        except Exception as e:
-            import traceback
-            return JsonResponse({
-                'success': False, 
-                'message': f'创建失败: {str(e)}',
-                'trace': traceback.format_exc()
-            }, status=500)
-    
-    return JsonResponse({'success': False, 'message': '仅支持POST请求'})
-
 
 @login_required
 def user_edit(request, user_id):
