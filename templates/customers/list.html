@@ -469,6 +469,19 @@ body.dark-mode .dropdown-result div:hover {
                         </select>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">负责人 <span class="text-danger">*</span></label>
+                        <select name="assigned_sales" id="assigned_sales" class="form-select" required>
+                            <option value="">请选择负责人</option>
+                            {% for user in sales_users %}
+                            <option value="{{ user.id }}" {% if user.id == request.user.id %}selected{% endif %}>
+                                {{ user.get_full_name|default:user.username }}
+                                {% if user.profile.department %} - {{ user.profile.department.name }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">选择负责跟进该客户的销售人员</small>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">备注</label>
                         <textarea name="notes" class="form-control" rows="2"></textarea>
                     </div>

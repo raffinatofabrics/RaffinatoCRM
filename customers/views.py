@@ -78,6 +78,9 @@ def customer_list(request):
     """客户列表页面"""
     from .models import CustomerTag, Order
     from django.db.models import Sum, Q
+    from django.contrib.auth import get_user_model
+    
+    User = get_user_model()
     
     level = request.GET.get('level', '')
     keyword = request.GET.get('keyword', '')
@@ -159,6 +162,12 @@ def customer_list(request):
             customer.ai_score = 0
     # ========== 计算结束 ==========
     
+    # ========== 获取销售人员列表（用于添加客户弹窗） ==========
+    sales_users = User.objects.filter(
+        Q(profile__role='sales') | Q(profile__role='dept_leader') | Q(is_superuser=True)
+    ).select_related('profile__department').distinct()
+    # ========== 获取结束 ==========
+    
     level_choices = Customer.LEVEL_CHOICES
     all_tags = CustomerTag.objects.all()
     
@@ -170,6 +179,7 @@ def customer_list(request):
         'sort_by': sort_by,
         'current_tag': tag_id,
         'all_tags': all_tags,
+        'sales_users': sales_users,  # 添加这一行
     })
 # ==================== 二期：搜索任务管理 ====================
 
@@ -2398,7 +2408,6 @@ def tag_list_api(request):
 from django.db import IntegrityError
 
 @login_required
-@login_required
 def add_customer_manual(request):
     """手动添加客户"""
     if request.method == 'POST':
@@ -2411,6 +2420,11 @@ def add_customer_manual(request):
         if email == '':
             email = None
         
+        # 获取选择的负责人
+        assigned_sales_id = request.POST.get('assigned_sales')
+        if not assigned_sales_id:
+            return JsonResponse({'success': False, 'message': '请选择负责人'})
+        
         try:
             customer = Customer.objects.create(
                 company_name=company_name,
@@ -2421,7 +2435,18 @@ def add_customer_manual(request):
                 level=request.POST.get('level', 'potential'),
                 source='manual',
                 notes=request.POST.get('notes', ''),
+                is_deleted=False,
+                assigned_sales_id=assigned_sales_id,  # 改这里：使用选择的负责人
             )
+            
+            # 设置部门（根据选择的负责人自动获取）
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            selected_sales = User.objects.filter(id=assigned_sales_id).first()
+            if selected_sales and hasattr(selected_sales, 'profile') and selected_sales.profile.department:
+                customer.department = selected_sales.profile.department
+                customer.save()
+            
             return JsonResponse({'success': True, 'customer_id': customer.id})
         except IntegrityError as e:
             if 'email' in str(e):
@@ -2432,7 +2457,6 @@ def add_customer_manual(request):
             return JsonResponse({'success': False, 'message': f'添加失败：{str(e)}'})
     
     return JsonResponse({'success': False, 'message': '请求方法错误'})
-
 
 @login_required
 def update_order_cost(request, order_id):
