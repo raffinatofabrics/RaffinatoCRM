@@ -450,68 +450,31 @@ def import_customers(request):
     if request.method == 'POST':
         excel_file = request.FILES.get('excel_file')
         if not excel_file:
-            messages.error(request, '请选择文件')
-            return redirect('import_customers')
-        
-        # 保存临时文件
-        file_path = f'/tmp/temp_{excel_file.name}'  # 改为 Linux 路径
-        with open(file_path, 'wb+') as f:
-            for chunk in excel_file.chunks():
-                f.write(chunk)
+            return JsonResponse({'error': '请选择文件'}, status=400)
         
         try:
-            df = pd.read_excel(file_path)
+            df = pd.read_excel(excel_file, engine='openpyxl')
             
-            # 添加调试信息
-            print(f"=== 调试信息 ===")
-            print(f"文件路径: {file_path}")
-            print(f"Excel 总行数: {len(df)}")
-            print(f"Excel 列名: {list(df.columns)}")
-            print(f"前3行数据:\n{df.head(3)}")
-            
-            success_count = 0
-            fail_count = 0
-            
-            for index, row in df.iterrows():
-                print(f"处理第 {index+2} 行")  # +2 因为要跳过表头
-                
-                email = row.get('邮箱') or row.get('email')
-                if not email:
-                    print(f"  跳过: 没有邮箱")
-                    fail_count += 1
-                    continue
-                
-                if Customer.objects.filter(email=email).exists():
-                    print(f"  跳过: 邮箱 {email} 已存在")
-                    fail_count += 1
-                    continue
-                
-                Customer.objects.create(
-                    company_name=row.get('公司名') or row.get('company_name') or '',
-                    contact_person=row.get('联系人') or row.get('contact_person') or '',
-                    email=email,
-                    phone=row.get('电话') or row.get('phone') or '',
-                    country=row.get('国家') or row.get('country') or '',
-                    address=row.get('地址') or row.get('address') or '',
-                    website=row.get('网站') or row.get('website') or '',
-                    source='excel_import',
-                )
-                success_count += 1
-                print(f"  成功: {email}")
-            
-            print(f"导入完成: 成功 {success_count}, 失败 {fail_count}")
-            messages.success(request, f'导入成功: {success_count} 条，失败/重复: {fail_count} 条')
+            # 返回调试信息
+            return JsonResponse({
+                'total_rows': len(df),
+                'columns': list(df.columns),
+                'first_3_rows': [
+                    {
+                        '公司名': row.get('公司名'),
+                        '联系人': row.get('联系人'),
+                        '邮箱': row.get('邮箱'),
+                        '电话': row.get('电话'),
+                    }
+                    for _, row in df.head(3).iterrows()
+                ]
+            })
             
         except Exception as e:
-            import traceback
-            print(f"错误: {traceback.format_exc()}")
-            messages.error(request, f'导入失败: {str(e)}')
-        finally:
-            os.remove(file_path)
-        
-        return redirect('customer_list')
+            return JsonResponse({'error': str(e)}, status=500)
     
     return render(request, 'customers/import.html')
+
 
 def update_customer_level(request, customer_id):
     """更新客户等级"""
