@@ -450,31 +450,66 @@ def import_customers(request):
     if request.method == 'POST':
         excel_file = request.FILES.get('excel_file')
         if not excel_file:
-            return JsonResponse({'error': '请选择文件'}, status=400)
+            messages.error(request, '请选择文件')
+            return redirect('import_customers')
         
         try:
             df = pd.read_excel(excel_file, engine='openpyxl')
             
-            # 返回调试信息
-            return JsonResponse({
-                'total_rows': len(df),
-                'columns': list(df.columns),
-                'first_3_rows': [
-                    {
-                        '公司名': row.get('公司名'),
-                        '联系人': row.get('联系人'),
-                        '邮箱': row.get('邮箱'),
-                        '电话': row.get('电话'),
-                    }
-                    for _, row in df.head(3).iterrows()
-                ]
-            })
+            success_count = 0
+            fail_count = 0
+            duplicate_count = 0
+            
+            for index, row in df.iterrows():
+                email = row.get('邮箱')
+                
+                # 处理邮箱：如果是无效值，设为 None
+                if pd.isna(email) or str(email).strip() in ['', '—', '-']:
+                    email = None
+                else:
+                    email = str(email).strip()
+                
+                # 如果有邮箱且重复，跳过
+                if email and Customer.objects.filter(email=email).exists():
+                    duplicate_count += 1
+                    continue
+                
+                # 如果没有邮箱，检查公司名是否重复（避免重复导入）
+                company_name = str(row.get('公司名', '')).strip() if pd.notna(row.get('公司名')) else ''
+                if not email and company_name:
+                    # 检查是否有相同公司名的客户
+                    if Customer.objects.filter(company_name=company_name, email__isnull=True).exists():
+                        duplicate_count += 1
+                        continue
+                
+                try:
+                    Customer.objects.create(
+                        company_name=company_name,
+                        contact_person=str(row.get('联系人', '')).strip() if pd.notna(row.get('联系人')) else '',
+                        email=email,
+                        phone=str(row.get('电话', '')).strip() if pd.notna(row.get('电话')) else '',
+                        country=str(row.get('国家', '')).strip() if pd.notna(row.get('国家')) else '',
+                        address=str(row.get('地址', '')).strip() if pd.notna(row.get('地址')) else '',
+                        source='excel_import',
+                    )
+                    success_count += 1
+                except Exception as e:
+                    fail_count += 1
+                    print(f"创建失败: {company_name}, 错误: {e}")
+            
+            messages.success(
+                request, 
+                f'导入完成！成功: {success_count} 条，重复/跳过: {duplicate_count} 条，失败: {fail_count} 条'
+            )
             
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            import traceback
+            print(traceback.format_exc())
+            messages.error(request, f'导入失败: {str(e)}')
+        
+        return redirect('customer_list')
     
     return render(request, 'customers/import.html')
-
 
 def update_customer_level(request, customer_id):
     """更新客户等级"""

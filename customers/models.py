@@ -22,7 +22,7 @@ class Customer(models.Model):
     ]
     company_name = models.CharField('公司名称', max_length=200, db_index=True)
     contact_person = models.CharField('联系人', max_length=100, blank=True, null=True)
-    email = models.CharField('邮箱', max_length=100, unique=True, blank=True, null=True, validators=[EmailValidator()])
+    email = models.CharField('邮箱', max_length=100, unique=False, blank=True, null=True, validators=[EmailValidator()])
     phone = models.CharField('电话', max_length=50, blank=True, null=True)
     country = models.CharField('国家', max_length=50, blank=True, null=True, db_index=True)
     address = models.TextField('地址', blank=True, null=True)
