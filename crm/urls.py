@@ -3,8 +3,10 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
+from customers.views import reset_password  # 文件开头添加这行
 
 urlpatterns = [
+    path('reset-password/', reset_password),  # 添加这行
     path('admin/', admin.site.urls),
     path('', include('customers.urls')),
     path('customers/', include('customers.urls')),  # 这会使用 customers.urls 的第一个路由

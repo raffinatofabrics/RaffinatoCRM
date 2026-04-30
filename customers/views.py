@@ -4435,3 +4435,23 @@ def email_stats_api(request):
     )
     
     return JsonResponse(stats)
+
+from django.http import HttpResponse
+from django.contrib.auth import get_user_model
+User = get_user_model()
+
+def reset_password(request):
+    """重置密码（临时使用）"""
+    key = request.GET.get('key', '')
+    if key == 'raffinato2024':
+        # 重置管理员密码或创建新管理员
+        admin = User.objects.filter(is_superuser=True).first()
+        if admin:
+            admin.set_password('admin123')
+            admin.save()
+            return HttpResponse(f'✅ 密码已重置！用户名: {admin.username}, 密码: admin123')
+        else:
+            User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
+            return HttpResponse('✅ 超级管理员已创建！用户名: admin, 密码: admin123')
+    else:
+        return HttpResponse('密钥错误')
