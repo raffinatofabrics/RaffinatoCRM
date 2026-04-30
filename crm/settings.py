@@ -31,7 +31,7 @@ sys.path.insert(0, BASE_DIR / 'apps')
 SECRET_KEY = 'django-insecure-pfx$atxo^2@%g1=7vl_2%=m2@uv0phz#m&fegxu@2^-b#niv%5'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [
     'crm.raffinato.cn',
