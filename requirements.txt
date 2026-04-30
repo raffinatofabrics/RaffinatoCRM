@@ -21,3 +21,4 @@ asgiref
 typing_extensions
 whitenoise
 dj-database-url
+psycopg2-binary
