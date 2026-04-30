@@ -20,3 +20,4 @@ sqlparse
 asgiref
 typing_extensions
 whitenoise
+dj-database-url
