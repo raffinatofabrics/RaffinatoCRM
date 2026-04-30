@@ -2734,9 +2734,16 @@ def user_list(request):
 def user_create(request):
     """创建用户"""
     from .models import UserProfile, Department
+    from django.db import transaction
     
-    if not request.user.is_superuser and request.user.role != 'admin':
-        return JsonResponse({'success': False, 'message': '权限不足'})
+    # 修复：检查用户权限的正确方式
+    if not request.user.is_superuser:
+        # 如果是非管理员，检查 role
+        if hasattr(request.user, 'userprofile'):
+            if request.user.userprofile.role != 'admin':
+                return JsonResponse({'success': False, 'message': '权限不足'})
+        else:
+            return JsonResponse({'success': False, 'message': '权限不足'})
     
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -2745,33 +2752,48 @@ def user_create(request):
         department_name = request.POST.get('department')
         email = request.POST.get('email', '')
         
+        # 验证必填字段
+        if not username or not password:
+            return JsonResponse({'success': False, 'message': '用户名和密码不能为空'})
+        
         if User.objects.filter(username=username).exists():
             return JsonResponse({'success': False, 'message': '用户名已存在'})
         
-        # 创建用户
-        user = User.objects.create_user(
-            username=username,
-            password=password,
-            email=email,
-            is_staff=True if role == 'admin' else False,
-        )
-        
-        # 获取部门
-        department = None
-        if department_name:
-            try:
-                department = Department.objects.get(name=department_name)
-            except Department.DoesNotExist:
-                pass
-        
-        # 创建 Profile
-        UserProfile.objects.create(
-            user=user,
-            role=role,
-            department=department
-        )
-        
-        return JsonResponse({'success': True, 'message': '创建成功'})
+        try:
+            with transaction.atomic():
+                # 创建用户
+                user = User.objects.create_user(
+                    username=username,
+                    password=password,
+                    email=email,
+                    is_staff=True if role == 'admin' else False,
+                )
+                
+                # 获取部门
+                department = None
+                if department_name:
+                    try:
+                        department = Department.objects.get(name=department_name)
+                    except Department.DoesNotExist:
+                        # 如果部门不存在，可以选择创建或忽略
+                        pass  # 保持 department = None
+                
+                # 创建 Profile
+                UserProfile.objects.create(
+                    user=user,
+                    role=role,
+                    department=department
+                )
+                
+                return JsonResponse({'success': True, 'message': '创建成功'})
+                
+        except Exception as e:
+            import traceback
+            return JsonResponse({
+                'success': False, 
+                'message': f'创建失败: {str(e)}',
+                'trace': traceback.format_exc()
+            }, status=500)
     
     return JsonResponse({'success': False, 'message': '仅支持POST请求'})
 
