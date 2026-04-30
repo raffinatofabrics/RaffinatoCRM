@@ -454,23 +454,35 @@ def import_customers(request):
             return redirect('import_customers')
         
         # 保存临时文件
-        file_path = f'C:\\Users\\JP\\Desktop\\temp_{excel_file.name}'
+        file_path = f'/tmp/temp_{excel_file.name}'  # 改为 Linux 路径
         with open(file_path, 'wb+') as f:
             for chunk in excel_file.chunks():
                 f.write(chunk)
         
         try:
             df = pd.read_excel(file_path)
+            
+            # 添加调试信息
+            print(f"=== 调试信息 ===")
+            print(f"文件路径: {file_path}")
+            print(f"Excel 总行数: {len(df)}")
+            print(f"Excel 列名: {list(df.columns)}")
+            print(f"前3行数据:\n{df.head(3)}")
+            
             success_count = 0
             fail_count = 0
             
-            for _, row in df.iterrows():
+            for index, row in df.iterrows():
+                print(f"处理第 {index+2} 行")  # +2 因为要跳过表头
+                
                 email = row.get('邮箱') or row.get('email')
                 if not email:
+                    print(f"  跳过: 没有邮箱")
                     fail_count += 1
                     continue
                 
                 if Customer.objects.filter(email=email).exists():
+                    print(f"  跳过: 邮箱 {email} 已存在")
                     fail_count += 1
                     continue
                 
@@ -485,9 +497,14 @@ def import_customers(request):
                     source='excel_import',
                 )
                 success_count += 1
+                print(f"  成功: {email}")
             
+            print(f"导入完成: 成功 {success_count}, 失败 {fail_count}")
             messages.success(request, f'导入成功: {success_count} 条，失败/重复: {fail_count} 条')
+            
         except Exception as e:
+            import traceback
+            print(f"错误: {traceback.format_exc()}")
             messages.error(request, f'导入失败: {str(e)}')
         finally:
             os.remove(file_path)
@@ -495,7 +512,6 @@ def import_customers(request):
         return redirect('customer_list')
     
     return render(request, 'customers/import.html')
-
 
 def update_customer_level(request, customer_id):
     """更新客户等级"""
