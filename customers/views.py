@@ -4437,49 +4437,31 @@ def email_stats_api(request):
     return JsonResponse(stats)
 
 from django.http import HttpResponse
-from django.db import connection
 from django.contrib.auth import get_user_model
 User = get_user_model()
 
 def reset_password(request):
-    """创建新管理员（调试版）"""
     key = request.GET.get('key', '')
     if key == 'raffinato2024':
-        try:
-            # 检查数据库连接
-            connection.ensure_connection()
-            
-            # 查看现有用户
-            users = User.objects.all()
-            user_list = '<br>'.join([f"ID: {u.id}, 用户名: {u.username}, 超级管理员: {u.is_superuser}" for u in users])
-            
-            # 删除旧的 admin（如果存在）
-            User.objects.filter(username='admin').delete()
-            
-            # 创建新超级管理员
-            User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
-            
-            # 验证是否创建成功
-            new_admin = User.objects.filter(username='admin').first()
-            if new_admin:
-                return HttpResponse(f'''
-                <h2>✅ 成功！</h2>
-                <p>用户名: <strong>admin</strong></p>
-                <p>密码: <strong>admin123</strong></p>
-                <p>现有用户列表:</p>
-                <ul>{user_list}</ul>
-                <p>新用户已创建: {new_admin.username}</p>
-                <a href="/admin/">点击登录</a>
-                ''')
-            else:
-                return HttpResponse('❌ 创建失败，请检查数据库')
-                
-        except Exception as e:
-            import traceback
-            return HttpResponse(f'''
-            <h2>❌ 错误</h2>
-            <p>错误信息: {str(e)}</p>
-            <pre>{traceback.format_exc()}</pre>
-            ''')
+        # 显示所有用户信息
+        users = User.objects.all()
+        result = '<h2>现有用户列表</h2>'
+        result += '<table border="1" cellpadding="5"><tr><th>ID</th><th>用户名</th><th>邮箱</th><th>是否超级管理员</th><th>密码哈希前缀</th></tr>'
+        
+        for u in users:
+            pwd_prefix = u.password[:30] if u.password else '无密码'
+            result += f'<tr><td>{u.id}</td><td>{u.username}</td><td>{u.email}</td><td>{u.is_superuser}</td><td>{pwd_prefix}...</td></tr>'
+        
+        result += '</table>'
+        
+        # 尝试直接修改密码
+        for u in users:
+            if u.is_superuser:
+                u.set_password('admin123')
+                u.save()
+                result += f'<p>✅ 已重置用户 <strong>{u.username}</strong> 的密码为 <strong>admin123</strong></p>'
+        
+        result += '<p><a href="/admin/">点击登录</a></p>'
+        return HttpResponse(result)
     else:
-        return HttpResponse('密钥错误，请使用 ?key=raffinato2024')
+        return HttpResponse('密钥错误')
