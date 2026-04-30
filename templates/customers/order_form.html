@@ -164,6 +164,10 @@ body.dark-mode #itemsTable thead {
 }
 </style>
 
+<!-- 👇👇👇 添加这两行 👇👇👇 -->
+<form method="post" id="orderForm">
+    {% csrf_token %}
+
 <div class="row">
     <div class="col-md-12 mb-3">
         <a href="{% url 'order_list' %}" class="btn btn-secondary">
@@ -204,7 +208,7 @@ body.dark-mode #itemsTable thead {
     </div>
 </div>
                     
-                    <hr>
+                    
                     <h6>产品明细</h6>
                     
                     <div class="table-responsive">
