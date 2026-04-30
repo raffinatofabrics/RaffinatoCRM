@@ -4437,19 +4437,49 @@ def email_stats_api(request):
     return JsonResponse(stats)
 
 from django.http import HttpResponse
+from django.db import connection
 from django.contrib.auth import get_user_model
 User = get_user_model()
 
 def reset_password(request):
-    """创建新管理员（临时使用）"""
+    """创建新管理员（调试版）"""
     key = request.GET.get('key', '')
     if key == 'raffinato2024':
-        # 删除旧用户（如果存在）
-        User.objects.filter(username='admin').delete()
-        
-        # 创建新超级管理员
-        User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
-        
-        return HttpResponse('✅ 超级管理员已创建！<br>用户名: admin<br>密码: admin123<br><a href="/admin/">点击登录</a>')
+        try:
+            # 检查数据库连接
+            connection.ensure_connection()
+            
+            # 查看现有用户
+            users = User.objects.all()
+            user_list = '<br>'.join([f"ID: {u.id}, 用户名: {u.username}, 超级管理员: {u.is_superuser}" for u in users])
+            
+            # 删除旧的 admin（如果存在）
+            User.objects.filter(username='admin').delete()
+            
+            # 创建新超级管理员
+            User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
+            
+            # 验证是否创建成功
+            new_admin = User.objects.filter(username='admin').first()
+            if new_admin:
+                return HttpResponse(f'''
+                <h2>✅ 成功！</h2>
+                <p>用户名: <strong>admin</strong></p>
+                <p>密码: <strong>admin123</strong></p>
+                <p>现有用户列表:</p>
+                <ul>{user_list}</ul>
+                <p>新用户已创建: {new_admin.username}</p>
+                <a href="/admin/">点击登录</a>
+                ''')
+            else:
+                return HttpResponse('❌ 创建失败，请检查数据库')
+                
+        except Exception as e:
+            import traceback
+            return HttpResponse(f'''
+            <h2>❌ 错误</h2>
+            <p>错误信息: {str(e)}</p>
+            <pre>{traceback.format_exc()}</pre>
+            ''')
     else:
-        return HttpResponse('密钥错误')
+        return HttpResponse('密钥错误，请使用 ?key=raffinato2024')
