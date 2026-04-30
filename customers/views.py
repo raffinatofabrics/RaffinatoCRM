@@ -500,6 +500,8 @@ def import_customers(request):
                         country=str(row.get('国家', '')).strip() if pd.notna(row.get('国家')) else '',
                         address=str(row.get('地址', '')).strip() if pd.notna(row.get('地址')) else '',
                         source='excel_import',
+                        is_deleted=False,  # 👈 添加这一行
+                        assigned_sales=request.user,  # 👈 添加这一行：设置当前用户为负责人
                     )
                     success_count += 1
                     logger.error(f"  成功创建: ID={customer.id}")
