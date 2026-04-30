@@ -2738,7 +2738,6 @@ def user_create(request):
     
     # 修复：检查用户权限的正确方式
     if not request.user.is_superuser:
-        # 如果是非管理员，检查 role
         if hasattr(request.user, 'userprofile'):
             if request.user.userprofile.role != 'admin':
                 return JsonResponse({'success': False, 'message': '权限不足'})
@@ -2752,7 +2751,6 @@ def user_create(request):
         department_name = request.POST.get('department')
         email = request.POST.get('email', '')
         
-        # 验证必填字段
         if not username or not password:
             return JsonResponse({'success': False, 'message': '用户名和密码不能为空'})
         
@@ -2775,15 +2773,22 @@ def user_create(request):
                     try:
                         department = Department.objects.get(name=department_name)
                     except Department.DoesNotExist:
-                        # 如果部门不存在，可以选择创建或忽略
-                        pass  # 保持 department = None
+                        pass
                 
-                # 创建 Profile
-                UserProfile.objects.create(
+                # 使用 get_or_create 避免重复（修复关键点）
+                profile, created = UserProfile.objects.get_or_create(
                     user=user,
-                    role=role,
-                    department=department
+                    defaults={
+                        'role': role,
+                        'department': department
+                    }
                 )
+                
+                if not created:
+                    # 如果已存在，更新它
+                    profile.role = role
+                    profile.department = department
+                    profile.save()
                 
                 return JsonResponse({'success': True, 'message': '创建成功'})
                 
@@ -2796,6 +2801,7 @@ def user_create(request):
             }, status=500)
     
     return JsonResponse({'success': False, 'message': '仅支持POST请求'})
+
 
 @login_required
 def user_edit(request, user_id):
