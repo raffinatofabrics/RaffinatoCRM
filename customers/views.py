@@ -1380,22 +1380,22 @@ def order_create(request):
                         return redirect('order_create')
         # ========== 权限检查结束 ==========
         
-        # 自动生成订单号：PO#20260412A01
+        # 自动生成订单号：SO#20260412A01
         import datetime
         today = datetime.date.today()
         today_str = today.strftime('%Y%m%d')
         type_prefix = 'A' if business_type == 'international' else 'B'
         last_order = Order.objects.filter(
-            order_no__startswith=f'PO#{today_str}{type_prefix}'
+            order_no__startswith=f'SO#{today_str}{type_prefix}'  # PO# 改为 SO#
         ).order_by('-order_no').first()
-        
+
         if last_order:
             last_num = int(last_order.order_no[-2:])
             new_num = last_num + 1
         else:
             new_num = 1
-        
-        order_no = f'PO#{today_str}{type_prefix}{new_num:02d}'
+
+        order_no = f'SO#{today_str}{type_prefix}{new_num:02d}'  # PO# 改为 SO#
         
         # 创建订单（自动使用当前用户的部门）
         order = Order.objects.create(
