@@ -79,65 +79,66 @@ def customer_list(request):
     from .models import CustomerTag, Order
     from django.db.models import Sum, Q
     from django.contrib.auth import get_user_model
-    
+    from django.core.paginator import Paginator
+
     User = get_user_model()
-    
+
     level = request.GET.get('level', '')
     keyword = request.GET.get('keyword', '')
-    sort_by = request.GET.get('sort', '-last_contact_time')
+    # ✅ 默认排序改为 -created_at（新客户在前，完全稳定）
+    sort_field = request.GET.get('sort', '-created_at')
     tag_id = request.GET.get('tag', '')
-    
+
     queryset = Customer.objects.filter(is_deleted=False)
-    
-    # ========== 权限过滤（新增） ==========
+
+    # ========== 权限过滤 ==========
     if request.user.is_authenticated and hasattr(request.user, 'profile'):
         role = request.user.profile.role
         if role == 'sales':
-            # 销售人员：只能看自己分配的客户
             queryset = queryset.filter(assigned_sales=request.user)
         elif role == 'dept_leader':
-            # 部门主管：只能看本部门的客户
             dept = request.user.profile.department
             if dept:
                 queryset = queryset.filter(department=dept)
         elif role == 'readonly':
-            # 只读用户：只能看本部门的客户
             dept = request.user.profile.department
             if dept:
                 queryset = queryset.filter(department=dept)
-        # 管理员：看到所有客户，不需要过滤
     # ========== 权限过滤结束 ==========
-    
+
     if level:
         queryset = queryset.filter(level=level)
-    
+
     if keyword:
         queryset = queryset.filter(
             Q(company_name__icontains=keyword) |
             Q(contact_person__icontains=keyword) |
             Q(email__icontains=keyword)
         )
-    
-    # 按标签筛选
+
     if tag_id:
         queryset = queryset.filter(tag_relations__tag_id=tag_id)
-    
-    queryset = queryset.order_by(sort_by)
-    
+
+    # ✅ 稳定排序：如果用户在 UI 点了时间排序，就加 id 兜底；否则固定用 -created_at
+    if sort_field in ['-created_at', 'created_at']:
+        sort_by = [sort_field, '-id']
+    else:
+        sort_by = sort_field
+
+    queryset = queryset.order_by(*sort_by) if isinstance(sort_by, list) else queryset.order_by(sort_by)
+
     paginator = Paginator(queryset, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
-    # ========== 为每个客户计算订单价值评分 ==========
+
+    # ========== 订单评分计算 ==========
     for customer in page_obj:
         orders = Order.objects.filter(customer=customer)
         order_count = orders.count()
-        
+
         if order_count > 0:
-            # 使用 total_cost 字段计算总金额
             total_amount = orders.aggregate(total=Sum('total_cost'))['total'] or 0
-            
-            # 基于总金额计算评分 (0-100)
+
             if total_amount >= 100000:
                 customer.order_score = 90
             elif total_amount >= 50000:
@@ -150,37 +151,35 @@ def customer_list(request):
                 customer.order_score = 20
             else:
                 customer.order_score = 10
-            
-            # 如果有订单但没有 AI 评分，给一个基础分
+
             if customer.ai_score == 0 or customer.ai_score is None:
                 customer.ai_score = 20
         else:
             customer.order_score = 0
-        
-        # 确保 ai_score 有默认值
+
         if customer.ai_score is None:
             customer.ai_score = 0
     # ========== 计算结束 ==========
-    
-    # ========== 获取销售人员列表（用于添加客户弹窗） ==========
+
+    # 销售人员列表（用于弹窗）
     sales_users = User.objects.filter(
         Q(profile__role='sales') | Q(profile__role='dept_leader') | Q(is_superuser=True)
     ).select_related('profile__department').distinct()
-    # ========== 获取结束 ==========
-    
+
     level_choices = Customer.LEVEL_CHOICES
     all_tags = CustomerTag.objects.all()
-    
+
     return render(request, 'customers/list.html', {
         'page_obj': page_obj,
         'level_choices': level_choices,
         'current_level': level,
         'keyword': keyword,
-        'sort_by': sort_by,
+        'sort_by': sort_field,
         'current_tag': tag_id,
         'all_tags': all_tags,
-        'sales_users': sales_users,  # 添加这一行
+        'sales_users': sales_users,
     })
+
 # ==================== 二期：搜索任务管理 ====================
 
 from .models import SearchTask, SearchResult
