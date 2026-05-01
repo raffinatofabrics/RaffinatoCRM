@@ -213,3 +213,9 @@ CSRF_TRUSTED_ORIGINS = [
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+
+# Session 配置
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True      # 关闭浏览器即登出
+SESSION_COOKIE_AGE = 3600                   # 1 小时（单位：秒）
+SESSION_SAVE_EVERY_REQUEST = True           # 每次请求刷新有效期
+SESSION_COOKIE_HTTPONLY = True              # 防止 XSS 偷取 Cookie
