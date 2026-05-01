@@ -95,7 +95,7 @@ body.dark-mode .pagination .page-item.active .page-link {
 </div>
 <div class="col-auto">
     <div class="dropdown">
-        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        <button class="btn btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown">
             <i class="fas fa-edit"></i> 批量调整
         </button>
         <ul class="dropdown-menu">
@@ -269,7 +269,7 @@ document.querySelectorAll('.batch-status').forEach(item => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                'X-CSRFToken': '{{ csrf_token }}'
             },
             body: JSON.stringify({
                 order_ids: selectedOrders,
