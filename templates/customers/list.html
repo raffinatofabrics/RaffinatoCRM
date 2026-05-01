@@ -253,131 +253,107 @@ body.dark-mode .dropdown-result div:hover {
 
 <div class="table-responsive-custom">
     <table class="table table-bordered table-hover table-modern customer-table">
-        <thead>
-            <tr>
-                <th class="col-checkbox"><input type="checkbox" id="selectAll"></th>
-                <th class="col-company">公司名</th>
-                <th class="col-contact">联系人</th>
-                <th class="col-email">邮箱</th>
-                <th class="col-country" style="display: none;">国家</th>
-                <th class="col-level">等级</th>
-                <th class="col-ai-score">AI意向分</th>
-                <th class="col-order-score">订单价值</th>
-                <th class="col-type">客户类型</th>
-                <th class="col-sales">业务员</th>
-                <th class="col-open-rate" style="display: none;">打开率</th>
-                <th class="col-last-contact">上次联系</th>
-                <th class="col-actions">操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for customer in page_obj %}
-            <tr>
-                <td class="col-checkbox">
-                    <input type="checkbox" class="customer-checkbox" value="{{ customer.id }}">
-                </td>
-                <td class="col-company">
-                    <strong>{{ customer.company_name|default:"-" }}</strong>
-                    <div class="mt-1">
-                        {% for relation in customer.tag_relations.all %}
-                        <span class="tag-badge" style="background-color: {{ relation.tag.color }};">
-                            {{ relation.tag.name }}
-                        </span>
-                        {% endfor %}
-                        <button class="btn btn-sm btn-outline-secondary add-tag-btn" data-id="{{ customer.id }}" style="padding: 0px 4px; font-size: 10px;">
-                            <i class="fas fa-plus"></i>
-                        </button>
+    <thead>
+        <tr>
+            <th class="col-checkbox"><input type="checkbox" id="selectAll"></th>
+            <th class="col-company">公司名</th>
+            <th class="col-contact">联系人</th>
+            <th class="col-phone">电话</th>
+            <th class="col-email">邮箱</th>
+            <th class="col-level">客户等级</th>
+            <th class="col-order-score">订单价值</th>
+            <th class="col-sales">业务员</th>
+            <th class="col-last-contact">上次联系</th>
+            <th class="col-actions">操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for customer in page_obj %}
+        <tr>
+            <td class="col-checkbox">
+                <input type="checkbox" class="customer-checkbox" value="{{ customer.id }}">
+            </td>
+            <td class="col-company">
+                <strong>{{ customer.company_name|default:"-" }}</strong>
+                <div class="mt-1">
+                    {% for relation in customer.tag_relations.all %}
+                    <span class="tag-badge" style="background-color: {{ relation.tag.color }};">
+                        {{ relation.tag.name }}
+                    </span>
+                    {% endfor %}
+                    <button class="btn btn-sm btn-outline-secondary add-tag-btn" data-id="{{ customer.id }}" style="padding: 0px 4px; font-size: 10px;">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </td>
+            <td class="col-contact">{{ customer.contact_person|default:"-" }}</td>
+            <td class="col-phone">{{ customer.phone|default:"-" }}</td>
+            <td class="col-email" style="word-break: break-all;">
+                {{ customer.email|default:"-" }}
+                {% if customer.email_verify_status == 'valid' %}
+                    <i class="fas fa-check-circle text-success" title="已验证有效"></i>
+                {% elif customer.email_verify_status == 'invalid' %}
+                    <i class="fas fa-times-circle text-danger" title="无效邮箱"></i>
+                {% elif customer.email_verify_status == 'pending' %}
+                    <button class="btn btn-sm btn-outline-secondary verify-email-btn" data-id="{{ customer.id }}" style="padding: 2px 6px; font-size: 11px; margin-left: 5px;">
+                        <i class="fas fa-envelope"></i> 验证
+                    </button>
+                {% endif %}
+            </td>
+            <td class="col-level">
+                {% if customer.level == 'potential' %}
+                    <span class="badge bg-secondary">潜在客户</span>
+                {% elif customer.level == 'intermediate' %}
+                    <span class="badge bg-primary">中级客户</span>
+                {% elif customer.level == 'advanced' %}
+                    <span class="badge bg-warning text-dark">高级客户</span>
+                {% elif customer.level == 'vip' %}
+                    <span class="badge bg-danger">VIP客户</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ customer.get_level_display }}</span>
+                {% endif %}
+            </td>
+            <td class="col-order-score">
+                <div class="progress" style="height: 24px; width: 70px;">
+                    <div class="progress-bar bg-{% if customer.order_score >= 70 %}success{% elif customer.order_score >= 40 %}warning{% else %}danger{% endif %}" 
+                         style="width: {{ customer.order_score|default:0 }}%; line-height: 24px;">
+                        {{ customer.order_score|default:0 }}
                     </div>
-                </td>
-                <td class="col-contact">{{ customer.contact_person|default:"-" }}</td>
-                <td class="col-email" style="word-break: break-all;">
-                    {{ customer.email|default:"-" }}
-                    {% if customer.email_verify_status == 'valid' %}
-                        <i class="fas fa-check-circle text-success" title="已验证有效"></i>
-                    {% elif customer.email_verify_status == 'invalid' %}
-                        <i class="fas fa-times-circle text-danger" title="无效邮箱"></i>
-                    {% elif customer.email_verify_status == 'pending' %}
-                        <button class="btn btn-sm btn-outline-secondary verify-email-btn" data-id="{{ customer.id }}" style="padding: 2px 6px; font-size: 11px; margin-left: 5px;">
-                            <i class="fas fa-envelope"></i> 验证
-                        </button>
+                </div>
+            </td>
+            <td class="col-sales">
+                {% if customer.assigned_sales %}
+                    {{ customer.assigned_sales.username }}
+                {% else %}
+                    <span class="text-muted">未分配</span>
+                {% endif %}
+            </td>
+            <td class="col-last-contact">{{ customer.last_contact_time|date:"Y-m-d"|default:"未联系" }}</td>
+            <td class="col-actions">
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-primary send-email" data-id="{{ customer.id }}" data-email="{{ customer.email }}" title="发送邮件">
+                        <i class="fas fa-envelope"></i>
+                    </button>
+                    <a href="{% url 'customer_detail' customer.id %}" class="btn btn-info" title="详情">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    {% if request.user.profile.role == 'admin' or request.user.profile.role == 'dept_leader' %}
+                    <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#assignModal" 
+                            data-customer-id="{{ customer.id }}" data-customer-name="{{ customer.company_name }}" title="分配销售">
+                        <i class="fas fa-user-plus"></i>
+                    </button>
                     {% endif %}
-                </td>
-                <td class="col-country" style="display: none;">{{ customer.country|default:"-" }}</td>
-                <td class="col-level">
-                    <select class="form-select form-select-sm level-select" data-id="{{ customer.id }}" style="width: 100px;">
-                        <option value="potential" {% if customer.level == 'potential' %}selected{% endif %}>潜在</option>
-                        <option value="intermediate" {% if customer.level == 'intermediate' %}selected{% endif %}>中级</option>
-                        <option value="advanced" {% if customer.level == 'advanced' %}selected{% endif %}>高级</option>
-                        <option value="vip" {% if customer.level == 'vip' %}selected{% endif %}>VIP</option>
-                    </select>
-                </td>
-                <td class="col-ai-score">
-                    <div class="progress" style="height: 24px; width: 70px;">
-                        <div class="progress-bar bg-{% if customer.ai_score >= 70 %}success{% elif customer.ai_score >= 40 %}warning{% else %}danger{% endif %}" 
-                             style="width: {{ customer.ai_score|default:0 }}%; line-height: 24px;">
-                            {{ customer.ai_score|default:0 }}
-                        </div>
-                    </div>
-                </td>
-                <td class="col-order-score">
-                    <div class="progress" style="height: 24px; width: 70px;">
-                        <div class="progress-bar bg-{% if customer.order_score >= 70 %}success{% elif customer.order_score >= 40 %}warning{% else %}danger{% endif %}" 
-                             style="width: {{ customer.order_score|default:0 }}%; line-height: 24px;">
-                            {{ customer.order_score|default:0 }}
-                        </div>
-                    </div>
-                </td>
-                <td class="col-type">
-                    {% with ai_score=customer.ai_score|default:0 order_score=customer.order_score|default:0 %}
-                        {% if ai_score >= 50 and order_score >= 50 %}
-                            <span class="badge bg-danger">⭐ 核心</span>
-                        {% elif ai_score >= 50 and order_score < 50 %}
-                            <span class="badge bg-warning">🚀 潜力</span>
-                        {% elif ai_score < 50 and order_score >= 50 %}
-                            <span class="badge bg-info">📦 存量</span>
-                        {% else %}
-                            <span class="badge bg-secondary">🌱 培育</span>
-                        {% endif %}
-                    {% endwith %}
-                </td>
-<td class="col-sales">
-    {% if customer.assigned_sales %}
-        {{ customer.assigned_sales.username }}
-    {% else %}
-        <span class="text-muted">未分配</span>
-    {% endif %}
-</td>
-                <td class="col-open-rate" style="display: none;">
-    <span class="text-muted">-</span>
-</td>
-                <td class="col-last-contact">{{ customer.last_contact_time|date:"Y-m-d"|default:"未联系" }}</td>
-                <td class="col-actions">
-    <div class="btn-group btn-group-sm">
-        <button class="btn btn-primary send-email" data-id="{{ customer.id }}" data-email="{{ customer.email }}" title="发送邮件">
-            <i class="fas fa-envelope"></i>
-        </button>
-        <a href="{% url 'customer_detail' customer.id %}" class="btn btn-info" title="详情">
-            <i class="fas fa-eye"></i>
-        </a>
-        {% if request.user.profile.role == 'admin' or request.user.profile.role == 'dept_leader' %}
-        <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#assignModal" 
-                data-customer-id="{{ customer.id }}" data-customer-name="{{ customer.company_name }}" title="分配销售">
-            <i class="fas fa-user-plus"></i>
-        </button>
-        {% endif %}
-        <a href="javascript:void(0);" class="btn btn-sm btn-danger" onclick="deleteCustomer({{ customer.id }}, this);">
-            <i class="fas fa-trash"></i>
-        </a>
-    </div>
-</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="12" class="text-center">暂无客户数据</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                    <a href="javascript:void(0);" class="btn btn-sm btn-danger" onclick="deleteCustomer({{ customer.id }}, this);">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </div>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="10" class="text-center">暂无客户数据</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
 </div>
 
 <!-- 分页 -->
