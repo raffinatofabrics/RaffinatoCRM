@@ -302,13 +302,13 @@ body.dark-mode .dropdown-result div:hover {
             </td>
             <td class="col-level">
                 {% if customer.level == 'potential' %}
-                    <span class="badge bg-secondary">潜在客户</span>
+                    <span style="background-color: #d1d5db; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;">潜在客户</span>
                 {% elif customer.level == 'intermediate' %}
-                    <span class="badge bg-primary">中级客户</span>
+                    <span style="background-color: #3B82F6; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;">中级客户</span>
                 {% elif customer.level == 'advanced' %}
-                    <span class="badge bg-warning text-dark">高级客户</span>
+                    <span style="background-color: #E97132; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;">高级客户</span>
                 {% elif customer.level == 'vip' %}
-                    <span class="badge bg-danger">VIP客户</span>
+                    <span style="background-color: #FBBF24; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;">VIP客户</span>
                 {% else %}
                     <span class="badge bg-secondary">{{ customer.get_level_display }}</span>
                 {% endif %}
