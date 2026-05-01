@@ -1961,6 +1961,50 @@ def order_summary(request):
     
     return render(request, 'customers/order_summary.html', context)
 
+# ==================== 批量调整订单状态 ====================
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+import json
+
+@login_required
+@require_POST
+@csrf_exempt
+def batch_update_order_status(request):
+    try:
+        data = json.loads(request.body)
+        order_ids = data.get('order_ids', [])
+        new_status = data.get('status')
+
+        if not order_ids or not new_status:
+            return JsonResponse({'success': False, 'message': '参数不足'})
+
+        if new_status not in ['draft', 'confirmed', 'shipped', 'completed']:
+            return JsonResponse({'success': False, 'message': '不允许的状态值'})
+
+        from .models import Order
+        qs = Order.objects.filter(id__in=order_ids)
+
+        # 权限控制（按负责人 / 部门 / 管理员）
+        user = request.user
+        if not user.is_superuser:
+            if hasattr(user, 'profile') and user.profile.role == 'sales':
+                qs = qs.filter(sales_person=user)
+            elif hasattr(user, 'profile') and user.profile.role == 'dept_leader':
+                dept = user.profile.department
+                if dept:
+                    qs = qs.filter(customer__department=dept)
+
+        updated = qs.update(status=new_status)
+
+        return JsonResponse({'success': True, 'updated_count': updated})
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+
 # ==================== 多邮箱配置 ====================
 
 from .models import UserEmailConfig

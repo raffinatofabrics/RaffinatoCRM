@@ -60,6 +60,7 @@ urlpatterns = [
     path('orders/', views.order_list, name='order_list'),
     path('orders/create/', views.order_create, name='order_create'),
     path('orders/batch-delete/', views.batch_delete_orders, name='batch_delete_orders'),
+    path('orders/batch-update-status/', views.batch_update_order_status, name='batch_update_order_status'),   # 批量调整订单状态
     path('<int:order_id>/update-cost/', views.update_order_cost, name='update_order_cost'),  # 这个也需要统一
 
    # 客户操作
