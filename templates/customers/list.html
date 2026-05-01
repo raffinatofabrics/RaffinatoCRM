@@ -169,6 +169,23 @@ body.dark-mode .dropdown-result div {
 body.dark-mode .dropdown-result div:hover {
     background-color: #0f3460;
 }
+
+.customer-table th,
+.customer-table td {
+    vertical-align: middle;
+}
+
+/* 固定列宽（按业务重要程度分配） */
+.customer-table .col-checkbox    { width: 40px; text-align: center; }
+.customer-table .col-company     { width: 22%; }
+.customer-table .col-contact     { width: 10%; }
+.customer-table .col-phone       { width: 12%; }
+.customer-table .col-email       { width: 18%; }
+.customer-table .col-level       { width: 10%; }
+.customer-table .col-order-score { width: 8%; }
+.customer-table .col-sales       { width: 8%; }
+.customer-table .col-last-contact{ width: 10%; }
+.customer-table .col-actions     { width: 12%; }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
