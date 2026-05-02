@@ -40,6 +40,17 @@ class Customer(models.Model):
     last_contact_time = models.DateTimeField('上次联系时间', blank=True, null=True, db_index=True)
     is_dormant = models.BooleanField('是否沉睡', default=False)
     is_deleted = models.BooleanField('软删除', default=False, db_index=True)
+    
+    # 回收站支持
+    deleted_at = models.DateTimeField(null=True, blank=True, verbose_name='删除时间')
+    deleted_by = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='deleted_customers',
+        verbose_name='删除人'
+    )
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
     updated_at = models.DateTimeField('更新时间', auto_now=True)
     notes = models.TextField('备注', blank=True, null=True)
@@ -50,6 +61,7 @@ class Customer(models.Model):
     # 团队协作字段（新增）
     department = models.ForeignKey('Department', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='所属部门')
     assigned_sales = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_customers', verbose_name='负责销售')
+
     # ========== 新增：退信处理字段 ==========
     email_bounced = models.BooleanField('邮箱已退信', default=False)
     bounce_type = models.CharField('退信类型', max_length=20, blank=True, null=True)  # hard / soft
@@ -245,7 +257,19 @@ class Order(models.Model):
     updated_at = models.DateTimeField('更新时间', auto_now=True)
     # 创建人（新增）
     created_by = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_orders', verbose_name='创建人')
-
+    
+    # ========== 回收站支持（新增字段）==========
+    is_deleted = models.BooleanField(default=False, verbose_name='已删除')
+    deleted_at = models.DateTimeField(null=True, blank=True, verbose_name='删除时间')
+    deleted_by = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='deleted_orders',
+        verbose_name='删除人'
+    )
+    
     class Meta:
         db_table = 'orders'
         ordering = ['-order_date']

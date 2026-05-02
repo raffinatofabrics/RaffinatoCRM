@@ -170,4 +170,23 @@ urlpatterns = [
     path('email-stats/', views.email_stats_dashboard, name='email_stats_dashboard'),
     path('email-stats/detail/', views.email_stats_detail, name='email_stats_detail'),
     path('email-stats/api/', views.email_stats_api, name='email_stats_api'),
+
+    # 回收站
+    path('recycle-bin/', views.recycle_bin, name='recycle_bin'),
+
+    # 订单批量操作
+    path('recycle-bin/batch-restore-orders/', views.batch_restore_orders, name='batch_restore_orders'),
+    path('recycle-bin/batch-permanent-delete-orders/', views.batch_permanent_delete_orders, name='batch_permanent_delete_orders'),
+
+    # 订单单个操作
+    path('recycle-bin/restore-order/<int:order_id>/', views.restore_order, name='restore_order'),
+    path('recycle-bin/permanent-delete-order/<int:order_id>/', views.permanent_delete_order, name='permanent_delete_order'),
+
+    # 客户批量操作
+    path('recycle-bin/batch-restore-customers/', views.batch_restore_customers, name='batch_restore_customers'),
+    path('recycle-bin/batch-permanent-delete-customers/', views.batch_permanent_delete_customers, name='batch_permanent_delete_customers'),
+
+    # 客户单个操作
+    path('recycle-bin/restore-customer/<int:customer_id>/', views.restore_customer, name='restore_customer'),
+    path('recycle-bin/permanent-delete-customer/<int:customer_id>/', views.permanent_delete_customer, name='permanent_delete_customer'),
 ]

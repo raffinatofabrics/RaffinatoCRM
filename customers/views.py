@@ -1254,7 +1254,8 @@ def order_list(request):
     business_type = request.GET.get('type', '')
     status = request.GET.get('status', '')
     
-    orders = Order.objects.select_related('customer').all().order_by('-created_at')
+    # 只显示未删除的订单（软删除过滤）
+    orders = Order.objects.select_related('customer').filter(is_deleted=False).order_by('-created_at')
     
     # ========== 权限过滤 ==========
     if request.user.is_authenticated and hasattr(request.user, 'profile'):
@@ -1475,13 +1476,18 @@ def order_edit(request, order_id):
 
 @log_operation('delete', 'order', '删除订单')
 def order_delete(request, order_id):
-    """删除订单"""
+    """删除订单（软删除）"""
     order = get_object_or_404(Order, id=order_id)
     order_no = order.order_no
-    order.delete()
-    messages.success(request, f'订单 {order_no} 已删除')
+    
+    # 软删除：只标记，不真删
+    order.is_deleted = True
+    order.deleted_at = timezone.now()
+    order.deleted_by = request.user
+    order.save()
+    
+    messages.success(request, f'订单 {order_no} 已移至回收站')
     return redirect('order_list')
-
 
 def order_print(request, order_id):
     from .models import CompanySeal
@@ -1578,11 +1584,16 @@ def number_to_chinese(amount):
         return '零元整'
 
 @log_operation('delete', 'customer', '删除客户')
+@log_operation('delete', 'customer', '删除客户')
 def customer_delete(request, customer_id):
     """删除单个客户（软删除）- 支持 AJAX 和普通请求"""
     customer = get_object_or_404(Customer, id=customer_id)
     customer_name = customer.company_name
+    
+    # 软删除：记录删除时间和删除人
     customer.is_deleted = True
+    customer.deleted_at = timezone.now()
+    customer.deleted_by = request.user
     customer.save()
     
     # 判断是否为 AJAX 请求
@@ -1595,7 +1606,7 @@ def customer_delete(request, customer_id):
 
 @log_operation('batch_delete', 'customer', '批量删除客户')
 def batch_delete_customers(request):
-    """批量删除客户"""
+    """批量删除客户（软删除）"""
     if request.method == 'POST':
         data = json.loads(request.body)
         customer_ids = data.get('customer_ids', [])
@@ -1603,13 +1614,18 @@ def batch_delete_customers(request):
         if not customer_ids:
             return JsonResponse({'success': False, 'message': '请选择客户'})
         
-        deleted_count = Customer.objects.filter(id__in=customer_ids).update(is_deleted=True)
+        # 软删除：记录删除时间和删除人
+        updated_count = Customer.objects.filter(id__in=customer_ids).update(
+            is_deleted=True,
+            deleted_at=timezone.now(),
+            deleted_by=request.user
+        )
         
-        return JsonResponse({'success': True, 'deleted_count': deleted_count})
+        return JsonResponse({'success': True, 'deleted_count': updated_count})
 
 @log_operation('batch_delete', 'order', '批量删除订单')
 def batch_delete_orders(request):
-    """批量删除订单"""
+    """批量删除订单（软删除）"""
     if request.method == 'POST':
         data = json.loads(request.body)
         order_ids = data.get('order_ids', [])
@@ -1617,10 +1633,14 @@ def batch_delete_orders(request):
         if not order_ids:
             return JsonResponse({'success': False, 'message': '请选择订单'})
         
-        deleted_count = Order.objects.filter(id__in=order_ids).delete()[0]
+        # 软删除：只标记，不真删
+        updated_count = Order.objects.filter(id__in=order_ids).update(
+            is_deleted=True,
+            deleted_at=timezone.now(),
+            deleted_by=request.user
+        )
         
-        return JsonResponse({'success': True, 'deleted_count': deleted_count})
-
+        return JsonResponse({'success': True, 'deleted_count': updated_count})
 # ==================== 订单汇总报表 ====================
 
 def order_summary(request):
@@ -1640,8 +1660,8 @@ def order_summary(request):
     view_type = request.GET.get('view', 'date')
     rank_limit = int(request.GET.get('rank_limit', 20))
     
-    # 基础查询
-    orders = Order.objects.all()
+    # 基础查询（只统计未删除的订单）
+    orders = Order.objects.filter(is_deleted=False)
     
     # ========== 权限过滤（添加这部分）==========
     if request.user.is_authenticated and hasattr(request.user, 'profile'):
@@ -4519,3 +4539,165 @@ def email_stats_api(request):
     return JsonResponse(stats)
 
 
+from django.contrib.admin.views.decorators import staff_member_required
+from django.utils import timezone
+
+from .models import Order, Customer
+
+# ==================== 回收站主页面 ====================
+
+@login_required
+def recycle_bin(request):
+    """回收站（管理员专属）"""
+    # 权限检查
+    if request.user.profile.role != 'admin' and not request.user.is_superuser:
+        messages.error(request, '无权限访问')
+        return redirect('customer_list')
+    
+    # 已删除的订单
+    deleted_orders = Order.objects.filter(is_deleted=True).order_by('-deleted_at')
+    
+    # 已删除的客户
+    deleted_customers = Customer.objects.filter(is_deleted=True).order_by('-deleted_at')
+    
+    return render(request, 'customers/recycle_bin.html', {
+        'deleted_orders': deleted_orders,
+        'deleted_customers': deleted_customers,
+    })
+
+
+# ==================== 订单批量操作 ====================
+
+@login_required
+def batch_restore_orders(request):
+    """订单批量恢复（管理员专属）"""
+    if request.user.profile.role != 'admin' and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'message': '无权限'})
+    
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        order_ids = data.get('order_ids', [])
+        
+        if not order_ids:
+            return JsonResponse({'success': False, 'message': '请选择订单'})
+        
+        updated = Order.objects.filter(id__in=order_ids, is_deleted=True).update(
+            is_deleted=False, deleted_at=None, deleted_by=None
+        )
+        
+        return JsonResponse({'success': True, 'restored_count': updated})
+
+
+@login_required
+def batch_permanent_delete_orders(request):
+    """订单批量彻底删除（管理员专属）"""
+    if request.user.profile.role != 'admin' and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'message': '无权限'})
+    
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        order_ids = data.get('order_ids', [])
+        
+        if not order_ids:
+            return JsonResponse({'success': False, 'message': '请选择订单'})
+        
+        deleted_count, _ = Order.objects.filter(id__in=order_ids, is_deleted=True).delete()
+        
+        return JsonResponse({'success': True, 'deleted_count': deleted_count})
+
+
+# ==================== 订单单个操作 ====================
+
+@login_required
+def restore_order(request, order_id):
+    """订单单个恢复（管理员专属）"""
+    if request.user.profile.role != 'admin' and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'message': '无权限'})
+    
+    order = get_object_or_404(Order, id=order_id, is_deleted=True)
+    order.is_deleted = False
+    order.deleted_at = None
+    order.deleted_by = None
+    order.save()
+    return JsonResponse({'success': True, 'message': '订单已恢复'})
+
+
+@login_required
+def permanent_delete_order(request, order_id):
+    """订单单个彻底删除（管理员专属）"""
+    if request.user.profile.role != 'admin' and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'message': '无权限'})
+    
+    order = get_object_or_404(Order, id=order_id, is_deleted=True)
+    order.delete()
+    return JsonResponse({'success': True, 'message': '订单已彻底删除'})
+
+
+# ==================== 客户批量操作 ====================
+
+@login_required
+def batch_restore_customers(request):
+    """客户批量恢复（管理员专属）"""
+    if request.user.profile.role != 'admin' and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'message': '无权限'})
+    
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        customer_ids = data.get('customer_ids', [])
+        
+        if not customer_ids:
+            return JsonResponse({'success': False, 'message': '请选择客户'})
+        
+        updated = Customer.objects.filter(id__in=customer_ids, is_deleted=True).update(
+            is_deleted=False, deleted_at=None, deleted_by=None
+        )
+        
+        return JsonResponse({'success': True, 'restored_count': updated})
+
+
+@login_required
+def batch_permanent_delete_customers(request):
+    """客户批量彻底删除（管理员专属）"""
+    if request.user.profile.role != 'admin' and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'message': '无权限'})
+    
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        customer_ids = data.get('customer_ids', [])
+        
+        if not customer_ids:
+            return JsonResponse({'success': False, 'message': '请选择客户'})
+        
+        deleted_count, _ = Customer.objects.filter(id__in=customer_ids, is_deleted=True).delete()
+        
+        return JsonResponse({'success': True, 'deleted_count': deleted_count})
+
+
+# ==================== 客户单个操作 ====================
+
+@login_required
+def restore_customer(request, customer_id):
+    """客户单个恢复（管理员专属）"""
+    if request.user.profile.role != 'admin' and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'message': '无权限'})
+    
+    customer = get_object_or_404(Customer, id=customer_id, is_deleted=True)
+    customer.is_deleted = False
+    customer.deleted_at = None
+    customer.deleted_by = None
+    customer.save()
+    
+    return JsonResponse({'success': True, 'message': f'客户 "{customer.company_name}" 已恢复'})
+
+
+@login_required
+def permanent_delete_customer(request, customer_id):
+    """客户单个彻底删除（管理员专属）"""
+    if request.user.profile.role != 'admin' and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'message': '无权限'})
+    
+    customer = get_object_or_404(Customer, id=customer_id, is_deleted=True)
+    customer_name = customer.company_name
+    customer.delete()
+    
+    return JsonResponse({'success': True, 'message': f'客户 "{customer_name}" 已彻底删除'})

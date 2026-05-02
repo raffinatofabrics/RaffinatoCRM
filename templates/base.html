@@ -510,7 +510,8 @@ if (darkModeSaved === 'true') {
     <li class="nav-item"><a class="nav-link" href="/templates/" data-url="/templates/"><i class="fas fa-envelope"></i> 邮件模板</a></li>
     <li class="nav-item"><a class="nav-link" href="/send-logs/" data-url="/send-logs/"><i class="fas fa-history"></i> 发送记录</a></li>
     <li class="nav-item"><a class="nav-link" href="{% url 'document_list' %}" data-url="{% url 'document_list' %}"><i class="fas fa-folder-open"></i> 公司文档</a></li>
-    {% if user.is_superuser or user.role == 'admin' %}
+    {% if user.is_superuser or user.profile.role == 'admin' %}
+    <li class="nav-item"><a class="nav-link" href="{% url 'recycle_bin' %}"><i class="fas fa-trash-restore"></i> 回收站</a></li>
     <li class="nav-item"><a class="nav-link" href="/email-configs/" data-url="/email-configs/"><i class="fas fa-envelope"></i> 邮箱配置</a></li>
     <li class="nav-item"><a class="nav-link" href="{% url 'user_list' %}" data-url="{% url 'user_list' %}"><i class="fas fa-users-cog"></i> 用户管理</a></li>
     <li class="nav-item"><a class="nav-link" href="{% url 'business_rules_settings' %}" data-url="{% url 'business_rules_settings' %}"><i class="fas fa-cog"></i> 业务规则</a></li>
@@ -519,7 +520,7 @@ if (darkModeSaved === 'true') {
     <li class="nav-item"><a class="nav-link" href="/admin/" data-url="/admin/"><i class="fas fa-cog"></i> 后台管理</a></li>
     <li class="nav-item"><a class="nav-link" href="{% url 'operation_log_list' %}" data-url="{% url 'operation_log_list' %}"><i class="fas fa-history"></i> 操作日志</a></li>
     <li class="nav-item"><a class="nav-link" href="{% url 'backup_list' %}" data-url="{% url 'backup_list' %}"><i class="fas fa-database"></i> 数据备份</a></li>
-    {% endif %}
+{% endif %}
 </ul>
 </div>
 

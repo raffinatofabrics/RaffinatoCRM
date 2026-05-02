@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block page_title %}回收站{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4"><i class="fas fa-trash-restore"></i> 回收站</h1>
+    
+    <!-- 提示信息 -->
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> 此处显示已删除的订单和客户，可以恢复或彻底删除。
+    </div>
+    
+    <!-- 批量操作按钮栏 -->
+    <div class="mb-3">
+        <button type="button" id="batchRestoreOrdersBtn" class="btn btn-success" disabled>
+            <i class="fas fa-trash-restore"></i> 批量恢复订单
+        </button>
+        <button type="button" id="batchPermanentDeleteOrdersBtn" class="btn btn-danger" disabled>
+            <i class="fas fa-trash-alt"></i> 彻底删除订单
+        </button>
+        <span class="mx-2"></span>
+        <button type="button" id="batchRestoreCustomersBtn" class="btn btn-success" disabled>
+            <i class="fas fa-trash-restore"></i> 批量恢复客户
+        </button>
+        <button type="button" id="batchPermanentDeleteCustomersBtn" class="btn btn-danger" disabled>
+            <i class="fas fa-trash-alt"></i> 彻底删除客户
+        </button>
+    </div>
+    
+    <!-- 已删除订单 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4><i class="fas fa-shopping-cart"></i> 已删除的订单</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAllOrders"></th>
+                            <th>订单号</th>
+                            <th>客户</th>
+                            <th>金额</th>
+                            <th>删除时间</th>
+                            <th>删除人</th>
+                            <th>操作</th>
+                        </thead>
+                        <tbody>
+                            {% for order in deleted_orders %}
+                            <tr data-id="{{ order.id }}" data-type="order">
+                                <td><input type="checkbox" class="order-checkbox" value="{{ order.id }}"></td>
+                                <td>{{ order.order_no }}</td>
+                                <td>{{ order.customer.company_name|default:"-" }}</td>
+                                <td>{{ order.subtotal|floatformat:2 }}</td>
+                                <td>{{ order.deleted_at|date:"Y-m-d H:i:s" }}</td>
+                                <td>{{ order.deleted_by.username|default:"未知" }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-success restore-order" data-id="{{ order.id }}">恢复</button>
+                                    <button class="btn btn-sm btn-danger permanent-delete-order" data-id="{{ order.id }}">彻底删除</button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="7" class="text-center">暂无已删除订单</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    
+    <!-- 已删除客户 -->
+    <div class="card">
+        <div class="card-header">
+            <h4><i class="fas fa-users"></i> 已删除的客户</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAllCustomers"></th>
+                            <th>公司名</th>
+                            <th>联系人</th>
+                            <th>电话</th>
+                            <th>删除时间</th>
+                            <th>删除人</th>
+                            <th>操作</th>
+                        </thead>
+                        <tbody>
+                            {% for customer in deleted_customers %}
+                            <tr data-id="{{ customer.id }}" data-type="customer">
+                                <td><input type="checkbox" class="customer-checkbox" value="{{ customer.id }}"></td>
+                                <td>{{ customer.company_name|default:"-" }}</td>
+                                <td>{{ customer.contact_person|default:"-" }}</td>
+                                <td>{{ customer.phone|default:"-" }}</td>
+                                <td>{{ customer.deleted_at|date:"Y-m-d H:i:s" }}</td>
+                                <td>{{ customer.deleted_by.username|default:"未知" }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-success restore-customer" data-id="{{ customer.id }}">恢复</button>
+                                    <button class="btn btn-sm btn-danger permanent-delete-customer" data-id="{{ customer.id }}">彻底删除</button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="7" class="text-center">暂无已删除客户</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 批量操作逻辑（待加）
+document.addEventListener('DOMContentLoaded', function() {
+    // 全选订单
+    const selectAllOrders = document.getElementById('selectAllOrders');
+    if (selectAllOrders) {
+        selectAllOrders.addEventListener('change', function() {
+            document.querySelectorAll('.order-checkbox').forEach(cb => cb.checked = this.checked);
+            updateBatchButtons();
+        });
+    }
+    
+    // 全选客户
+    const selectAllCustomers = document.getElementById('selectAllCustomers');
+    if (selectAllCustomers) {
+        selectAllCustomers.addEventListener('change', function() {
+            document.querySelectorAll('.customer-checkbox').forEach(cb => cb.checked = this.checked);
+            updateBatchButtons();
+        });
+    }
+    
+    // 单个复选框变化时更新按钮状态
+    document.querySelectorAll('.order-checkbox, .customer-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateBatchButtons);
+    });
+    
+    function updateBatchButtons() {
+        const orderChecked = document.querySelectorAll('.order-checkbox:checked').length;
+        const customerChecked = document.querySelectorAll('.customer-checkbox:checked').length;
+        
+        document.getElementById('batchRestoreOrdersBtn').disabled = orderChecked === 0;
+        document.getElementById('batchPermanentDeleteOrdersBtn').disabled = orderChecked === 0;
+        document.getElementById('batchRestoreCustomersBtn').disabled = customerChecked === 0;
+        document.getElementById('batchPermanentDeleteCustomersBtn').disabled = customerChecked === 0;
+    }
+    
+    // 批量恢复订单
+    document.getElementById('batchRestoreOrdersBtn')?.addEventListener('click', function() {
+        const ids = Array.from(document.querySelectorAll('.order-checkbox:checked')).map(cb => cb.value);
+        if (ids.length && confirm(`确定恢复 ${ids.length} 个订单吗？`)) {
+            fetch('/recycle-bin/batch-restore-orders/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                body: JSON.stringify({order_ids: ids})
+            }).then(res => res.json()).then(data => {
+                if (data.success) location.reload();
+                else alert('操作失败');
+            });
+        }
+    });
+    
+    // 后续类似实现客户批量、单个恢复/彻底删除...
+});
+</script>
+{% endblock %}
