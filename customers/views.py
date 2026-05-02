@@ -2711,17 +2711,22 @@ def stats_dashboard(request):
         'completed': filter_by_role(Order.objects.filter(status='completed', is_deleted=False), 'order').count(),
     }
 
-    # ========== 产品销量排行（带权限） ==========
-    product_sales = {}
+    # ========== 产品销量排行（数量 + 金额） ==========
+    product_stats = {}
     for order in all_orders:
         for item in order.items:
             product_name = item.get('product_name', '未知')
+            quantity = item.get('quantity', 0)
             amount = item.get('amount', 0)
-            product_sales[product_name] = product_sales.get(product_name, 0) + amount
+            if product_name not in product_stats:
+                product_stats[product_name] = {'quantity': 0, 'amount': 0}
+            product_stats[product_name]['quantity'] += quantity
+            product_stats[product_name]['amount'] += amount
 
-    product_top10 = sorted(product_sales.items(), key=lambda x: x[1], reverse=True)[:10]
+    product_top10 = sorted(product_stats.items(), key=lambda x: x[1]['quantity'], reverse=True)[:10]
     product_names = [p[0] for p in product_top10]
-    product_amounts = [p[1] for p in product_top10]
+    product_quantities = [p[1]['quantity'] for p in product_top10]
+    product_amounts = [p[1]['amount'] for p in product_top10]
 
     # ========== 客户销售额排行（带权限） ==========
     customer_sales = {}
@@ -2805,6 +2810,7 @@ def stats_dashboard(request):
         'international_count': international_count,
         'status_data': status_data,
         'product_names': product_names,
+        'product_quantities': product_quantities,
         'product_amounts': product_amounts,
         'customer_names': customer_names,
         'customer_amounts': customer_amounts,

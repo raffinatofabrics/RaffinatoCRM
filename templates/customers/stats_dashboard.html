@@ -332,15 +332,15 @@ new Chart(statusCtx, {
     options: { responsive: true, maintainAspectRatio: true }
 });
 
-// 产品销量排行
+// 产品销量排行（按数量，悬停显示金额）
 const productCtx = document.getElementById('productChart').getContext('2d');
 new Chart(productCtx, {
     type: 'bar',
     data: {
         labels: [{% for p in product_names %}'{{ p|escapejs }}',{% endfor %}],
         datasets: [{
-            label: '销售额(¥)',
-            data: [{% for a in product_amounts %}{{ a }},{% endfor %}],
+            label: '销售数量',
+            data: [{% for q in product_quantities %}{{ q }},{% endfor %}],
             backgroundColor: '#667eea',
             borderRadius: 5
         }]
@@ -349,7 +349,18 @@ new Chart(productCtx, {
         responsive: true,
         maintainAspectRatio: true,
         indexAxis: 'y',
-        plugins: { legend: { position: 'top' } }
+        plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+                callbacks: {
+                    afterBody: function(context) {
+                        const index = context[0].dataIndex;
+                        const amount = [{% for a in product_amounts %}{{ a }},{% endfor %}][index];
+                        return `金额: ¥${amount.toFixed(2)}`;
+                    }
+                }
+            }
+        }
     }
 });
 
