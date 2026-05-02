@@ -2621,77 +2621,95 @@ def stats_dashboard(request):
                 return queryset.filter(department=user_dept)
         return queryset
     
-    # ========== 订单数据（带权限） ==========
-    all_orders = filter_by_role(Order.objects.all(), 'order')
-    today_orders = filter_by_role(Order.objects.filter(order_date=current_date), 'order')
-    month_orders = filter_by_role(Order.objects.filter(order_date__gte=first_day_of_month, order_date__lte=current_date), 'order')
-    
-    # 今日订单
-    today_domestic = today_orders.filter(business_type='domestic')
-    today_domestic_amount = today_domestic.aggregate(total=Sum('subtotal'))['total'] or 0
-    today_domestic_count = today_domestic.count()
-    today_international = today_orders.filter(business_type='international')
-    today_international_amount = today_international.aggregate(total=Sum('subtotal'))['total'] or 0
-    today_international_count = today_international.count()
-    
-    # 本月订单
-    month_domestic = month_orders.filter(business_type='domestic')
-    month_domestic_amount = month_domestic.aggregate(total=Sum('subtotal'))['total'] or 0
-    month_domestic_count = month_domestic.count()
-    month_international = month_orders.filter(business_type='international')
-    month_international_amount = month_international.aggregate(total=Sum('subtotal'))['total'] or 0
-    month_international_count = month_international.count()
-    
-    # 总销售额
-    total_sales_domestic = filter_by_role(Order.objects.filter(business_type='domestic'), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
-    total_sales_international = filter_by_role(Order.objects.filter(business_type='international'), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
-    
-    # ========== 月度统计（带权限） ==========
-    months = []
-    for i in range(11, -1, -1):
-        month_date = today.replace(day=1) - timedelta(days=i*30)
-        months.append(month_date.strftime('%Y-%m'))
-    
-    monthly_sales = []
-    monthly_orders = []
-    monthly_customers = []
-    
-    for month_str in months:
-        year, month = map(int, month_str.split('-'))
-        # 销售额
-        sales = filter_by_role(Order.objects.filter(
-            order_date__year=year, order_date__month=month,
-            status__in=['confirmed', 'shipped', 'completed']
-        ), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
-        monthly_sales.append(float(sales))
-        # 订单数
-        order_count = filter_by_role(Order.objects.filter(order_date__year=year, order_date__month=month), 'order').count()
-        monthly_orders.append(order_count)
-        # 新增客户数
-        customer_count = filter_by_role(Customer.objects.filter(
-            created_at__year=year, created_at__month=month, is_deleted=False
-        ), 'customer').count()
-        monthly_customers.append(customer_count)
-    
-    # ========== 客户数据（带权限） ==========
-    all_customers = filter_by_role(Customer.objects.filter(is_deleted=False), 'customer')
-    
-    level_data = {
-        'vip': all_customers.filter(level='vip').count(),
-        'advanced': all_customers.filter(level='advanced').count(),
-        'intermediate': all_customers.filter(level='intermediate').count(),
-        'potential': all_customers.filter(level='potential').count(),
-    }
-    
-    domestic_count = filter_by_role(Order.objects.filter(business_type='domestic'), 'order').count()
-    international_count = filter_by_role(Order.objects.filter(business_type='international'), 'order').count()
-    
-    status_data = {
-        'draft': filter_by_role(Order.objects.filter(status='draft'), 'order').count(),
-        'confirmed': filter_by_role(Order.objects.filter(status='confirmed'), 'order').count(),
-        'shipped': filter_by_role(Order.objects.filter(status='shipped'), 'order').count(),
-        'completed': filter_by_role(Order.objects.filter(status='completed'), 'order').count(),
-    }
+# ========== 订单数据（带权限，排除已删除） ==========
+all_orders = filter_by_role(Order.objects.filter(is_deleted=False), 'order')
+today_orders = filter_by_role(Order.objects.filter(order_date=current_date, is_deleted=False), 'order')
+month_orders = filter_by_role(Order.objects.filter(
+    order_date__gte=first_day_of_month,
+    order_date__lte=current_date,
+    is_deleted=False
+), 'order')
+
+# 今日订单
+today_domestic = today_orders.filter(business_type='domestic')
+today_domestic_amount = today_domestic.aggregate(total=Sum('subtotal'))['total'] or 0
+today_domestic_count = today_domestic.count()
+today_international = today_orders.filter(business_type='international')
+today_international_amount = today_international.aggregate(total=Sum('subtotal'))['total'] or 0
+today_international_count = today_international.count()
+
+# 本月订单
+month_domestic = month_orders.filter(business_type='domestic')
+month_domestic_amount = month_domestic.aggregate(total=Sum('subtotal'))['total'] or 0
+month_domestic_count = month_domestic.count()
+month_international = month_orders.filter(business_type='international')
+month_international_amount = month_international.aggregate(total=Sum('subtotal'))['total'] or 0
+month_international_count = month_international.count()
+
+# 总销售额（排除已删除）
+total_sales_domestic = filter_by_role(
+    Order.objects.filter(business_type='domestic', is_deleted=False),
+    'order'
+).aggregate(total=Sum('subtotal'))['total'] or 0
+total_sales_international = filter_by_role(
+    Order.objects.filter(business_type='international', is_deleted=False),
+    'order'
+).aggregate(total=Sum('subtotal'))['total'] or 0
+
+# ========== 月度统计（带权限，排除已删除） ==========
+months = []
+for i in range(11, -1, -1):
+    month_date = today.replace(day=1) - timedelta(days=i*30)
+    months.append(month_date.strftime('%Y-%m'))
+
+monthly_sales = []
+monthly_orders = []
+monthly_customers = []
+
+for month_str in months:
+    year, month = map(int, month_str.split('-'))
+    # 销售额（排除已删除）
+    sales = filter_by_role(Order.objects.filter(
+        order_date__year=year,
+        order_date__month=month,
+        status__in=['confirmed', 'shipped', 'completed'],
+        is_deleted=False
+    ), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
+    monthly_sales.append(float(sales))
+    # 订单数（排除已删除）
+    order_count = filter_by_role(Order.objects.filter(
+        order_date__year=year,
+        order_date__month=month,
+        is_deleted=False
+    ), 'order').count()
+    monthly_orders.append(order_count)
+    # 新增客户数（客户本身已过滤 is_deleted=False）
+    customer_count = filter_by_role(Customer.objects.filter(
+        created_at__year=year, created_at__month=month, is_deleted=False
+    ), 'customer').count()
+    monthly_customers.append(customer_count)
+
+# ========== 客户数据（带权限） ==========
+all_customers = filter_by_role(Customer.objects.filter(is_deleted=False), 'customer')
+
+level_data = {
+    'vip': all_customers.filter(level='vip').count(),
+    'advanced': all_customers.filter(level='advanced').count(),
+    'intermediate': all_customers.filter(level='intermediate').count(),
+    'potential': all_customers.filter(level='potential').count(),
+}
+
+# 内外贸订单总数（排除已删除）
+domestic_count = filter_by_role(Order.objects.filter(business_type='domestic', is_deleted=False), 'order').count()
+international_count = filter_by_role(Order.objects.filter(business_type='international', is_deleted=False), 'order').count()
+
+# 订单状态统计（排除已删除）
+status_data = {
+    'draft': filter_by_role(Order.objects.filter(status='draft', is_deleted=False), 'order').count(),
+    'confirmed': filter_by_role(Order.objects.filter(status='confirmed', is_deleted=False), 'order').count(),
+    'shipped': filter_by_role(Order.objects.filter(status='shipped', is_deleted=False), 'order').count(),
+    'completed': filter_by_role(Order.objects.filter(status='completed', is_deleted=False), 'order').count(),
+}
     
     # ========== 产品销量排行（带权限） ==========
     product_sales = {}
