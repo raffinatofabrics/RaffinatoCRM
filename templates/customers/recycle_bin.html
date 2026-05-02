@@ -113,8 +113,154 @@
 </div>
 
 <script>
-// 批量操作逻辑（待加）
 document.addEventListener('DOMContentLoaded', function() {
+    // 获取 CSRF Token
+    function getCSRFToken() {
+        let token = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        if (!token) {
+            token = '{{ csrf_token }}';
+        }
+        return token;
+    }
+
+    // 通用 fetch 封装
+    function postRequest(url, data, successMsg) {
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert(successMsg || '操作成功');
+                location.reload();
+            } else {
+                alert(data.message || '操作失败');
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('请求失败，请重试');
+        });
+    }
+
+    // ========== 订单批量恢复 ==========
+    const batchRestoreOrdersBtn = document.getElementById('batchRestoreOrdersBtn');
+    if (batchRestoreOrdersBtn) {
+        batchRestoreOrdersBtn.addEventListener('click', function() {
+            const ids = Array.from(document.querySelectorAll('.order-checkbox:checked')).map(cb => cb.value);
+            if (ids.length === 0) {
+                alert('请先选择订单');
+                return;
+            }
+            if (confirm(`确定恢复 ${ids.length} 个订单吗？`)) {
+                postRequest('/recycle-bin/batch-restore-orders/', { order_ids: ids }, `成功恢复 ${ids.length} 个订单`);
+            }
+        });
+    }
+
+    // ========== 订单批量彻底删除 ==========
+    const batchPermanentDeleteOrdersBtn = document.getElementById('batchPermanentDeleteOrdersBtn');
+    if (batchPermanentDeleteOrdersBtn) {
+        batchPermanentDeleteOrdersBtn.addEventListener('click', function() {
+            const ids = Array.from(document.querySelectorAll('.order-checkbox:checked')).map(cb => cb.value);
+            if (ids.length === 0) {
+                alert('请先选择订单');
+                return;
+            }
+            if (confirm(`⚠️ 彻底删除后无法恢复！确定删除 ${ids.length} 个订单吗？`)) {
+                postRequest('/recycle-bin/batch-permanent-delete-orders/', { order_ids: ids }, `已彻底删除 ${ids.length} 个订单`);
+            }
+        });
+    }
+
+    // ========== 客户批量恢复 ==========
+    const batchRestoreCustomersBtn = document.getElementById('batchRestoreCustomersBtn');
+    if (batchRestoreCustomersBtn) {
+        batchRestoreCustomersBtn.addEventListener('click', function() {
+            const ids = Array.from(document.querySelectorAll('.customer-checkbox:checked')).map(cb => cb.value);
+            if (ids.length === 0) {
+                alert('请先选择客户');
+                return;
+            }
+            if (confirm(`确定恢复 ${ids.length} 个客户吗？`)) {
+                postRequest('/recycle-bin/batch-restore-customers/', { customer_ids: ids }, `成功恢复 ${ids.length} 个客户`);
+            }
+        });
+    }
+
+    // ========== 客户批量彻底删除 ==========
+    const batchPermanentDeleteCustomersBtn = document.getElementById('batchPermanentDeleteCustomersBtn');
+    if (batchPermanentDeleteCustomersBtn) {
+        batchPermanentDeleteCustomersBtn.addEventListener('click', function() {
+            const ids = Array.from(document.querySelectorAll('.customer-checkbox:checked')).map(cb => cb.value);
+            if (ids.length === 0) {
+                alert('请先选择客户');
+                return;
+            }
+            if (confirm(`⚠️ 彻底删除后无法恢复！确定删除 ${ids.length} 个客户吗？`)) {
+                postRequest('/recycle-bin/batch-permanent-delete-customers/', { customer_ids: ids }, `已彻底删除 ${ids.length} 个客户`);
+            }
+        });
+    }
+
+    // ========== 单个操作（事件委托）==========
+    document.querySelector('body').addEventListener('click', function(e) {
+        // 单个恢复订单
+        if (e.target.classList.contains('restore-order')) {
+            const orderId = e.target.dataset.id;
+            if (confirm('确定恢复该订单吗？')) {
+                postRequest(`/recycle-bin/restore-order/${orderId}/`, {}, '订单已恢复');
+            }
+        }
+        // 单个彻底删除订单
+        if (e.target.classList.contains('permanent-delete-order')) {
+            const orderId = e.target.dataset.id;
+            if (confirm('⚠️ 彻底删除后无法恢复！确定彻底删除该订单吗？')) {
+                postRequest(`/recycle-bin/permanent-delete-order/${orderId}/`, {}, '订单已彻底删除');
+            }
+        }
+        // 单个恢复客户
+        if (e.target.classList.contains('restore-customer')) {
+            const customerId = e.target.dataset.id;
+            if (confirm('确定恢复该客户吗？')) {
+                postRequest(`/recycle-bin/restore-customer/${customerId}/`, {}, '客户已恢复');
+            }
+        }
+        // 单个彻底删除客户
+        if (e.target.classList.contains('permanent-delete-customer')) {
+            const customerId = e.target.dataset.id;
+            if (confirm('⚠️ 彻底删除后无法恢复！确定彻底删除该客户吗？')) {
+                postRequest(`/recycle-bin/permanent-delete-customer/${customerId}/`, {}, '客户已彻底删除');
+            }
+        }
+    });
+
+    // ========== 全选 / 复选框状态更新 ==========
+    function updateBatchButtons() {
+        const orderChecked = document.querySelectorAll('.order-checkbox:checked').length;
+        const customerChecked = document.querySelectorAll('.customer-checkbox:checked').length;
+        
+        const btn1 = document.getElementById('batchRestoreOrdersBtn');
+        const btn2 = document.getElementById('batchPermanentDeleteOrdersBtn');
+        const btn3 = document.getElementById('batchRestoreCustomersBtn');
+        const btn4 = document.getElementById('batchPermanentDeleteCustomersBtn');
+        
+        if (btn1) btn1.disabled = orderChecked === 0;
+        if (btn2) btn2.disabled = orderChecked === 0;
+        if (btn3) btn3.disabled = customerChecked === 0;
+        if (btn4) btn4.disabled = customerChecked === 0;
+    }
+
+    // 监听复选框变化
+    document.querySelectorAll('.order-checkbox, .customer-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateBatchButtons);
+    });
+
     // 全选订单
     const selectAllOrders = document.getElementById('selectAllOrders');
     if (selectAllOrders) {
@@ -123,7 +269,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateBatchButtons();
         });
     }
-    
+
     // 全选客户
     const selectAllCustomers = document.getElementById('selectAllCustomers');
     if (selectAllCustomers) {
@@ -132,38 +278,9 @@ document.addEventListener('DOMContentLoaded', function() {
             updateBatchButtons();
         });
     }
-    
-    // 单个复选框变化时更新按钮状态
-    document.querySelectorAll('.order-checkbox, .customer-checkbox').forEach(cb => {
-        cb.addEventListener('change', updateBatchButtons);
-    });
-    
-    function updateBatchButtons() {
-        const orderChecked = document.querySelectorAll('.order-checkbox:checked').length;
-        const customerChecked = document.querySelectorAll('.customer-checkbox:checked').length;
-        
-        document.getElementById('batchRestoreOrdersBtn').disabled = orderChecked === 0;
-        document.getElementById('batchPermanentDeleteOrdersBtn').disabled = orderChecked === 0;
-        document.getElementById('batchRestoreCustomersBtn').disabled = customerChecked === 0;
-        document.getElementById('batchPermanentDeleteCustomersBtn').disabled = customerChecked === 0;
-    }
-    
-    // 批量恢复订单
-    document.getElementById('batchRestoreOrdersBtn')?.addEventListener('click', function() {
-        const ids = Array.from(document.querySelectorAll('.order-checkbox:checked')).map(cb => cb.value);
-        if (ids.length && confirm(`确定恢复 ${ids.length} 个订单吗？`)) {
-            fetch('/recycle-bin/batch-restore-orders/', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
-                body: JSON.stringify({order_ids: ids})
-            }).then(res => res.json()).then(data => {
-                if (data.success) location.reload();
-                else alert('操作失败');
-            });
-        }
-    });
-    
-    // 后续类似实现客户批量、单个恢复/彻底删除...
+
+    // 初始化按钮状态
+    updateBatchButtons();
 });
 </script>
 {% endblock %}
