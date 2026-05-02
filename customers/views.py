@@ -2741,38 +2741,7 @@ def stats_dashboard(request):
     reply_rate = 0
 
     # ========== 构建上下文 ==========
-    context = {
-        'today_domestic_count': today_domestic_count,
-        'today_domestic_amount': today_domestic_amount,
-        'today_international_count': today_international_count,
-        'today_international_amount': today_international_amount,
-        'month_domestic_count': month_domestic_count,
-        'month_domestic_amount': month_domestic_amount,
-        'month_international_count': month_international_count,
-        'month_international_amount': month_international_amount,
-        'total_sales_domestic': total_sales_domestic,
-        'total_sales_international': total_sales_international,
-        'months': months,
-        'monthly_sales': monthly_sales,
-        'monthly_orders': monthly_orders,
-        'monthly_customers': monthly_customers,
-        'level_data': level_data,
-        'domestic_count': domestic_count,
-        'international_count': international_count,
-        'status_data': status_data,
-        'product_names': product_names,
-        'product_amounts': product_amounts,
-        'customer_names': customer_names,
-        'customer_amounts': customer_amounts,
-        'total_customers': total_customers,
-        'total_orders': total_orders,
-        'reply_rate': reply_rate,
-        'sent_count': sent_count,
-    }
-
-    return render(request, 'customers/stats_dashboard.html', context)
-    
-    # ========== 业绩排名（直接计算） ==========
+    # 业绩排名（根据角色展示）
     if user_role == 'sales':
         show_ranking = False
         ranking_scope = None
@@ -2814,8 +2783,19 @@ def stats_dashboard(request):
                 'customer_count': customer_count,
                 'user_dept': sales.profile.department.name if hasattr(sales, 'profile') and sales.profile.department else '',
             })
-        sales_ranking = sorted(sales_data, key=lambda x: x['order_amount'], reverse=True)[:10]    
+        sales_ranking = sorted(sales_data, key=lambda x: x['order_amount'], reverse=True)[:10]
+
     context = {
+        'today_domestic_count': today_domestic_count,
+        'today_domestic_amount': today_domestic_amount,
+        'today_international_count': today_international_count,
+        'today_international_amount': today_international_amount,
+        'month_domestic_count': month_domestic_count,
+        'month_domestic_amount': month_domestic_amount,
+        'month_international_count': month_international_count,
+        'month_international_amount': month_international_amount,
+        'total_sales_domestic': total_sales_domestic,
+        'total_sales_international': total_sales_international,
         'months': months,
         'monthly_sales': monthly_sales,
         'monthly_orders': monthly_orders,
@@ -2831,23 +2811,14 @@ def stats_dashboard(request):
         'total_customers': total_customers,
         'total_orders': total_orders,
         'reply_rate': reply_rate,
-        'total_sales_domestic': total_sales_domestic,
-        'total_sales_international': total_sales_international,
-        'today_domestic_amount': today_domestic_amount,
-        'today_domestic_count': today_domestic_count,
-        'today_international_amount': today_international_amount,
-        'today_international_count': today_international_count,
-        'month_domestic_amount': month_domestic_amount,
-        'month_domestic_count': month_domestic_count,
-        'month_international_amount': month_international_amount,
-        'month_international_count': month_international_count,
+        'sent_count': sent_count,
         'show_ranking': show_ranking,
         'ranking_scope': ranking_scope,
         'sales_ranking': sales_ranking,
         'user_role': user_role,
         'user_dept_name': user_dept.name if user_dept else None,
     }
-    
+
     return render(request, 'customers/stats_dashboard.html', context)
 # ==================== 用户管理 ====================
 
