@@ -3,6 +3,20 @@
 {% block page_title %}回收站{% endblock %}
 
 {% block content %}
+
+<style>
+/* 暗色模式下回收站卡片标题修复 */
+body.dark-mode .card-header {
+    background-color: #1e293b !important;
+    border-bottom: 1px solid #334155 !important;
+}
+
+body.dark-mode .card-header h4,
+body.dark-mode .card-header h3,
+body.dark-mode .card-header .card-title {
+    color: #f1f5f9 !important;
+}
+</style>
 <div class="container-fluid">
     <h1 class="mb-4"><i class="fas fa-trash-restore"></i> 回收站</h1>
     
