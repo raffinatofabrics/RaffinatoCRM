@@ -50,6 +50,18 @@ import requests
 import zipfile
 import openpyxl
 
+# ========== 安全权限获取函数 ==========
+def get_user_role(request):
+    """安全获取当前用户角色，未登录或异常一律返回 None"""
+    if not request.user.is_authenticated:
+        return None
+    try:
+        if hasattr(request.user, 'profile') and request.user.profile:
+            return request.user.profile.role
+    except Exception:
+        pass
+    return None
+
 # ========== 在这里添加操作日志相关代码 ==========
 from .models import OperationLog
 
@@ -91,21 +103,23 @@ def customer_list(request):
 
     queryset = Customer.objects.filter(is_deleted=False)
 
-    # ========== 权限过滤 ==========
-    if request.user.is_authenticated and hasattr(request.user, 'profile'):
-        role = request.user.profile.role
-        if role == 'sales':
-            queryset = queryset.filter(assigned_sales=request.user)
-        elif role == 'dept_leader':
-            dept = request.user.profile.department
-            if dept:
-                queryset = queryset.filter(department=dept)
-        elif role == 'readonly':
-            dept = request.user.profile.department
-            if dept:
-                queryset = queryset.filter(department=dept)
+    # ========== 权限过滤（安全版） ==========
+    role = get_user_role(request)
+    if role is None:
+        messages.error(request, '会话已过期，请重新登录')
+        return redirect('login')
+    
+    if role == 'sales':
+        queryset = queryset.filter(assigned_sales=request.user)
+    elif role == 'dept_leader':
+        dept = request.user.profile.department
+        if dept:
+            queryset = queryset.filter(department=dept)
+    elif role == 'readonly':
+        dept = request.user.profile.department
+        if dept:
+            queryset = queryset.filter(department=dept)
     # ========== 权限过滤结束 ==========
-
     if level:
         queryset = queryset.filter(level=level)
 
@@ -1257,25 +1271,23 @@ def order_list(request):
     # 只显示未删除的订单（软删除过滤）
     orders = Order.objects.select_related('customer').filter(is_deleted=False).order_by('-created_at')
     
-    # ========== 权限过滤 ==========
-    if request.user.is_authenticated and hasattr(request.user, 'profile'):
-        role = request.user.profile.role
-        if role == 'sales':
-            # 销售人员：只能看到自己客户的订单
-            orders = orders.filter(customer__assigned_sales=request.user)
-        elif role == 'dept_leader':
-            # 部门主管：只能看到本部门客户的订单
-            dept = request.user.profile.department
-            if dept:
-                orders = orders.filter(customer__department=dept)
-        elif role == 'readonly':
-            # 只读用户：只能看到本部门客户的订单
-            dept = request.user.profile.department
-            if dept:
-                orders = orders.filter(customer__department=dept)
-        # 管理员：看到所有订单，不需要过滤
-    # ========== 权限过滤结束 ==========
+    # ========== 权限过滤（安全版） ==========
+    role = get_user_role(request)
+    if role is None:
+        messages.error(request, '会话已过期，请重新登录')
+        return redirect('login')
     
+    if role == 'sales':
+        orders = orders.filter(customer__assigned_sales=request.user)
+    elif role == 'dept_leader':
+        dept = request.user.profile.department
+        if dept:
+            orders = orders.filter(customer__department=dept)
+    elif role == 'readonly':
+        dept = request.user.profile.department
+        if dept:
+            orders = orders.filter(customer__department=dept)
+    # ========== 权限过滤结束 ==========    
     if business_type:
         orders = orders.filter(business_type=business_type)
     if status:
@@ -1341,45 +1353,47 @@ def order_create(request):
         # 获取客户
         customer = Customer.objects.get(id=customer_id)
         
-        # ========== 权限检查（修改这里）==========
-        if request.user.is_authenticated and hasattr(request.user, 'profile'):
-            role = request.user.profile.role
-            dept = request.user.profile.department
-            
-            # 主管（dept_leader）的权限检查
-            if role == 'dept_leader':
-                # 主管只能创建自己部门的业务类型订单
-                if dept and dept.name == '外贸部':
-                    if business_type != 'international':
-                        messages.error(request, '您属于外贸部，只能创建外贸订单')
-                        return redirect('order_create')
-                elif dept and dept.name == '内贸部':
-                    if business_type != 'domestic':
-                        messages.error(request, '您属于内贸部，只能创建内贸订单')
-                        return redirect('order_create')
-                
-                # 主管只能看到自己部门的客户（已在GET中过滤）
-                if customer.department != dept:
-                    messages.error(request, '您没有权限为其他部门的客户创建订单')
-                    return redirect('order_create')
-            
-            elif role == 'sales':
-                # 销售人员只能为自己分配的客户创建订单
-                if customer.assigned_sales != request.user:
-                    messages.error(request, '您没有权限为这个客户创建订单')
-                    return redirect('order_create')
-                
-                # 销售人员只能创建自己部门的业务类型订单
-                if dept and dept.name == '外贸部':
-                    if business_type != 'international':
-                        messages.error(request, '您属于外贸部，只能创建外贸订单')
-                        return redirect('order_create')
-                elif dept and dept.name == '内贸部':
-                    if business_type != 'domestic':
-                        messages.error(request, '您属于内贸部，只能创建内贸订单')
-                        return redirect('order_create')
-        # ========== 权限检查结束 ==========
+        # ========== 权限检查（安全版） ==========
+        role = get_user_role(request)
+        if role is None:
+            messages.error(request, '会话已过期，请重新登录')
+            return redirect('login')
         
+        dept = request.user.profile.department if hasattr(request.user, 'profile') else None
+        
+        # 主管（dept_leader）的权限检查
+        if role == 'dept_leader':
+            # 主管只能创建自己部门的业务类型订单
+            if dept and dept.name == '外贸部':
+                if business_type != 'international':
+                    messages.error(request, '您属于外贸部，只能创建外贸订单')
+                    return redirect('order_create')
+            elif dept and dept.name == '内贸部':
+                if business_type != 'domestic':
+                    messages.error(request, '您属于内贸部，只能创建内贸订单')
+                    return redirect('order_create')
+            
+            # 主管只能看到自己部门的客户（已在GET中过滤）
+            if customer.department != dept:
+                messages.error(request, '您没有权限为其他部门的客户创建订单')
+                return redirect('order_create')
+        
+        elif role == 'sales':
+            # 销售人员只能为自己分配的客户创建订单
+            if customer.assigned_sales != request.user:
+                messages.error(request, '您没有权限为这个客户创建订单')
+                return redirect('order_create')
+            
+            # 销售人员只能创建自己部门的业务类型订单
+            if dept and dept.name == '外贸部':
+                if business_type != 'international':
+                    messages.error(request, '您属于外贸部，只能创建外贸订单')
+                    return redirect('order_create')
+            elif dept and dept.name == '内贸部':
+                if business_type != 'domestic':
+                    messages.error(request, '您属于内贸部，只能创建内贸订单')
+                    return redirect('order_create')
+        # ========== 权限检查结束 ==========        
         # 自动生成订单号：SO#20260412A01
         import datetime
         today = datetime.date.today()
@@ -1418,15 +1432,12 @@ def order_create(request):
     import datetime
     customers = Customer.objects.filter(is_deleted=False)
     
-    if request.user.is_authenticated and hasattr(request.user, 'profile'):
-        role = request.user.profile.role
-        dept = request.user.profile.department
-        
+    role = get_user_role(request)
+    if role is not None:
+        dept = request.user.profile.department if hasattr(request.user, 'profile') else None
         if role == 'sales':
-            # 销售人员只能看到自己分配的客户
             customers = customers.filter(assigned_sales=request.user)
         elif role == 'dept_leader':
-            # 主管只能看到自己部门的客户
             if dept:
                 customers = customers.filter(department=dept)
         # admin 可以看到所有客户
@@ -1663,38 +1674,39 @@ def order_summary(request):
     # 基础查询（只统计未删除的订单）
     orders = Order.objects.filter(is_deleted=False)
     
-    # ========== 权限过滤（添加这部分）==========
-    if request.user.is_authenticated and hasattr(request.user, 'profile'):
-        role = request.user.profile.role
-        dept = request.user.profile.department
-        
-        if role == 'sales':
-            # 销售人员：只能看到自己的订单
-            orders = orders.filter(sales_person=request.user.username)
-            
-        elif role == 'dept_leader':
-            # 主管：只能看到自己部门的订单
-            if dept and dept.name == '外贸部':
-                orders = orders.filter(business_type='international')
-                # 如果业务类型筛选器选择了内贸，强制改为外贸
-                if business_type == 'domestic':
-                    business_type = 'international'
-            elif dept and dept.name == '内贸部':
-                orders = orders.filter(business_type='domestic')
-                # 如果业务类型筛选器选择了外贸，强制改为内贸
-                if business_type == 'international':
-                    business_type = 'domestic'
-        
-        # admin 可以看到所有订单，不做过滤
+    # ========== 权限过滤（安全版） ==========
+    role = get_user_role(request)
+    if role is None:
+        messages.error(request, '会话已过期，请重新登录')
+        return redirect('login')
     
-    # 如果用户是主管，且没有选择业务类型，自动选择本部门的类型
-    if hasattr(request.user, 'profile') and request.user.profile.role == 'dept_leader':
-        dept = request.user.profile.department
-        if dept and not business_type:
-            if dept.name == '外贸部':
+    dept = request.user.profile.department if hasattr(request.user, 'profile') else None
+    
+    if role == 'sales':
+        # 销售人员：只能看到自己的订单
+        orders = orders.filter(sales_person=request.user.username)
+        
+    elif role == 'dept_leader':
+        # 主管：只能看到自己部门的订单
+        if dept and dept.name == '外贸部':
+            orders = orders.filter(business_type='international')
+            # 如果业务类型筛选器选择了内贸，强制改为外贸
+            if business_type == 'domestic':
                 business_type = 'international'
-            elif dept.name == '内贸部':
+        elif dept and dept.name == '内贸部':
+            orders = orders.filter(business_type='domestic')
+            # 如果业务类型筛选器选择了外贸，强制改为内贸
+            if business_type == 'international':
                 business_type = 'domestic'
+    
+    # admin 可以看到所有订单，不需要额外过滤
+    
+    # 如果是主管且没有选择业务类型，自动选择本部门类型
+    if role == 'dept_leader' and dept and not business_type:
+        if dept.name == '外贸部':
+            business_type = 'international'
+        elif dept.name == '内贸部':
+            business_type = 'domestic'
     # ========== 权限过滤结束 ==========
     
     # 日期筛选
@@ -2596,17 +2608,14 @@ def stats_dashboard(request):
     current_date = timezone.now().date()
     first_day_of_month = current_date.replace(day=1)
     
-    # ========== 获取用户角色 ==========
-    user_role = 'admin'
-    user_dept = None
-    user_sales = None
-    if hasattr(request.user, 'profile'):
-        user_role = request.user.profile.role
-        user_dept = request.user.profile.department
-        user_sales = request.user
-    else:
-        user_role = 'admin'
+    # ========== 获取用户角色（安全版） ==========
+    user_role = get_user_role(request)
+    if user_role is None:
+        messages.error(request, '会话已过期，请重新登录')
+        return redirect('login')
     
+    user_dept = request.user.profile.department if hasattr(request.user, 'profile') else None
+    user_sales = request.user if user_role == 'sales' else None    
     # ========== 权限过滤函数 ==========
     def filter_by_role(queryset, model_type='order'):
         if user_role == 'sales':
