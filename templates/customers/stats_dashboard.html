@@ -172,33 +172,35 @@ body.dark-mode .stats-container h2 {
 {% if user_role != 'sales' %}
     <!-- 图表行 -->
     <div class="row">
-        <div class="col-md-6">
-            <div class="stats-card">
-                <h4>月度销售额趋势</h4>
-                <canvas id="salesChart" height="200"></canvas>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="stats-card">
-                <h4>月度订单数趋势</h4>
-                <canvas id="ordersChart" height="200"></canvas>
-            </div>
+    <div class="col-md-6">
+        <div class="stats-card">
+            <h4>产品销量排行 TOP10</h4>
+            <canvas id="productChart" height="300"></canvas>
         </div>
     </div>
-
-<div class="row">
-        <div class="col-md-6">
-            <div class="stats-card">
-                <h4>产品销量排行 TOP10</h4>
-                <canvas id="productChart" height="300"></canvas>
-            </div>
+    <div class="col-md-6">
+        <div class="stats-card">
+            <h4>客户销售额排行 TOP10</h4>
+            <canvas id="customerChart" height="300"></canvas>
         </div>
-        <div class="col-md-6">
-            <div class="stats-card">
-                <h4>客户销售额排行 TOP10</h4>
-                <canvas id="customerChart" height="300"></canvas>
-            </div>
-        </div> 
+    </div>
+</div>
+
+<!-- 月度趋势（放到下面） -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="stats-card">
+            <h4>月度销售额趋势</h4>
+            <canvas id="salesChart" height="200"></canvas>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stats-card">
+            <h4>月度订单数趋势</h4>
+            <canvas id="ordersChart" height="200"></canvas>
+        </div>
+    </div>
+</div>
    
 <div class="row">
         <div class="col-md-6">
