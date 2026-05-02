@@ -65,21 +65,8 @@ body.dark-mode .kpi-card {
     </div>
     </div>
 
+<!-- 第一行：热门国家TOP5 + 客户增长趋势 -->
 <div class="row">
-    <!-- 客户增长趋势（30天） -->
-    <div class="col-md-6 mb-4">
-        <div class="card-modern">
-            <div class="card-header">
-                客户增长趋势（最近30天）
-            </div>
-            <div class="card-body">
-                <canvas id="growthChart" height="200"></canvas>
-            </div>
-        </div>
-    </div>
-    
-<div class="row">
-    <!-- 热门国家TOP5 -->
     <div class="col-md-6 mb-4">
         <div class="card-modern">
             <div class="card-header">
@@ -90,8 +77,20 @@ body.dark-mode .kpi-card {
             </div>
         </div>
     </div>
+    <div class="col-md-6 mb-4">
+        <div class="card-modern">
+            <div class="card-header">
+                客户增长趋势（最近30天）
+            </div>
+            <div class="card-body">
+                <canvas id="growthChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <!-- 待跟进客户趋势 -->
+<!-- 第二行：待跟进客户趋势 + 最近7天邮件活动 -->
+<div class="row">
     <div class="col-md-6 mb-4">
         <div class="card-modern">
             <div class="card-header">
@@ -102,9 +101,6 @@ body.dark-mode .kpi-card {
             </div>
         </div>
     </div>
-</div>
-    
-    <!-- 最近7天邮件活动 -->
     <div class="col-md-6 mb-4">
         <div class="card-modern">
             <div class="card-header">
@@ -117,8 +113,8 @@ body.dark-mode .kpi-card {
     </div>
 </div>
 
+<!-- 第三行：客户等级分布 + 邮件回复率 -->
 <div class="row">
-    <!-- 客户等级分布 -->
     <div class="col-md-6 mb-4">
         <div class="card-modern">
             <div class="card-header">
@@ -129,8 +125,6 @@ body.dark-mode .kpi-card {
             </div>
         </div>
     </div>
-    
-    <!-- 邮件回复率 -->
     <div class="col-md-6 mb-4">
         <div class="card-modern">
             <div class="card-header">
