@@ -1,4 +1,7 @@
 {% extends 'base.html' %}
+
+{% load custom_filters %}
+
 {% load static %}
 
 {% block page_title %}业务数据统计大屏{% endblock %}
@@ -81,28 +84,28 @@ body.dark-mode .stats-container h2 {
         <div class="kpi-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
             <div class="kpi-number">{{ today_domestic_count }}</div>
             <div class="kpi-label">今日内贸订单</div>
-            <div class="small">¥{{ today_domestic_amount|floatformat:0 }}</div>
+            <div class="small">¥{{ today_domestic_amount|smart_number }}</div>
         </div>
     </div>
     <div class="col-md-2">
         <div class="kpi-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
             <div class="kpi-number">{{ today_international_count }}</div>
             <div class="kpi-label">今日外贸订单</div>
-            <div class="small">${{ today_international_amount|floatformat:0 }}</div>
+            <div class="small">${{today_international_amount|smart_number }}</div>
         </div>
     </div>
     <div class="col-md-2">
         <div class="kpi-card" style="background: linear-gradient(135deg, #10b981, #059669);">
             <div class="kpi-number">{{ month_domestic_count }}</div>
             <div class="kpi-label">本月内贸订单</div>
-            <div class="small">¥{{ month_domestic_amount|floatformat:0 }}</div>
+            <div class="small">¥{{ month_domestic_amount|smart_number }}</div>
         </div>
     </div>
     <div class="col-md-2">
         <div class="kpi-card" style="background: linear-gradient(135deg, #10b981, #059669);">
             <div class="kpi-number">{{ month_international_count }}</div>
             <div class="kpi-label">本月外贸订单</div>
-            <div class="small">${{ month_international_amount|floatformat:0 }}</div>
+            <div class="small">${{ month_international_amount|smart_number }}</div>
         </div>
     </div>
     <div class="col-md-2">
@@ -153,9 +156,9 @@ body.dark-mode .stats-container h2 {
                             <td>{{ sales.order_count|default:0 }}</td>
                             <td>
     {% if sales.user_dept == '外贸部' %}
-        ${{ sales.order_amount|default:0|floatformat:0 }}
+        ${{ sales.order_amount|default:0|smart_number }}
     {% else %}
-        ¥{{ sales.order_amount|default:0|floatformat:0 }}
+        ¥{{ sales.order_amount|default:0|smart_number }}
     {% endif %}
 </td>
                         </tr>
