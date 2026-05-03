@@ -264,7 +264,7 @@
                 <tr>
                     <td>{{ item.product_name }}</td>
                     <td>{{ item.specification|default:"-" }}</td>
-                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.quantity|smart_number }}</td>
                     <td>{{ item.unit|default:"米" }}</td>
                     <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ item.unit_price|smart_number }}</td>
                     <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ item.amount|smart_number }}</td>
