@@ -58,3 +58,19 @@ def chinese_amount(value):
     
     result = integer_str + '元' + decimal_str
     return result
+
+@register.filter(name='smart_number')
+def smart_number(value):
+    """去掉无意义的 .0，不四舍五入"""
+    if value is None:
+        return ''
+    try:
+        # 如果是整数（如 7.0 或 7.00）
+        if value == int(value):
+            return str(int(value))
+        else:
+            # 保留原小数，去掉末尾多余的 0
+            s = f'{value:.10f}'.rstrip('0').rstrip('.')
+            return s
+    except (ValueError, TypeError):
+        return value
