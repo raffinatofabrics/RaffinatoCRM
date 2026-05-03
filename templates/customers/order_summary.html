@@ -296,7 +296,7 @@ body.dark-mode .summary-card .total {
         <td>¥ {{ item.rmb_amount|default:0|smart_number }}</td>
         <td>$ {{ item.usd_amount|default:0|smart_number }}</td>
         <td>{{ item.total_amount|smart_number }}</td>
-        <td>{{ item.percentage|smart_number }}%</td>
+        <td>{{ item.percentage|floatformat:2 }}%</td>
     </tr>
     {% endfor %}
             {% else %}
