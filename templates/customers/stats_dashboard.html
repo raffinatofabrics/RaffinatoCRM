@@ -174,6 +174,21 @@ body.dark-mode .stats-container h2 {
 {% endif %}
 {% if user_role != 'sales' %}
     <!-- 图表行 -->
+<!-- 每日趋势（第一行） -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="stats-card">
+            <h4>每日销售额趋势（{{ first_day_of_month|date:"m-d" }} ~ {{ last_day_of_month|date:"m-d" }}）</h4>
+            <canvas id="dailySalesChart" height="250"></canvas>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stats-card">
+            <h4>每日订单数趋势（{{ first_day_of_month|date:"m-d" }} ~ {{ last_day_of_month|date:"m-d" }}）</h4>
+            <canvas id="dailyOrdersChart" height="250"></canvas>
+        </div>
+    </div>
+</div>
     <div class="row">
     <div class="col-md-6">
         <div class="stats-card">
@@ -241,6 +256,39 @@ body.dark-mode .stats-container h2 {
 {% if user_role != 'sales' %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// 每日销售额趋势
+const dailySalesCtx = document.getElementById('dailySalesChart').getContext('2d');
+new Chart(dailySalesCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for d in daily_dates %}'{{ d }}',{% endfor %}],
+        datasets: [{
+            label: '销售额(¥)',
+            data: [{% for a in daily_amounts %}{{ a }},{% endfor %}],
+            borderColor: '#667eea',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: true }
+});
+
+// 每日订单数趋势
+const dailyOrdersCtx = document.getElementById('dailyOrdersChart').getContext('2d');
+new Chart(dailyOrdersCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for d in daily_dates %}'{{ d }}',{% endfor %}],
+        datasets: [{
+            label: '订单数',
+            data: [{% for c in daily_counts %}{{ c }},{% endfor %}],
+            backgroundColor: '#f59e0b',
+            borderRadius: 5
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: true }
+});
 // 月度销售额趋势
 const salesCtx = document.getElementById('salesChart').getContext('2d');
 new Chart(salesCtx, {

@@ -2754,6 +2754,41 @@ def stats_dashboard(request):
     sent_count = SendLog.objects.count()
     reply_rate = 0
 
+    # ========== 每日销售额/订单数趋势（当前自然月） ==========
+    from datetime import date, timedelta
+    from calendar import monthrange
+
+    today = date.today()
+    first_day_of_month = today.replace(day=1)
+    last_day_of_month = today.replace(day=monthrange(today.year, today.month)[1])
+
+    daily_stats = (
+        Order.objects
+        .filter(order_date__range=[first_day_of_month, last_day_of_month], is_deleted=False)
+        .values('order_date')
+        .annotate(
+            daily_amount=Sum('subtotal'),
+            daily_count=Count('id')
+        )
+        .order_by('order_date')
+    )
+
+    daily_dates = []
+    daily_amounts = []
+    daily_counts = []
+
+    current = first_day_of_month
+    while current <= last_day_of_month:
+        daily_dates.append(current.strftime('%m-%d'))
+        found = next((d for d in daily_stats if d['order_date'] == current), None)
+        if found:
+            daily_amounts.append(float(found['daily_amount']))
+            daily_counts.append(found['daily_count'])
+        else:
+            daily_amounts.append(0)
+            daily_counts.append(0)
+        current += timedelta(days=1)
+
     # ========== 构建上下文 ==========
     # 业绩排名（根据角色展示）
     if user_role == 'sales':
@@ -2832,6 +2867,12 @@ def stats_dashboard(request):
         'sales_ranking': sales_ranking,
         'user_role': user_role,
         'user_dept_name': user_dept.name if user_dept else None,
+        # 每日趋势新增
+        'daily_dates': daily_dates,
+        'daily_amounts': daily_amounts,
+        'daily_counts': daily_counts,
+        'first_day_of_month': first_day_of_month,
+        'last_day_of_month': last_day_of_month,
     }
 
     return render(request, 'customers/stats_dashboard.html', context)
