@@ -180,6 +180,40 @@
                 -webkit-print-color-adjust: exact;
             }
         }
+
+/* 1. 产品明细表 - 标题行紧凑设置 */
+.items-table th {
+    padding: 4px 6px;      /* 上下内边距从默认8px降到4px */
+    line-height: 1.2;      /* 行高从默认1.4降到1.2 */
+    font-size: 13px;       /* 中文标题略微缩小（可选） */
+}
+
+.items-table th span {
+    font-size: 9px;        /* 英文从11px降到9px */
+    line-height: 1.2;
+}
+
+/* 2. 产品明细表 - 数据行也适当紧凑（可选） */
+.items-table td {
+    padding: 4px 6px;      /* 数据行上下内边距也调小 */
+    line-height: 1.2;
+}
+
+/* 3. 订单信息表 - 左侧标签行紧凑（保持风格一致） */
+.info-table td:first-child {
+    padding: 4px 6px;
+    line-height: 1.2;
+}
+
+.info-table td:first-child span {
+    font-size: 9px;
+}
+
+/* 4. 订单信息表 - 右侧数据行紧凑 */
+.info-table td:last-child {
+    padding: 4px 6px;
+}
+
     </style>
 </head>
 <body>
@@ -202,27 +236,45 @@
         </div>
 
         <!-- 订单信息 -->
-        <table class="info-table">
-            <tr>
-                <td>客户名称：{{ order.customer.company_name }}</td>
-                <td>联系人：{{ order.customer.contact_person|default:"-" }}</td>
-                <td>电话：{{ order.customer.phone|default:"-" }}</td>
-                <td>日期：{{ order.order_date|date:"Y-m-d" }}
-            </tr>
-        </table>
+<table class="info-table">
+    <tr>
+        <td style="white-space: nowrap;">
+            客户名称<br>
+            <span style="font-size: 10px; color: #666; font-weight: normal;">CUSTOMER</span>
+        </td>
+        <td style="white-space: nowrap;">
+            联系人<br>
+            <span style="font-size: 10px; color: #666; font-weight: normal;">CONTACT</span>
+        </td>
+        <td style="white-space: nowrap;">
+            电话<br>
+            <span style="font-size: 10px; color: #666; font-weight: normal;">PHONE</span>
+        </td>
+        <td style="white-space: nowrap;">
+            日期<br>
+            <span style="font-size: 10px; color: #666; font-weight: normal;">DATE</span>
+        </td>
+    </tr>
+    <tr>
+        <td>{{ order.customer.company_name }}</td>
+        <td>{{ order.customer.contact_person|default:"-" }}</td>
+        <td>{{ order.customer.phone|default:"-" }}</td>
+        <td>{{ order.order_date|date:"Y-m-d" }}</td>
+    </tr>
+</table>
         
         <!-- 产品明细 -->
         <table class="items-table">
             <thead>
-                <tr>
-                    <th>产品名称 ITEM</th>
-                    <th>规格色号 COLOR NO.</th>
-                    <th>数量 QTY</th>
-                    <th>单位 UNIT</th>
-                    <th>单价 PRICE</th>
-                    <th>金额 AMOUNT</th>
-                </tr>
-            </thead>
+    <tr>
+        <th>产品名称<br><span style="font-size: 11px;">ITEM</span></th>
+        <th>规格色号<br><span style="font-size: 11px;">COLOR NO.</span></th>
+        <th>数量<br><span style="font-size: 11px;">QUANTITY</span></th>
+        <th>单位<br><span style="font-size: 11px;">UNIT</span></th>
+        <th>单价<br><span style="font-size: 11px;">PRICE</span></th>
+        <th>金额<br><span style="font-size: 11px;">AMOUNT</span></th>
+    </tr>
+</thead>
             <tbody>
                 {% for item in order.items %}
                 <tr>
