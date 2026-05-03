@@ -134,19 +134,19 @@ function downloadPDF(docType) {
                 <table class="table table-borderless">
                     <tr>
                     <th style="width: 120px;">产品合计：</th>
-                    <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.subtotal|floatformat:2 }}</td>
+                    <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.subtotal|smart_number }}</td>
                 </tr>
                 <tr>
                     <th>成本合计：</th>
-                    <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.total_cost|floatformat:2 }}</td>
+                    <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.total_cost|smart_number }}</td>
                 </tr>
                 <tr>
                     <th>利润：</th>
-                    <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.profit|floatformat:2 }}</td>
+                    <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.profit|smart_number }}</td>
                 </tr>
                 <tr>
                     <th>利润率：</th>
-                    <td>{{ order.profit_margin|floatformat:1 }}%</td>
+                    <td>{{ order.profit_margin|smart_number }}%</td>
                 </tr>
             </table>
         </div>
@@ -175,18 +175,18 @@ function downloadPDF(docType) {
                     <tr>
                         <td>{{ item.product_name }}</td>
                         <td>{{ item.specification|default:"-" }}</td>
-                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.quantity|smart_number }}</td>
                         <td>{{ item.unit|default:"米" }}</td>
                         <!-- 产品明细表格中的单价和金额 -->
-<td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ item.unit_price|floatformat:2 }}</td>
-<td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ item.amount|floatformat:2 }}</td>
+<td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ item.unit_price|smart_number }}</td>
+<td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ item.amount|smart_number }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
                 <tfoot>
                     <tr style="background-color: #f5f5f5;">
                         <td colspan="5" class="text-end"><strong>合计：</strong></td>
-                        <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.subtotal|floatformat:2 }}</td>
+                        <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.subtotal|smart_number }}</td>
                     </tr>
                 </tfoot>
             </table>
@@ -218,7 +218,7 @@ function downloadPDF(docType) {
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">产品合计</label>
-                        <input type="text" id="productTotal" class="form-control" value="{{ order.subtotal }}" readonly>
+                        <input type="text" id="productTotal" class="form-control" value="{{ order.subtotal|smart_number }}" readonly>
                     </div>
                     <hr>
                     <h6>成本明细</h6>
