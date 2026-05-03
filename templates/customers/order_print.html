@@ -266,8 +266,8 @@
                     <td>{{ item.specification|default:"-" }}</td>
                     <td>{{ item.quantity }}</td>
                     <td>{{ item.unit|default:"米" }}</td>
-                    <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ item.unit_price|floatformat:2 }}</td>
-                    <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ item.amount|floatformat:2 }}</td>
+                    <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ item.unit_price|smart_number }}</td>
+                    <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ item.amount|smart_number }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -275,7 +275,7 @@
         
         <!-- 合计 -->
         <div class="total-row">
-            合计金额 TOTAL：<span>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.subtotal|floatformat:2 }}</span>
+            合计金额 TOTAL：<span>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.subtotal|smart_number }}</span>
         </div>
 
 <!-- 大写金额（仅内贸显示） -->
