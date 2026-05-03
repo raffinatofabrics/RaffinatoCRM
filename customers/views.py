@@ -2616,6 +2616,12 @@ def stats_dashboard(request):
     user_dept = request.user.profile.department if hasattr(request.user, 'profile') else None
     user_sales = request.user if user_role == 'sales' else None
     
+    # 判断货币符号
+    if user_dept and user_dept.name == '外贸部':
+        default_currency = '$'
+    else:
+        default_currency = '¥'
+
     # ========== 权限过滤函数 ==========
     def filter_by_role(queryset, model_type='order'):
         if user_role == 'sales':
@@ -2786,13 +2792,18 @@ def stats_dashboard(request):
     current_year = today_date.year
     current_month = today_date.month
 
-    # 月度排名（所有销售人员，销售额为 0 的也显示）
-    from django.db.models import Value, CharField, DecimalField
-    
-    # 获取所有销售人员
-    all_sales_users = User.objects.filter(profile__role='sales')
-    
-    # 获取有业绩的销售数据
+    # 获取销售人员（根据角色过滤）
+    if user_role == 'dept_leader':
+        # 主管：只看本部门的销售
+        all_sales_users = User.objects.filter(
+            profile__role='sales',
+            profile__department=user_dept
+        )
+    else:
+        # 管理员：看全公司
+        all_sales_users = User.objects.filter(profile__role='sales')
+
+    # 月度排名
     monthly_data = (
         Order.objects
         .filter(
@@ -2804,10 +2815,8 @@ def stats_dashboard(request):
         .annotate(monthly_amount=Sum('subtotal'))
     )
     
-    # 构建业绩字典
     monthly_dict = {item['sales_person']: item['monthly_amount'] for item in monthly_data}
     
-    # 合并所有销售人员
     monthly_ranking = []
     for user in all_sales_users:
         monthly_ranking.append({
@@ -2815,14 +2824,10 @@ def stats_dashboard(request):
             'monthly_amount': monthly_dict.get(user.username, 0),
         })
     
-    # 按金额降序排序
     monthly_ranking.sort(key=lambda x: x['monthly_amount'], reverse=True)
-    
-    # 只取前 10 名（或全部）
     monthly_ranking = monthly_ranking[:10]
 
-
-    # 年度排名（所有销售人员，销售额为 0 的也显示）
+    # 年度排名
     yearly_data = (
         Order.objects
         .filter(
@@ -2954,6 +2959,7 @@ def stats_dashboard(request):
         'yearly_ranking': yearly_ranking,
         'sales_monthly_amount': sales_monthly_amount,
         'sales_yearly_amount': sales_yearly_amount,
+        'default_currency': default_currency,
     }
 
     return render(request, 'customers/stats_dashboard.html', context)

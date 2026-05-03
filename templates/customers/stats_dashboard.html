@@ -84,28 +84,28 @@ body.dark-mode .stats-container h2 {
         <div class="kpi-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
             <div class="kpi-number">{{ today_domestic_count }}</div>
             <div class="kpi-label">今日内贸订单</div>
-            <div class="small">¥{{ today_domestic_amount|smart_number }}</div>
+            <div class="small">{{ default_currency }}{{ today_domestic_amount|smart_number }}</div>
         </div>
     </div>
     <div class="col-md-2">
         <div class="kpi-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
             <div class="kpi-number">{{ today_international_count }}</div>
             <div class="kpi-label">今日外贸订单</div>
-            <div class="small">${{today_international_amount|smart_number }}</div>
+            <div class="small">{{ default_currency }}{{ today_international_amount|smart_number }}</div>
         </div>
     </div>
     <div class="col-md-2">
         <div class="kpi-card" style="background: linear-gradient(135deg, #10b981, #059669);">
             <div class="kpi-number">{{ month_domestic_count }}</div>
             <div class="kpi-label">本月内贸订单</div>
-            <div class="small">¥{{ month_domestic_amount|smart_number }}</div>
+            <div class="small">{{ default_currency }}{{ month_domestic_amount|smart_number }}</div>
         </div>
     </div>
     <div class="col-md-2">
         <div class="kpi-card" style="background: linear-gradient(135deg, #10b981, #059669);">
             <div class="kpi-number">{{ month_international_count }}</div>
             <div class="kpi-label">本月外贸订单</div>
-            <div class="small">${{ month_international_amount|smart_number }}</div>
+            <div class="small">{{ default_currency }}{{ month_international_amount|smart_number }}</div>
         </div>
     </div>
     <div class="col-md-2">
@@ -136,14 +136,14 @@ body.dark-mode .stats-container h2 {
                                 <tr><th>排名</th><th>销售姓名</th><th>月总额</th></tr>
                             </thead>
                             <tbody>
-                                {% for s in monthly_ranking|dictsortreversed:"monthly_amount" %}
+                                {% for s in monthly_ranking %}
                                 <tr>
                                     <td><strong>{{ forloop.counter }}</strong></td>
                                     <td>{{ s.username }}</td>
-                                    <td>¥{{ s.monthly_amount|default:0|smart_number }}</td>
+                                    <td>{{ default_currency }}{{ s.monthly_amount|default:0|smart_number }}</td>
                                 </tr>
                                 {% empty %}
-                                <tr><td colspan="3" class="text-center">暂无数据</td></tr>
+                                <tr><td colspan="3" class="text-center">暂无数据</a></td>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -159,14 +159,14 @@ body.dark-mode .stats-container h2 {
                                 <tr><th>排名</th><th>销售姓名</th><th>年总额</th></tr>
                             </thead>
                             <tbody>
-                               {% for s in yearly_ranking|dictsortreversed:"yearly_amount" %}
+                               {% for s in yearly_ranking %}
                                 <tr>
                                     <td><strong>{{ forloop.counter }}</strong></td>
                                     <td>{{ s.username }}</td>
-                                    <td>¥{{ s.yearly_amount|default:0|smart_number }}</td>
+                                    <td>{{ default_currency }}{{ s.yearly_amount|default:0|smart_number }}</td>
                                 </tr>
                                 {% empty %}
-                                <tr><td colspan="3" class="text-center">暂无数据</td></tr>
+                                <tr><td colspan="3" class="text-center">暂无数据</a></td>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -181,7 +181,7 @@ body.dark-mode .stats-container h2 {
                 <div class="stats-card">
                     <h4>本月销售额（{{ current_year }}年{{ current_month }}月）</h4>
                     <p style="font-size: 32px; font-weight: bold; color: #10b981;">
-                        ¥{{ sales_monthly_amount|default:0|smart_number }}
+                        {{ default_currency }}{{ sales_monthly_amount|default:0|smart_number }}
                     </p>
                 </div>
             </div>
@@ -189,7 +189,7 @@ body.dark-mode .stats-container h2 {
                 <div class="stats-card">
                     <h4>年度销售额（{{ current_year }}年）</h4>
                     <p style="font-size: 32px; font-weight: bold; color: #10b981;">
-                        ¥{{ sales_yearly_amount|default:0|smart_number }}
+                        {{ default_currency }}{{ sales_yearly_amount|default:0|smart_number }}
                     </p>
                 </div>
             </div>
@@ -287,7 +287,7 @@ new Chart(dailySalesCtx, {
     data: {
         labels: [{% for d in daily_dates %}'{{ d }}',{% endfor %}],
         datasets: [{
-            label: '销售额(¥)',
+            label: '销售额({{ default_currency }})',
             data: [{% for a in daily_amounts %}{{ a }},{% endfor %}],
             borderColor: '#667eea',
             backgroundColor: 'rgba(102, 126, 234, 0.1)',
@@ -332,7 +332,7 @@ new Chart(salesCtx, {
     data: {
         labels: [{% for m in months %}'{{ m }}',{% endfor %}],
         datasets: [{
-            label: '销售额(¥)',
+            label: '销售额({{ default_currency }})',
             data: [{% for s in monthly_sales %}{{ s }},{% endfor %}],
             borderColor: '#667eea',
             backgroundColor: 'rgba(102, 126, 234, 0.1)',
@@ -454,7 +454,7 @@ new Chart(productCtx, {
                     afterBody: function(context) {
                         const index = context[0].dataIndex;
                         const amount = [{% for a in product_amounts %}{{ a }},{% endfor %}][index];
-                        return `金额: ¥${amount.toFixed(2)}`;
+                        return `金额: {{ default_currency }}${amount.toFixed(2)}`;
                     }
                 }
             }
@@ -469,7 +469,7 @@ new Chart(customerCtx, {
     data: {
         labels: [{% for c in customer_names %}'{{ c|escapejs }}',{% endfor %}],
         datasets: [{
-            label: '销售额(¥)',
+            label: '销售额({{ default_currency }})',
             data: [{% for a in customer_amounts %}{{ a }},{% endfor %}],
             backgroundColor: '#10b981',
             borderRadius: 5
