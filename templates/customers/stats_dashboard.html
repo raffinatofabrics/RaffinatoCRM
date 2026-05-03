@@ -253,7 +253,7 @@ body.dark-mode .stats-container h2 {
 {% endif %}
         </div>
 </div>
-{% if user_role != 'sales' %}
+{% if user_role == 'admin' or user_role == 'dept_leader' or user_role == 'sales' %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // 每日销售额趋势
