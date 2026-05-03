@@ -122,57 +122,81 @@ body.dark-mode .stats-container h2 {
     </div>
 </div>
 
-<!-- 业绩排名模块（根据角色显示） -->
+<!-- 业绩排名模块 -->
 {% if show_ranking %}
-<div class="row mb-4">
-    <div class="col-md-12">
-        <div class="stats-card">
-            <h4>销售业绩排名 
-                <small class="text-muted">
-                    {% if ranking_scope == 'department' %}
-                        （{{ user_dept_name }} - 部门内排名）
-                    {% else %}
-                        （全公司排名）
-                    {% endif %}
-                </small>
-            </h4>
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>排名</th>
-                            <th>销售姓名</th>
-                            <th>客户数</th>
-                            <th>订单数</th>
-                            <th>订单总额</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for sales in sales_ranking %}
-                        <tr {% if request.user == sales %}class="table-active"{% endif %}>
-                            <td><strong>{{ forloop.counter }}</strong></td>
-                            <td>{{ sales.username }}{% if request.user == sales %} <span class="badge bg-primary">我</span>{% endif %}</td>
-                            <td>{{ sales.customer_count|default:0 }}</td>
-                            <td>{{ sales.order_count|default:0 }}</td>
-                            <td>
-    {% if sales.user_dept == '外贸部' %}
-        ${{ sales.order_amount|default:0|smart_number }}
-    {% else %}
-        ¥{{ sales.order_amount|default:0|smart_number }}
-    {% endif %}
-</td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="5" class="text-center">暂无数据</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    {% if user_role == 'admin' or user_role == 'dept_leader' %}
+        <!-- 主管 / 管理员：月度排名 + 年度排名 -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="stats-card">
+                    <h4>月度排名（{{ current_year }}年{{ current_month }}月）</h4>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr><th>排名</th><th>销售姓名</th><th>月总额</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for s in monthly_ranking %}
+                                <tr>
+                                    <td><strong>{{ forloop.counter }}</strong></td>
+                                    <td>{{ s.username }}</td>
+                                    <td>¥{{ s.monthly_amount|default:0|smart_number }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="3" class="text-center">暂无数据</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="stats-card">
+                    <h4>年度排名（{{ current_year }}年）</h4>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr><th>排名</th><th>销售姓名</th><th>年总额</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for s in yearly_ranking %}
+                                <tr>
+                                    <td><strong>{{ forloop.counter }}</strong></td>
+                                    <td>{{ s.username }}</td>
+                                    <td>¥{{ s.yearly_amount|default:0|smart_number }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="3" class="text-center">暂无数据</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
+    {% elif user_role == 'sales' %}
+        <!-- 销售人员：个人本月 + 年度销售额 -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="stats-card">
+                    <h4>本月销售额（{{ current_year }}年{{ current_month }}月）</h4>
+                    <p style="font-size: 32px; font-weight: bold; color: #10b981;">
+                        ¥{{ sales_monthly_amount|default:0|smart_number }}
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="stats-card">
+                    <h4>年度销售额（{{ current_year }}年）</h4>
+                    <p style="font-size: 32px; font-weight: bold; color: #10b981;">
+                        ¥{{ sales_yearly_amount|default:0|smart_number }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 {% endif %}
-{% if user_role != 'sales' %}
+{% if user_role == 'admin' or user_role == 'dept_leader' or user_role == 'sales' %}
     <!-- 图表行 -->
 <!-- 每日趋势（第一行） -->
 <div class="row">

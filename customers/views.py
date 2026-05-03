@@ -2591,17 +2591,16 @@ def update_order_cost(request, order_id):
 
 # ==================== 数据统计大屏 ====================
 
-from django.db.models import Sum, Count
-from datetime import datetime, timedelta
+from django.db.models import Sum, Count, Q
+from datetime import datetime, timedelta, date
+from calendar import monthrange
+from django.utils import timezone
 
 def stats_dashboard(request):
     """数据统计大屏"""
     from .models import Order, Customer
     from send_logs.models import SendLog
-    from django.db.models import Sum, Count, Q
     from django.contrib.auth import get_user_model
-    from datetime import datetime, timedelta
-    from django.utils import timezone
     
     User = get_user_model()
     today = timezone.now().date()
@@ -2615,7 +2614,8 @@ def stats_dashboard(request):
         return redirect('login')
     
     user_dept = request.user.profile.department if hasattr(request.user, 'profile') else None
-    user_sales = request.user if user_role == 'sales' else None    
+    user_sales = request.user if user_role == 'sales' else None
+    
     # ========== 权限过滤函数 ==========
     def filter_by_role(queryset, model_type='order'):
         if user_role == 'sales':
@@ -2677,7 +2677,6 @@ def stats_dashboard(request):
 
     for month_str in months:
         year, month = map(int, month_str.split('-'))
-        # 销售额（排除已删除）
         sales = filter_by_role(Order.objects.filter(
             order_date__year=year,
             order_date__month=month,
@@ -2685,14 +2684,12 @@ def stats_dashboard(request):
             is_deleted=False
         ), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
         monthly_sales.append(float(sales))
-        # 订单数（排除已删除）
         order_count = filter_by_role(Order.objects.filter(
             order_date__year=year,
             order_date__month=month,
             is_deleted=False
         ), 'order').count()
         monthly_orders.append(order_count)
-        # 新增客户数（客户本身已过滤 is_deleted=False）
         customer_count = filter_by_role(Customer.objects.filter(
             created_at__year=year, created_at__month=month, is_deleted=False
         ), 'customer').count()
@@ -2708,11 +2705,9 @@ def stats_dashboard(request):
         'potential': all_customers.filter(level='potential').count(),
     }
 
-    # 内外贸订单总数（排除已删除）
     domestic_count = filter_by_role(Order.objects.filter(business_type='domestic', is_deleted=False), 'order').count()
     international_count = filter_by_role(Order.objects.filter(business_type='international', is_deleted=False), 'order').count()
 
-    # 订单状态统计（排除已删除）
     status_data = {
         'draft': filter_by_role(Order.objects.filter(status='draft', is_deleted=False), 'order').count(),
         'confirmed': filter_by_role(Order.objects.filter(status='confirmed', is_deleted=False), 'order').count(),
@@ -2754,17 +2749,15 @@ def stats_dashboard(request):
     sent_count = SendLog.objects.count()
     reply_rate = 0
 
-    # ========== 每日销售额/订单数趋势（当前自然月） ==========
-    from datetime import date, timedelta
-    from calendar import monthrange
+    # ========== 每日销售额/订单数趋势（当前自然月，带权限） ==========
+    today_date = date.today()
+    first_day_of_month = today_date.replace(day=1)
+    last_day_of_month = today_date.replace(day=monthrange(today_date.year, today_date.month)[1])
 
-    today = date.today()
-    first_day_of_month = today.replace(day=1)
-    last_day_of_month = today.replace(day=monthrange(today.year, today.month)[1])
-
+    base_orders = filter_by_role(Order.objects.filter(is_deleted=False), 'order')
     daily_stats = (
-        Order.objects
-        .filter(order_date__range=[first_day_of_month, last_day_of_month], is_deleted=False)
+        base_orders
+        .filter(order_date__range=[first_day_of_month, last_day_of_month])
         .values('order_date')
         .annotate(
             daily_amount=Sum('subtotal'),
@@ -2789,10 +2782,59 @@ def stats_dashboard(request):
             daily_counts.append(0)
         current += timedelta(days=1)
 
-    # ========== 构建上下文 ==========
-    # 业绩排名（根据角色展示）
+    # ========== 业绩排名相关（月度/年度） ==========
+    current_year = today_date.year
+    current_month = today_date.month
+
+    # 月度排名（主管/管理员）
+    monthly_ranking = (
+        User.objects
+        .filter(profile__role='sales')
+        .annotate(
+            monthly_amount=Sum('assigned_customers__orders__subtotal',
+                filter=Q(assigned_customers__orders__order_date__year=current_year,
+                         assigned_customers__orders__order_date__month=current_month,
+                         assigned_customers__orders__is_deleted=False))
+        )
+        .values('id', 'username', 'monthly_amount')
+        .order_by('-monthly_amount')[:10]
+    )
+
+    # 年度排名（主管/管理员）
+    yearly_ranking = (
+        User.objects
+        .filter(profile__role='sales')
+        .annotate(
+            yearly_amount=Sum('assigned_customers__orders__subtotal',
+                filter=Q(assigned_customers__orders__order_date__year=current_year,
+                         assigned_customers__orders__is_deleted=False))
+        )
+        .values('id', 'username', 'yearly_amount')
+        .order_by('-yearly_amount')[:10]
+    )
+
+    # 销售人员个人业绩
     if user_role == 'sales':
-        show_ranking = False
+        sales_monthly_amount = Order.objects.filter(
+            customer__assigned_sales=request.user,
+            order_date__year=current_year,
+            order_date__month=current_month,
+            is_deleted=False
+        ).aggregate(total=Sum('subtotal'))['total'] or 0
+
+        sales_yearly_amount = Order.objects.filter(
+            customer__assigned_sales=request.user,
+            order_date__year=current_year,
+            is_deleted=False
+        ).aggregate(total=Sum('subtotal'))['total'] or 0
+    else:
+        sales_monthly_amount = 0
+        sales_yearly_amount = 0
+
+    # ========== 构建上下文 ==========
+    # 业绩排名开关（保留原逻辑）
+    if user_role == 'sales':
+        show_ranking = True   # 销售员也显示（但模板会区分）
         ranking_scope = None
         sales_ranking = []
     elif user_role == 'dept_leader':
@@ -2867,12 +2909,19 @@ def stats_dashboard(request):
         'sales_ranking': sales_ranking,
         'user_role': user_role,
         'user_dept_name': user_dept.name if user_dept else None,
-        # 每日趋势新增
+        # 每日趋势
         'daily_dates': daily_dates,
         'daily_amounts': daily_amounts,
         'daily_counts': daily_counts,
         'first_day_of_month': first_day_of_month,
         'last_day_of_month': last_day_of_month,
+        # 业绩排名新增
+        'current_year': current_year,
+        'current_month': current_month,
+        'monthly_ranking': monthly_ranking,
+        'yearly_ranking': yearly_ranking,
+        'sales_monthly_amount': sales_monthly_amount,
+        'sales_yearly_amount': sales_yearly_amount,
     }
 
     return render(request, 'customers/stats_dashboard.html', context)
