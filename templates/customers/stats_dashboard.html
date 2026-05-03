@@ -287,7 +287,19 @@ new Chart(dailyOrdersCtx, {
             borderRadius: 5
         }]
     },
-    options: { responsive: true, maintainAspectRatio: true }
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1,
+                    precision: 0
+                }
+            }
+        }
+    }
 });
 // 月度销售额趋势
 const salesCtx = document.getElementById('salesChart').getContext('2d');
@@ -322,9 +334,20 @@ new Chart(ordersCtx, {
             tension: 0.3
         }]
     },
-    options: { responsive: true, maintainAspectRatio: true }
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1,
+                    precision: 0
+                }
+            }
+        }
+    }
 });
-
 // 月度新增客户趋势
 const customersCtx = document.getElementById('customersChart').getContext('2d');
 new Chart(customersCtx, {
