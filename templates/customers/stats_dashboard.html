@@ -136,7 +136,7 @@ body.dark-mode .stats-container h2 {
                                 <tr><th>排名</th><th>销售姓名</th><th>月总额</th></tr>
                             </thead>
                             <tbody>
-                                {% for s in monthly_ranking %}
+                                {% for s in monthly_ranking|dictsortreversed:"monthly_amount" %}
                                 <tr>
                                     <td><strong>{{ forloop.counter }}</strong></td>
                                     <td>{{ s.username }}</td>
@@ -159,7 +159,7 @@ body.dark-mode .stats-container h2 {
                                 <tr><th>排名</th><th>销售姓名</th><th>年总额</th></tr>
                             </thead>
                             <tbody>
-                                {% for s in yearly_ranking %}
+                               {% for s in yearly_ranking|dictsortreversed:"yearly_amount" %}
                                 <tr>
                                     <td><strong>{{ forloop.counter }}</strong></td>
                                     <td>{{ s.username }}</td>
