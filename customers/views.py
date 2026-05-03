@@ -2786,32 +2786,44 @@ def stats_dashboard(request):
     current_year = today_date.year
     current_month = today_date.month
 
-    # 月度排名（主管/管理员）
-    monthly_ranking = (
-        User.objects
-        .filter(profile__role='sales')
-        .annotate(
-            monthly_amount=Sum('assigned_customers__orders__subtotal',
-                filter=Q(assigned_customers__orders__order_date__year=current_year,
-                         assigned_customers__orders__order_date__month=current_month,
-                         assigned_customers__orders__is_deleted=False))
+    # 月度排名（按 sales_person 字段）
+    monthly_data = (
+        Order.objects
+        .filter(
+            order_date__year=current_year,
+            order_date__month=current_month,
+            is_deleted=False
         )
-        .values('id', 'username', 'monthly_amount')
+        .values('sales_person')
+        .annotate(monthly_amount=Sum('subtotal'))
         .order_by('-monthly_amount')[:10]
     )
+    
+    monthly_ranking = []
+    for item in monthly_data:
+        monthly_ranking.append({
+            'username': item['sales_person'] or '未知',
+            'monthly_amount': item['monthly_amount'],
+        })
 
-    # 年度排名（主管/管理员）
-    yearly_ranking = (
-        User.objects
-        .filter(profile__role='sales')
-        .annotate(
-            yearly_amount=Sum('assigned_customers__orders__subtotal',
-                filter=Q(assigned_customers__orders__order_date__year=current_year,
-                         assigned_customers__orders__is_deleted=False))
+    # 年度排名（按 sales_person 字段）
+    yearly_data = (
+        Order.objects
+        .filter(
+            order_date__year=current_year,
+            is_deleted=False
         )
-        .values('id', 'username', 'yearly_amount')
+        .values('sales_person')
+        .annotate(yearly_amount=Sum('subtotal'))
         .order_by('-yearly_amount')[:10]
     )
+    
+    yearly_ranking = []
+    for item in yearly_data:
+        yearly_ranking.append({
+            'username': item['sales_person'] or '未知',
+            'yearly_amount': item['yearly_amount'],
+        })
 
     # 销售人员个人业绩
     if user_role == 'sales':
