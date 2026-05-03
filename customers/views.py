@@ -2786,7 +2786,13 @@ def stats_dashboard(request):
     current_year = today_date.year
     current_month = today_date.month
 
-    # 月度排名（按 sales_person 字段）
+    # 月度排名（所有销售人员，销售额为 0 的也显示）
+    from django.db.models import Value, CharField, DecimalField
+    
+    # 获取所有销售人员
+    all_sales_users = User.objects.filter(profile__role='sales')
+    
+    # 获取有业绩的销售数据
     monthly_data = (
         Order.objects
         .filter(
@@ -2796,17 +2802,27 @@ def stats_dashboard(request):
         )
         .values('sales_person')
         .annotate(monthly_amount=Sum('subtotal'))
-        .order_by('-monthly_amount')[:10]
     )
     
+    # 构建业绩字典
+    monthly_dict = {item['sales_person']: item['monthly_amount'] for item in monthly_data}
+    
+    # 合并所有销售人员
     monthly_ranking = []
-    for item in monthly_data:
+    for user in all_sales_users:
         monthly_ranking.append({
-            'username': item['sales_person'] or '未知',
-            'monthly_amount': item['monthly_amount'],
+            'username': user.username,
+            'monthly_amount': monthly_dict.get(user.username, 0),
         })
+    
+    # 按金额降序排序
+    monthly_ranking.sort(key=lambda x: x['monthly_amount'], reverse=True)
+    
+    # 只取前 10 名（或全部）
+    monthly_ranking = monthly_ranking[:10]
 
-    # 年度排名（按 sales_person 字段）
+
+    # 年度排名（所有销售人员，销售额为 0 的也显示）
     yearly_data = (
         Order.objects
         .filter(
@@ -2815,15 +2831,19 @@ def stats_dashboard(request):
         )
         .values('sales_person')
         .annotate(yearly_amount=Sum('subtotal'))
-        .order_by('-yearly_amount')[:10]
     )
     
+    yearly_dict = {item['sales_person']: item['yearly_amount'] for item in yearly_data}
+    
     yearly_ranking = []
-    for item in yearly_data:
+    for user in all_sales_users:
         yearly_ranking.append({
-            'username': item['sales_person'] or '未知',
-            'yearly_amount': item['yearly_amount'],
+            'username': user.username,
+            'yearly_amount': yearly_dict.get(user.username, 0),
         })
+    
+    yearly_ranking.sort(key=lambda x: x['yearly_amount'], reverse=True)
+    yearly_ranking = yearly_ranking[:10]
 
     # 销售人员个人业绩
     if user_role == 'sales':
