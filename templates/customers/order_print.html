@@ -181,22 +181,21 @@
             }
         }
 
+/* 统一中文标题为14px，英文为10px */
 .items-table th,
-.info-table td:first-child {
+.info-table tr:first-child td {
     padding: 8px 10px;
     line-height: 1.3;
-    font-size: 14px;          /* 中文标题加大 */
+    font-size: 14px !important;   /* 中文标题统一14px，强制覆盖全局12px */
 }
 
 .items-table th span,
-.info-table td:first-child span {
-    font-size: 11px;          /* 英文也相应加大 */
+.info-table tr:first-child td span {
+    font-size: 10px;              /* 英文统一10px */
     font-weight: normal;
     color: #666;
 }
-.info-table td:first-child {
-    font-size: 14px !important;
-}
+
     </style>
 </head>
 <body>
