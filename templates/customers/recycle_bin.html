@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% load custom_filters %}
+
 {% block page_title %}回收站{% endblock %}
 
 {% block content %}
@@ -66,7 +68,7 @@ body.dark-mode .card-header .card-title {
                                 <td><input type="checkbox" class="order-checkbox" value="{{ order.id }}"></td>
                                 <td>{{ order.order_no }}</td>
                                 <td>{{ order.customer.company_name|default:"-" }}</td>
-                                <td>{{ order.subtotal|floatformat:2 }}</td>
+                                <td>{{ order.subtotal|smart_number }}</td>
                                 <td>{{ order.deleted_at|date:"Y-m-d H:i:s" }}</td>
                                 <td>{{ order.deleted_by.username|default:"未知" }}</td>
                                 <td>
