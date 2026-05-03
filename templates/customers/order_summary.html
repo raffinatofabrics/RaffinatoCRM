@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% load custom_filters %}
+
 {% block page_title %}订单汇总报表{% endblock %}
 
 {% block content %}
@@ -197,32 +199,32 @@ body.dark-mode .summary-card .total {
         {% if selected_customer %}
             <p>客户：<strong>{{ summary.customer_name|default:'-' }}</strong></p>
             <p>总订单数：<span class="total">{{ summary.total_orders|default:0 }}</span> 单</p>
-            <p>人民币金额：¥ {{ summary.rmb_amount|default:0|floatformat:2 }}</p>
-            <p>美元金额：$ {{ summary.usd_amount|default:0|floatformat:2 }}</p>
+            <p>人民币金额：¥ {{ summary.rmb_amount|default:0|smart_number }}</p>
+            <p>美元金额：$ {{ summary.usd_amount|default:0|smart_number }}</p>
         {% else %}
             <p>统计客户数：<span class="total">{{ summary.total_customers|default:0 }}</span> 家</p>
             <p>总订单数：<span class="total">{{ summary.total_orders|default:0 }}</span> 单</p>
-            <p>人民币总额：¥ {{ summary.rmb_amount|default:0|floatformat:2 }}</p>
-            <p>美元总额：$ {{ summary.usd_amount|default:0|floatformat:2 }}</p>
+            <p>人民币总额：¥ {{ summary.rmb_amount|default:0|smart_number }}</p>
+            <p>美元总额：$ {{ summary.usd_amount|default:0|smart_number }}</p>
         {% endif %}
     {% elif report_type == 'product' %}
         <p>产品：<strong>{{ summary.product_name|default:'全部产品' }}</strong></p>
-        <p>总销售数量：<span class="total">{{ summary.total_quantity|default:0|floatformat:0 }}</span> 米</p>
-        <p>人民币金额：¥ {{ summary.rmb_amount|default:0|floatformat:2 }}</p>
-        <p>美元金额：$ {{ summary.usd_amount|default:0|floatformat:2 }}</p>
+        <p>总销售数量：<span class="total">{{ summary.total_quantity|default:0|smart_number }}</span> 米</p>
+        <p>人民币金额：¥ {{ summary.rmb_amount|default:0|smart_number }}</p>
+        <p>美元金额：$ {{ summary.usd_amount|default:0|smart_number }}</p>
     {% elif report_type == 'date' %}
         <p>时间段：<strong>{% if date_from %}{{ date_from }} 至 {{ date_to }}{% else %}{{ current_year }}年{% if current_month %} {{ current_month }}月{% endif %}{% endif %}</strong></p>
         <p>总订单数：<span class="total">{{ summary.total_orders|default:0 }}</span> 单</p>
-        <p>人民币合计：¥ {{ rmb_total|default:0|floatformat:2 }}</p>
-        <p>美元合计：$ {{ usd_total|default:0|floatformat:2 }}</p>
+        <p>人民币合计：¥ {{ rmb_total|default:0|smart_number }}</p>
+        <p>美元合计：$ {{ usd_total|default:0|smart_number }}</p>
     {% elif report_type == 'rank' %}
         <p>统计客户数：<span class="total">{{ summary.total_customers|default:0 }}</span> 家</p>
-        <p>人民币销售额：¥ {{ rmb_total|default:0|floatformat:2 }}</p>
-        <p>美元销售额：$ {{ usd_total|default:0|floatformat:2 }}</p>
+        <p>人民币销售额：¥ {{ rmb_total|default:0|smart_number }}</p>
+        <p>美元销售额：$ {{ usd_total|default:0|smart_number }}</p>
     {% else %}
         <p>总订单数：<span class="total">{{ total_orders_count|default:0 }}</span> 单</p>
-        <p>人民币合计：¥ {{ rmb_total|default:0|floatformat:2 }}</p>
-        <p>美元合计：$ {{ usd_total|default:0|floatformat:2 }}</p>
+<p>人民币合计：¥ {{ rmb_total|default:0|smart_number }}</p>
+<p>美元合计：$ {{ usd_total|default:0|smart_number }}</p>
     {% endif %}
 </div>
 
@@ -255,33 +257,33 @@ body.dark-mode .summary-card .total {
                 {% if selected_customer %}
                     {% for item in result %}
                     <tr>
-                        <td>{{ item.order_no }}</td><td>{{ item.order_date|date:"Y-m-d" }}</td><td>{{ item.product_name|default:'-' }}</td><td>{{ item.specification|default:'-' }}</td><td>{{ item.quantity|floatformat:0 }}</td><td>{{ item.unit|default:'米' }}</td><td>{{ item.unit_price|floatformat:2 }}</td><td>{{ item.amount|floatformat:2 }}</td><td>{{ item.order_amount|floatformat:2 }}</td><td>{{ item.status }}</td>
+                        <td>{{ item.order_no }}</td><td>{{ item.order_date|date:"Y-m-d" }}</td><td>{{ item.product_name|default:'-' }}</td><td>{{ item.specification|default:'-' }}</td><td>{{ item.quantity|smart_number }}</td><td>{{ item.unit|default:'米' }}</td><td>{{ item.unit_price|smart_number }}</td><td>{{ item.amount|smart_number }}</td><td>{{ item.order_amount|smart_number }}</td><td>{{ item.status }}</td>
                     </tr>
                     {% endfor %}
                 {% else %}
                     {% for item in result %}
                     <tr>
-                        <td>{{ item.customer_name }}</td><td>{{ item.order_count }}</td><td>¥ {{ item.rmb_amount|default:0|floatformat:2 }}</td><td>$ {{ item.usd_amount|default:0|floatformat:2 }}</td><td>{{ item.total_amount|floatformat:2 }}</td>
+                        <td>{{ item.customer_name }}</td><td>{{ item.order_count }}</td><td>¥ {{ item.rmb_amount|default:0|smart_number }}</td><td>$ {{ item.usd_amount|default:0|smart_number }}</td><td>{{ item.total_amount|smart_number }}</td>
                     </tr>
                     {% endfor %}
                 {% endif %}
             {% elif report_type == 'product' %}
                 {% for item in result %}
                 <tr>
-                    <td>{{ item.product_name|default:'-' }}</td><td>{{ item.specification|default:'-' }}</td><td>{{ item.total_quantity|floatformat:0 }}</td><td>¥ {{ item.rmb_amount|default:0|floatformat:2 }}</td><td>$ {{ item.usd_amount|default:0|floatformat:2 }}</td>
+                    <td>{{ item.product_name|default:'-' }}</td><td>{{ item.specification|default:'-' }}</td><td>{{ item.total_quantity|smart_number }}</td><td>¥ {{ item.rmb_amount|default:0|smart_number }}</td><td>$ {{ item.usd_amount|default:0|smart_number }}</td>
                 </tr>
                 {% endfor %}
             {% elif report_type == 'date' %}
                 {% if view_type == 'date' %}
                     {% for item in result %}
                     <tr>
-                        <td>{{ item.date|date:"Y-m-d" }}</td><td>{{ item.daily_count }}</td><td>¥ {{ item.rmb_amount|default:0|floatformat:2 }}</td><td>$ {{ item.usd_amount|default:0|floatformat:2 }}</td><td><a href="{% url 'order_list' %}?date_from={{ item.date|date:'Y-m-d' }}&date_to={{ item.date|date:'Y-m-d' }}" class="btn btn-sm btn-info">查看</a></td>
+                        <td>{{ item.date|date:"Y-m-d" }}</td><td>{{ item.daily_count }}</td><td>¥ {{ item.rmb_amount|default:0|smart_number }}</td><td>$ {{ item.usd_amount|default:0|smart_number }}</td><td><a href="{% url 'order_list' %}?date_from={{ item.date|date:'Y-m-d' }}&date_to={{ item.date|date:'Y-m-d' }}" class="btn btn-sm btn-info">查看</a></td>
                     </tr>
                     {% endfor %}
                 {% else %}
                     {% for item in result %}
                     <tr>
-                        <td>{{ item.product_name|default:'-' }}</td><td>{{ item.specification|default:'-' }}</td><td>{{ item.total_quantity|floatformat:0 }}</td><td>¥ {{ item.rmb_amount|default:0|floatformat:2 }}</td><td>$ {{ item.usd_amount|default:0|floatformat:2 }}</td>
+                        <td>{{ item.product_name|default:'-' }}</td><td>{{ item.specification|default:'-' }}</td><td>{{ item.total_quantity|smart_number }}</td><td>¥ {{ item.rmb_amount|default:0|smart_number }}</td><td>$ {{ item.usd_amount|default:0|smart_number }}</td>
                     </tr>
                     {% endfor %}
                 {% endif %}
@@ -291,10 +293,10 @@ body.dark-mode .summary-card .total {
         <td>{{ forloop.counter }}</td>
         <td>{{ item.customer_name }}</td>
         <td>{{ item.order_count }}</td>
-        <td>¥ {{ item.rmb_amount|default:0|floatformat:2 }}</td>
-        <td>$ {{ item.usd_amount|default:0|floatformat:2 }}</td>
-        <td>{{ item.total_amount|floatformat:2 }}</td>
-        <td>{{ item.percentage|floatformat:1 }}%</td>
+        <td>¥ {{ item.rmb_amount|default:0|smart_number }}</td>
+        <td>$ {{ item.usd_amount|default:0|smart_number }}</td>
+        <td>{{ item.total_amount|smart_number }}</td>
+        <td>{{ item.percentage|smart_number }}%</td>
     </tr>
     {% endfor %}
             {% else %}
