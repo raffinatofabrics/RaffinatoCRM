@@ -2707,7 +2707,7 @@ def stats_dashboard(request):
         ), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
         monthly_sales_domestic.append(float(sales_domestic))
 
-        # 外贸销售额（管理员：直接查全表，不经过任何过滤）
+        # 外贸销售额（管理员直接查全表）
         if user_role == 'admin':
             sales_international = Order.objects.filter(
                 order_date__year=year,
@@ -2724,6 +2724,8 @@ def stats_dashboard(request):
                 status__in=['confirmed', 'shipped', 'completed'],
                 is_deleted=False
             ), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
+        
+        # 关键：确保追加到列表
         monthly_sales_international.append(float(sales_international))
 
         # 订单数

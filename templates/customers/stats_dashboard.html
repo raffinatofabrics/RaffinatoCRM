@@ -144,9 +144,9 @@ body.dark-mode .stats-container h2 {
                                 {% for s in monthly_ranking %}
                                 <tr>
                                     <td><strong>{{ forloop.counter }}</strong></td>
-                                    <td>{{ s.username }}</a>--
-                                    <td>¥{{ s.domestic_amount|default:0|smart_number }}</a>--
-                                    <td>${{ s.international_amount|default:0|smart_number }}</a>--
+                                    <td>{{ s.username }}</a>
+                                    <td>¥{{ s.domestic_amount|default:0|smart_number }}</a>
+                                    <td>${{ s.international_amount|default:0|smart_number }}</a>
                                 </a>
                                 {% empty %}
                                 <tr><td colspan="4" class="text-center">暂无数据</a></a>
@@ -172,10 +172,10 @@ body.dark-mode .stats-container h2 {
                             <tbody>
                                {% for s in yearly_ranking %}
                                 <tr>
-                                    <td><strong>{{ forloop.counter }}</strong></a>--
-                                    <td>{{ s.username }}</a>--
-                                    <td>¥{{ s.domestic_amount|default:0|smart_number }}</a>--
-                                    <td>${{ s.international_amount|default:0|smart_number }}</a>--
+                                    <td><strong>{{ forloop.counter }}</strong></a>
+                                    <td>{{ s.username }}</a>
+                                    <td>¥{{ s.domestic_amount|default:0|smart_number }}</a>
+                                    <td>${{ s.international_amount|default:0|smart_number }}</a>
                                 </a>
                                 {% empty %}
                                 <tr><td colspan="4" class="text-center">暂无数据</a></a>
@@ -198,9 +198,9 @@ body.dark-mode .stats-container h2 {
                             <tbody>
                                 {% for s in monthly_ranking %}
                                 <tr>
-                                    <td><strong>{{ forloop.counter }}</strong></a>--
-                                    <td>{{ s.username }}</a>--
-                                    <td>{{ default_currency }}{{ s.monthly_amount|default:0|smart_number }}</a>--
+                                    <td><strong>{{ forloop.counter }}</strong></a>
+                                    <td>{{ s.username }}</a>
+                                    <td>{{ default_currency }}{{ s.monthly_amount|default:0|smart_number }}</a>
                                 </a>
                                 {% empty %}<tr><td colspan="3">暂无数据</a></a>{% endfor %}
                             </tbody>
@@ -217,9 +217,9 @@ body.dark-mode .stats-container h2 {
                             <tbody>
                                 {% for s in yearly_ranking %}
                                 <tr>
-                                    <td><strong>{{ forloop.counter }}</strong></a>--
-                                    <td>{{ s.username }}</a>--
-                                    <td>{{ default_currency }}{{ s.yearly_amount|default:0|smart_number }}</a>--
+                                    <td><strong>{{ forloop.counter }}</strong></a>
+                                    <td>{{ s.username }}</a>
+                                    <td>{{ default_currency }}{{ s.yearly_amount|default:0|smart_number }}</a>
                                 </a>
                                 {% empty %}<td><td colspan="3">暂无数据</a></a>{% endfor %}
                             </tbody>
