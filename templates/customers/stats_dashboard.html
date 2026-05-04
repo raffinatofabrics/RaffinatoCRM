@@ -365,34 +365,33 @@ body.dark-mode .stats-container h2 {
         options: { responsive: true, maintainAspectRatio: true }
     });
 
-    // 月度销售额趋势（双线）
-    const salesCtx = document.getElementById('salesChart').getContext('2d');
-    new Chart(salesCtx, {
-        type: 'line',
-        data: {
-            labels: [{% for m in months %}'{{ m }}',{% endfor %}],
-            datasets: [
-                {
-                    label: '内贸 (¥)',
-                    data: [{% for s in monthly_sales_domestic %}{{ s }},{% endfor %}],
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    fill: true,
-                    tension: 0.3
-                },
-                {
-                    label: '外贸 ($)',
-                    data: [{% for s in monthly_sales_international %}{{ s }},{% endfor %}],
-                    borderColor: '#f59e0b',
-                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                    fill: true,
-                    tension: 0.3
-                }
-            ]
-        },
-        options: { responsive: true, maintainAspectRatio: true }
-    });
-
+// 月度销售额趋势（双线）
+const salesCtx = document.getElementById('salesChart').getContext('2d');
+new Chart(salesCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for m in months %}'{{ m }}',{% endfor %}],
+        datasets: [
+            {
+                label: '内贸 (¥)',
+                data: [{% for s in monthly_sales_domestic %}{{ s }},{% endfor %}],
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                fill: true,
+                tension: 0.3
+            },
+            {
+                label: '外贸 ($)',
+                data: [{% for s in monthly_sales_international %}{{ s }},{% endfor %}],
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                fill: true,
+                tension: 0.3
+            }
+        ]
+    },
+    options: { responsive: true, maintainAspectRatio: true }
+});
 {% else %}
     // ========== 主管/销售：单线（本部门单一币种） ==========
     
