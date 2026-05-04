@@ -441,26 +441,22 @@ new Chart(dailyOrdersCtx, {
     type: 'bar',
     data: {
         labels: [{% for d in daily_dates %}'{{ d }}',{% endfor %}],
-        datasets: [{
-            label: '订单数',
-            data: [{% for c in daily_counts %}{{ c }},{% endfor %}],
-            backgroundColor: '#f59e0b',
-            borderRadius: 5
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    stepSize: 1,
-                    precision: 0
-                }
+        datasets: [
+            {
+                label: '内贸订单数',
+                data: [{% for c in daily_domestic_counts %}{{ c }},{% endfor %}],
+                backgroundColor: '#10b981',
+                borderRadius: 5
+            },
+            {
+                label: '外贸订单数',
+                data: [{% for c in daily_international_counts %}{{ c }},{% endfor %}],
+                backgroundColor: '#f59e0b',
+                borderRadius: 5
             }
-        }
-    }
+        ]
+    },
+    options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } } }
 });
 
 // 月度订单数趋势
@@ -469,28 +465,26 @@ new Chart(ordersCtx, {
     type: 'line',
     data: {
         labels: [{% for m in months %}'{{ m }}',{% endfor %}],
-        datasets: [{
-            label: '订单数',
-            data: [{% for o in monthly_orders %}{{ o }},{% endfor %}],
-            borderColor: '#f59e0b',
-            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-            fill: true,
-            tension: 0.3
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    stepSize: 1,
-                    precision: 0
-                }
+        datasets: [
+            {
+                label: '内贸订单数',
+                data: [{% for o in monthly_orders_domestic %}{{ o }},{% endfor %}],
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                fill: true,
+                tension: 0.3
+            },
+            {
+                label: '外贸订单数',
+                data: [{% for o in monthly_orders_international %}{{ o }},{% endfor %}],
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                fill: true,
+                tension: 0.3
             }
-        }
-    }
+        ]
+    },
+    options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } } }
 });
 
 // 月度新增客户趋势

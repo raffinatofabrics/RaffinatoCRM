@@ -2680,6 +2680,8 @@ def stats_dashboard(request):
 
     monthly_sales = []
     monthly_orders = []
+    monthly_orders_domestic = []
+    monthly_orders_international = []
     monthly_customers = []
     # 管理员专用：拆分内贸/外贸
     monthly_sales_domestic = []
@@ -2720,10 +2722,9 @@ def stats_dashboard(request):
                 business_type='international',
                 is_deleted=False
             ), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
-        
         monthly_sales_international.append(float(sales_international))
 
-        # 订单数
+        # 订单数（总）
         order_count = filter_by_role(Order.objects.filter(
             order_date__year=year,
             order_date__month=month,
@@ -2731,15 +2732,29 @@ def stats_dashboard(request):
         ), 'order').count()
         monthly_orders.append(order_count)
 
+        # 内贸订单数
+        order_count_domestic = filter_by_role(Order.objects.filter(
+            order_date__year=year,
+            order_date__month=month,
+            business_type='domestic',
+            is_deleted=False
+        ), 'order').count()
+        monthly_orders_domestic.append(order_count_domestic)
+
+        # 外贸订单数
+        order_count_international = filter_by_role(Order.objects.filter(
+            order_date__year=year,
+            order_date__month=month,
+            business_type='international',
+            is_deleted=False
+        ), 'order').count()
+        monthly_orders_international.append(order_count_international)
+
         # 新增客户数
         customer_count = filter_by_role(Customer.objects.filter(
             created_at__year=year, created_at__month=month, is_deleted=False
         ), 'customer').count()
         monthly_customers.append(customer_count)
-
-    # 调试打印（部署后去 Logs 查看）
-    if user_role == 'admin':
-        print("DEBUG monthly_sales_international:", monthly_sales_international)
 
     # ========== 客户数据（带权限） ==========
     all_customers = filter_by_role(Customer.objects.filter(is_deleted=False), 'customer')
@@ -2817,9 +2832,12 @@ def stats_dashboard(request):
     daily_dates = []
     daily_amounts = []
     daily_counts = []
-    # 管理员专用：拆分内贸/外贸
+    # 管理员专用：拆分内贸/外贸金额
     daily_domestic = []
     daily_international = []
+    # 每日订单数拆分
+    daily_domestic_counts = []
+    daily_international_counts = []
 
     current = first_day_of_month
     while current <= last_day_of_month:
@@ -2828,6 +2846,8 @@ def stats_dashboard(request):
         day_count = 0
         day_domestic = 0
         day_international = 0
+        day_domestic_count = 0
+        day_international_count = 0
 
         for stat in daily_stats:
             if stat['order_date'] == current:
@@ -2835,13 +2855,17 @@ def stats_dashboard(request):
                 day_count += stat['daily_count']
                 if stat['business_type'] == 'domestic':
                     day_domestic += float(stat['daily_amount'])
+                    day_domestic_count += stat['daily_count']
                 else:
                     day_international += float(stat['daily_amount'])
+                    day_international_count += stat['daily_count']
 
         daily_amounts.append(day_amount)
         daily_counts.append(day_count)
         daily_domestic.append(day_domestic)
         daily_international.append(day_international)
+        daily_domestic_counts.append(day_domestic_count)
+        daily_international_counts.append(day_international_count)
 
         current += timedelta(days=1)
 
@@ -3053,6 +3077,8 @@ def stats_dashboard(request):
         'months': months,
         'monthly_sales': monthly_sales,
         'monthly_orders': monthly_orders,
+        'monthly_orders_domestic': monthly_orders_domestic,
+        'monthly_orders_international': monthly_orders_international,
         'monthly_customers': monthly_customers,
         'level_data': level_data,
         'domestic_count': domestic_count,
@@ -3081,6 +3107,8 @@ def stats_dashboard(request):
         # 每日趋势拆分（管理员用）
         'daily_domestic': daily_domestic,
         'daily_international': daily_international,
+        'daily_domestic_counts': daily_domestic_counts,
+        'daily_international_counts': daily_international_counts,
         # 月度趋势拆分（管理员用）
         'monthly_sales_domestic': monthly_sales_domestic,
         'monthly_sales_international': monthly_sales_international,
