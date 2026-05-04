@@ -435,7 +435,8 @@ new Chart(salesCtx, {
 
 // ========== 以下图表所有角色通用，不需要区分 ==========
 
-// 每日订单数趋势
+{% if user_role == 'admin' %}
+// 管理员：每日订单数趋势（双线）
 const dailyOrdersCtx = document.getElementById('dailyOrdersChart').getContext('2d');
 new Chart(dailyOrdersCtx, {
     type: 'bar',
@@ -459,7 +460,7 @@ new Chart(dailyOrdersCtx, {
     options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } } }
 });
 
-// 月度订单数趋势
+// 管理员：月度订单数趋势（双线）
 const ordersCtx = document.getElementById('ordersChart').getContext('2d');
 new Chart(ordersCtx, {
     type: 'line',
@@ -486,6 +487,42 @@ new Chart(ordersCtx, {
     },
     options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } } }
 });
+
+{% else %}
+// 主管/销售：每日订单数趋势（单线，总订单数）
+const dailyOrdersCtx = document.getElementById('dailyOrdersChart').getContext('2d');
+new Chart(dailyOrdersCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for d in daily_dates %}'{{ d }}',{% endfor %}],
+        datasets: [{
+            label: '订单数',
+            data: [{% for c in daily_counts %}{{ c }},{% endfor %}],
+            backgroundColor: '#f59e0b',
+            borderRadius: 5
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } } }
+});
+
+// 主管/销售：月度订单数趋势（单线）
+const ordersCtx = document.getElementById('ordersChart').getContext('2d');
+new Chart(ordersCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for m in months %}'{{ m }}',{% endfor %}],
+        datasets: [{
+            label: '订单数',
+            data: [{% for o in monthly_orders %}{{ o }},{% endfor %}],
+            borderColor: '#f59e0b',
+            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } } }
+});
+{% endif %}
 
 // 月度新增客户趋势
 const customersCtx = document.getElementById('customersChart').getContext('2d');
