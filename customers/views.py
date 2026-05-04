@@ -2692,7 +2692,6 @@ def stats_dashboard(request):
         sales = filter_by_role(Order.objects.filter(
             order_date__year=year,
             order_date__month=month,
-            status__in=['confirmed', 'shipped', 'completed'],
             is_deleted=False
         ), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
         monthly_sales.append(float(sales))
@@ -2702,7 +2701,6 @@ def stats_dashboard(request):
             order_date__year=year,
             order_date__month=month,
             business_type='domestic',
-            status__in=['confirmed', 'shipped', 'completed'],
             is_deleted=False
         ), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
         monthly_sales_domestic.append(float(sales_domestic))
@@ -2713,7 +2711,6 @@ def stats_dashboard(request):
                 order_date__year=year,
                 order_date__month=month,
                 business_type='international',
-                status__in=['confirmed', 'shipped', 'completed'],
                 is_deleted=False
             ).aggregate(total=Sum('subtotal'))['total'] or 0
         else:
@@ -2721,7 +2718,6 @@ def stats_dashboard(request):
                 order_date__year=year,
                 order_date__month=month,
                 business_type='international',
-                status__in=['confirmed', 'shipped', 'completed'],
                 is_deleted=False
             ), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
         
@@ -2744,6 +2740,7 @@ def stats_dashboard(request):
     # 调试打印（部署后去 Logs 查看）
     if user_role == 'admin':
         print("DEBUG monthly_sales_international:", monthly_sales_international)
+
     # ========== 客户数据（带权限） ==========
     all_customers = filter_by_role(Customer.objects.filter(is_deleted=False), 'customer')
 
