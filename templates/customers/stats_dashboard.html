@@ -280,23 +280,107 @@ body.dark-mode .stats-container h2 {
 {% if user_role == 'admin' or user_role == 'dept_leader' or user_role == 'sales' %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// 每日销售额趋势
-const dailySalesCtx = document.getElementById('dailySalesChart').getContext('2d');
-new Chart(dailySalesCtx, {
-    type: 'line',
-    data: {
-        labels: [{% for d in daily_dates %}'{{ d }}',{% endfor %}],
-        datasets: [{
-            label: '销售额({{ default_currency }})',
-            data: [{% for a in daily_amounts %}{{ a }},{% endfor %}],
-            borderColor: '#667eea',
-            backgroundColor: 'rgba(102, 126, 234, 0.1)',
-            fill: true,
-            tension: 0.3
-        }]
-    },
-    options: { responsive: true, maintainAspectRatio: true }
-});
+{% if user_role == 'admin' %}
+    // ========== 管理员：双线（内贸 + 外贸） ==========
+    
+    // 每日销售额趋势（双线）
+    const dailySalesCtx = document.getElementById('dailySalesChart').getContext('2d');
+    new Chart(dailySalesCtx, {
+        type: 'line',
+        data: {
+            labels: [{% for d in daily_dates %}'{{ d }}',{% endfor %}],
+            datasets: [
+                {
+                    label: '内贸 (¥)',
+                    data: [{% for a in daily_domestic %}{{ a }},{% endfor %}],
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: '外贸 ($)',
+                    data: [{% for a in daily_international %}{{ a }},{% endfor %}],
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: true }
+    });
+
+    // 月度销售额趋势（双线）
+    const salesCtx = document.getElementById('salesChart').getContext('2d');
+    new Chart(salesCtx, {
+        type: 'line',
+        data: {
+            labels: [{% for m in months %}'{{ m }}',{% endfor %}],
+            datasets: [
+                {
+                    label: '内贸 (¥)',
+                    data: [{% for s in monthly_sales_domestic %}{{ s }},{% endfor %}],
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: '外贸 ($)',
+                    data: [{% for s in monthly_sales_international %}{{ s }},{% endfor %}],
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: true }
+    });
+
+{% else %}
+    // ========== 主管/销售：单线（本部门单一币种） ==========
+    
+    // 每日销售额趋势（单线）
+    const dailySalesCtx = document.getElementById('dailySalesChart').getContext('2d');
+    new Chart(dailySalesCtx, {
+        type: 'line',
+        data: {
+            labels: [{% for d in daily_dates %}'{{ d }}',{% endfor %}],
+            datasets: [{
+                label: '销售额({{ default_currency }})',
+                data: [{% for a in daily_amounts %}{{ a }},{% endfor %}],
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: true }
+    });
+
+    // 月度销售额趋势（单线）
+    const salesCtx = document.getElementById('salesChart').getContext('2d');
+    new Chart(salesCtx, {
+        type: 'line',
+        data: {
+            labels: [{% for m in months %}'{{ m }}',{% endfor %}],
+            datasets: [{
+                label: '销售额({{ default_currency }})',
+                data: [{% for s in monthly_sales %}{{ s }},{% endfor %}],
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: true }
+    });
+
+{% endif %}
+
+// ========== 以下图表所有角色通用，不需要区分 ==========
 
 // 每日订单数趋势
 const dailyOrdersCtx = document.getElementById('dailyOrdersChart').getContext('2d');
@@ -324,23 +408,6 @@ new Chart(dailyOrdersCtx, {
             }
         }
     }
-});
-// 月度销售额趋势
-const salesCtx = document.getElementById('salesChart').getContext('2d');
-new Chart(salesCtx, {
-    type: 'line',
-    data: {
-        labels: [{% for m in months %}'{{ m }}',{% endfor %}],
-        datasets: [{
-            label: '销售额({{ default_currency }})',
-            data: [{% for s in monthly_sales %}{{ s }},{% endfor %}],
-            borderColor: '#667eea',
-            backgroundColor: 'rgba(102, 126, 234, 0.1)',
-            fill: true,
-            tension: 0.3
-        }]
-    },
-    options: { responsive: true, maintainAspectRatio: true }
 });
 
 // 月度订单数趋势
@@ -372,6 +439,7 @@ new Chart(ordersCtx, {
         }
     }
 });
+
 // 月度新增客户趋势
 const customersCtx = document.getElementById('customersChart').getContext('2d');
 new Chart(customersCtx, {

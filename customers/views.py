@@ -2595,6 +2595,7 @@ from django.db.models import Sum, Count, Q
 from datetime import datetime, timedelta, date
 from calendar import monthrange
 from django.utils import timezone
+from collections import defaultdict
 
 def stats_dashboard(request):
     """数据统计大屏"""
@@ -2680,9 +2681,13 @@ def stats_dashboard(request):
     monthly_sales = []
     monthly_orders = []
     monthly_customers = []
+    # 管理员专用：拆分内贸/外贸
+    monthly_sales_domestic = []
+    monthly_sales_international = []
 
     for month_str in months:
         year, month = map(int, month_str.split('-'))
+        # 销售额（总）
         sales = filter_by_role(Order.objects.filter(
             order_date__year=year,
             order_date__month=month,
@@ -2690,12 +2695,36 @@ def stats_dashboard(request):
             is_deleted=False
         ), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
         monthly_sales.append(float(sales))
+
+        # 内贸销售额
+        sales_domestic = filter_by_role(Order.objects.filter(
+            order_date__year=year,
+            order_date__month=month,
+            business_type='domestic',
+            status__in=['confirmed', 'shipped', 'completed'],
+            is_deleted=False
+        ), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
+        monthly_sales_domestic.append(float(sales_domestic))
+
+        # 外贸销售额
+        sales_international = filter_by_role(Order.objects.filter(
+            order_date__year=year,
+            order_date__month=month,
+            business_type='international',
+            status__in=['confirmed', 'shipped', 'completed'],
+            is_deleted=False
+        ), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
+        monthly_sales_international.append(float(sales_international))
+
+        # 订单数
         order_count = filter_by_role(Order.objects.filter(
             order_date__year=year,
             order_date__month=month,
             is_deleted=False
         ), 'order').count()
         monthly_orders.append(order_count)
+
+        # 新增客户数
         customer_count = filter_by_role(Customer.objects.filter(
             created_at__year=year, created_at__month=month, is_deleted=False
         ), 'customer').count()
@@ -2761,10 +2790,12 @@ def stats_dashboard(request):
     last_day_of_month = today_date.replace(day=monthrange(today_date.year, today_date.month)[1])
 
     base_orders = filter_by_role(Order.objects.filter(is_deleted=False), 'order')
+
+    # 按业务类型拆分统计
     daily_stats = (
         base_orders
         .filter(order_date__range=[first_day_of_month, last_day_of_month])
-        .values('order_date')
+        .values('order_date', 'business_type')
         .annotate(
             daily_amount=Sum('subtotal'),
             daily_count=Count('id')
@@ -2775,17 +2806,32 @@ def stats_dashboard(request):
     daily_dates = []
     daily_amounts = []
     daily_counts = []
+    # 管理员专用：拆分内贸/外贸
+    daily_domestic = []
+    daily_international = []
 
     current = first_day_of_month
     while current <= last_day_of_month:
         daily_dates.append(current.strftime('%m-%d'))
-        found = next((d for d in daily_stats if d['order_date'] == current), None)
-        if found:
-            daily_amounts.append(float(found['daily_amount']))
-            daily_counts.append(found['daily_count'])
-        else:
-            daily_amounts.append(0)
-            daily_counts.append(0)
+        day_amount = 0
+        day_count = 0
+        day_domestic = 0
+        day_international = 0
+
+        for stat in daily_stats:
+            if stat['order_date'] == current:
+                day_amount += float(stat['daily_amount'])
+                day_count += stat['daily_count']
+                if stat['business_type'] == 'domestic':
+                    day_domestic += float(stat['daily_amount'])
+                else:
+                    day_international += float(stat['daily_amount'])
+
+        daily_amounts.append(day_amount)
+        daily_counts.append(day_count)
+        daily_domestic.append(day_domestic)
+        daily_international.append(day_international)
+
         current += timedelta(days=1)
 
     # ========== 业绩排名相关（月度/年度） ==========
@@ -2803,7 +2849,7 @@ def stats_dashboard(request):
         # 管理员：看全公司
         all_sales_users = User.objects.filter(profile__role='sales')
 
-    # 月度排名
+    # 月度排名（管理员：拆分内贸/外贸；主管：不拆分）
     monthly_data = (
         Order.objects
         .filter(
@@ -2811,44 +2857,94 @@ def stats_dashboard(request):
             order_date__month=current_month,
             is_deleted=False
         )
-        .values('sales_person')
-        .annotate(monthly_amount=Sum('subtotal'))
+        .values('sales_person', 'business_type')
+        .annotate(amount=Sum('subtotal'))
     )
-    
-    monthly_dict = {item['sales_person']: item['monthly_amount'] for item in monthly_data}
-    
-    monthly_ranking = []
-    for user in all_sales_users:
-        monthly_ranking.append({
-            'username': user.username,
-            'monthly_amount': monthly_dict.get(user.username, 0),
-        })
-    
-    monthly_ranking.sort(key=lambda x: x['monthly_amount'], reverse=True)
-    monthly_ranking = monthly_ranking[:10]
 
-    # 年度排名
+    if user_role == 'admin':
+        # 管理员：拆分为内贸和外贸
+        ranking_dict = defaultdict(lambda: {'domestic': 0, 'international': 0})
+        for item in monthly_data:
+            name = item['sales_person'] or '未知'
+            amt = item['amount'] or 0
+            if item['business_type'] == 'domestic':
+                ranking_dict[name]['domestic'] += amt
+            else:
+                ranking_dict[name]['international'] += amt
+        
+        monthly_ranking = []
+        for name, vals in ranking_dict.items():
+            monthly_ranking.append({
+                'username': name,
+                'domestic_amount': vals['domestic'],
+                'international_amount': vals['international'],
+                'total_amount': vals['domestic'] + vals['international'],
+            })
+        monthly_ranking.sort(key=lambda x: x['total_amount'], reverse=True)
+        monthly_ranking = monthly_ranking[:10]
+    else:
+        # 主管：不拆分
+        monthly_dict = {}
+        for item in monthly_data:
+            name = item['sales_person'] or '未知'
+            monthly_dict[name] = monthly_dict.get(name, 0) + (item['amount'] or 0)
+        
+        monthly_ranking = []
+        for user in all_sales_users:
+            monthly_ranking.append({
+                'username': user.username,
+                'monthly_amount': monthly_dict.get(user.username, 0),
+            })
+        monthly_ranking.sort(key=lambda x: x['monthly_amount'], reverse=True)
+        monthly_ranking = monthly_ranking[:10]
+
+    # 年度排名（管理员：拆分内贸/外贸；主管：不拆分）
     yearly_data = (
         Order.objects
         .filter(
             order_date__year=current_year,
             is_deleted=False
         )
-        .values('sales_person')
-        .annotate(yearly_amount=Sum('subtotal'))
+        .values('sales_person', 'business_type')
+        .annotate(amount=Sum('subtotal'))
     )
-    
-    yearly_dict = {item['sales_person']: item['yearly_amount'] for item in yearly_data}
-    
-    yearly_ranking = []
-    for user in all_sales_users:
-        yearly_ranking.append({
-            'username': user.username,
-            'yearly_amount': yearly_dict.get(user.username, 0),
-        })
-    
-    yearly_ranking.sort(key=lambda x: x['yearly_amount'], reverse=True)
-    yearly_ranking = yearly_ranking[:10]
+
+    if user_role == 'admin':
+        # 管理员：拆分为内贸和外贸
+        yearly_dict = defaultdict(lambda: {'domestic': 0, 'international': 0})
+        for item in yearly_data:
+            name = item['sales_person'] or '未知'
+            amt = item['amount'] or 0
+            if item['business_type'] == 'domestic':
+                yearly_dict[name]['domestic'] += amt
+            else:
+                yearly_dict[name]['international'] += amt
+        
+        yearly_ranking = []
+        for name, vals in yearly_dict.items():
+            yearly_ranking.append({
+                'username': name,
+                'domestic_amount': vals['domestic'],
+                'international_amount': vals['international'],
+                'total_amount': vals['domestic'] + vals['international'],
+            })
+        yearly_ranking.sort(key=lambda x: x['total_amount'], reverse=True)
+        yearly_ranking = yearly_ranking[:10]
+    else:
+        # 主管：不拆分
+        yearly_dict = {}
+        for item in yearly_data:
+            name = item['sales_person'] or '未知'
+            yearly_dict[name] = yearly_dict.get(name, 0) + (item['amount'] or 0)
+        
+        yearly_ranking = []
+        for user in all_sales_users:
+            yearly_ranking.append({
+                'username': user.username,
+                'yearly_amount': yearly_dict.get(user.username, 0),
+            })
+        yearly_ranking.sort(key=lambda x: x['yearly_amount'], reverse=True)
+        yearly_ranking = yearly_ranking[:10]
 
     # 销售人员个人业绩
     if user_role == 'sales':
@@ -2871,7 +2967,7 @@ def stats_dashboard(request):
     # ========== 构建上下文 ==========
     # 业绩排名开关（保留原逻辑）
     if user_role == 'sales':
-        show_ranking = True   # 销售员也显示（但模板会区分）
+        show_ranking = True
         ranking_scope = None
         sales_ranking = []
     elif user_role == 'dept_leader':
@@ -2952,7 +3048,13 @@ def stats_dashboard(request):
         'daily_counts': daily_counts,
         'first_day_of_month': first_day_of_month,
         'last_day_of_month': last_day_of_month,
-        # 业绩排名新增
+        # 每日趋势拆分（管理员用）
+        'daily_domestic': daily_domestic,
+        'daily_international': daily_international,
+        # 月度趋势拆分（管理员用）
+        'monthly_sales_domestic': monthly_sales_domestic,
+        'monthly_sales_international': monthly_sales_international,
+        # 业绩排名
         'current_year': current_year,
         'current_month': current_month,
         'monthly_ranking': monthly_ranking,
@@ -2963,6 +3065,7 @@ def stats_dashboard(request):
     }
 
     return render(request, 'customers/stats_dashboard.html', context)
+
 # ==================== 用户管理 ====================
 
 from django.contrib.auth.hashers import make_password
