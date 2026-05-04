@@ -2725,7 +2725,6 @@ def stats_dashboard(request):
                 is_deleted=False
             ), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
         
-        # 关键：确保追加到列表
         monthly_sales_international.append(float(sales_international))
 
         # 订单数
@@ -2741,6 +2740,10 @@ def stats_dashboard(request):
             created_at__year=year, created_at__month=month, is_deleted=False
         ), 'customer').count()
         monthly_customers.append(customer_count)
+
+    # 调试打印（部署后去 Logs 查看）
+    if user_role == 'admin':
+        print("DEBUG monthly_sales_international:", monthly_sales_international)
     # ========== 客户数据（带权限） ==========
     all_customers = filter_by_role(Customer.objects.filter(is_deleted=False), 'customer')
 
