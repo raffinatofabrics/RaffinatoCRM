@@ -124,8 +124,8 @@ body.dark-mode .stats-container h2 {
 
 <!-- 业绩排名模块 -->
 {% if show_ranking %}
-    {% if user_role == 'admin' or user_role == 'dept_leader' %}
-        <!-- 主管 / 管理员：月度排名 + 年度排名 -->
+    {% if user_role == 'admin' %}
+        <!-- 管理员：内贸/外贸拆两列 -->
         <div class="row mb-4">
             <div class="col-md-6">
                 <div class="stats-card">
@@ -133,17 +133,23 @@ body.dark-mode .stats-container h2 {
                     <div class="table-responsive">
                         <table class="table table-sm table-hover">
                             <thead>
-                                <tr><th>排名</th><th>销售姓名</th><th>月总额</th></tr>
+                                <tr>
+                                    <th>排名</th>
+                                    <th>销售姓名</th>
+                                    <th>内贸总额 (¥)</th>
+                                    <th>外贸总额 ($)</th>
+                                </tr>
                             </thead>
                             <tbody>
                                 {% for s in monthly_ranking %}
                                 <tr>
                                     <td><strong>{{ forloop.counter }}</strong></td>
-                                    <td>{{ s.username }}</td>
-                                    <td>{{ default_currency }}{{ s.monthly_amount|default:0|smart_number }}</td>
-                                </tr>
+                                    <td>{{ s.username }}</a>--
+                                    <td>¥{{ s.domestic_amount|default:0|smart_number }}</a>--
+                                    <td>${{ s.international_amount|default:0|smart_number }}</a>--
+                                </a>
                                 {% empty %}
-                                <tr><td colspan="3" class="text-center">暂无数据</a></td>
+                                <tr><td colspan="4" class="text-center">暂无数据</a></a>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -156,18 +162,66 @@ body.dark-mode .stats-container h2 {
                     <div class="table-responsive">
                         <table class="table table-sm table-hover">
                             <thead>
-                                <tr><th>排名</th><th>销售姓名</th><th>年总额</th></tr>
+                                <tr>
+                                    <th>排名</th>
+                                    <th>销售姓名</th>
+                                    <th>内贸总额 (¥)</th>
+                                    <th>外贸总额 ($)</th>
+                                </tr>
                             </thead>
                             <tbody>
                                {% for s in yearly_ranking %}
                                 <tr>
-                                    <td><strong>{{ forloop.counter }}</strong></td>
-                                    <td>{{ s.username }}</td>
-                                    <td>{{ default_currency }}{{ s.yearly_amount|default:0|smart_number }}</td>
-                                </tr>
+                                    <td><strong>{{ forloop.counter }}</strong></a>--
+                                    <td>{{ s.username }}</a>--
+                                    <td>¥{{ s.domestic_amount|default:0|smart_number }}</a>--
+                                    <td>${{ s.international_amount|default:0|smart_number }}</a>--
+                                </a>
                                 {% empty %}
-                                <tr><td colspan="3" class="text-center">暂无数据</a></td>
+                                <tr><td colspan="4" class="text-center">暂无数据</a></a>
                                 {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% elif user_role == 'dept_leader' %}
+        <!-- 主管：本部门单一币种 -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="stats-card">
+                    <h4>月度排名（{{ current_year }}年{{ current_month }}月）</h4>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead><tr><th>排名</th><th>销售姓名</th><th>月总额</th></thead>
+                            <tbody>
+                                {% for s in monthly_ranking %}
+                                <tr>
+                                    <td><strong>{{ forloop.counter }}</strong></a>--
+                                    <td>{{ s.username }}</a>--
+                                    <td>{{ default_currency }}{{ s.monthly_amount|default:0|smart_number }}</a>--
+                                </a>
+                                {% empty %}<tr><td colspan="3">暂无数据</a></a>{% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="stats-card">
+                    <h4>年度排名（{{ current_year }}年）</h4>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead><tr><th>排名</th><th>销售姓名</th><th>年总额</th></thead>
+                            <tbody>
+                                {% for s in yearly_ranking %}
+                                <tr>
+                                    <td><strong>{{ forloop.counter }}</strong></a>--
+                                    <td>{{ s.username }}</a>--
+                                    <td>{{ default_currency }}{{ s.yearly_amount|default:0|smart_number }}</a>--
+                                </a>
+                                {% empty %}<td><td colspan="3">暂无数据</a></a>{% endfor %}
                             </tbody>
                         </table>
                     </div>

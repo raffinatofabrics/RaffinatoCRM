@@ -2707,7 +2707,7 @@ def stats_dashboard(request):
         ), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
         monthly_sales_domestic.append(float(sales_domestic))
 
-        # 外贸销售额（管理员跳过部门过滤）
+        # 外贸销售额（管理员：直接查全表，不经过任何过滤）
         if user_role == 'admin':
             sales_international = Order.objects.filter(
                 order_date__year=year,
@@ -2739,7 +2739,6 @@ def stats_dashboard(request):
             created_at__year=year, created_at__month=month, is_deleted=False
         ), 'customer').count()
         monthly_customers.append(customer_count)
-
     # ========== 客户数据（带权限） ==========
     all_customers = filter_by_role(Customer.objects.filter(is_deleted=False), 'customer')
 
