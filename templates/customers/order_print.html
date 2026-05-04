@@ -204,18 +204,23 @@
     font-weight: bold;  /* 或者normal或 bold，可选加粗 */
 }
 
-/* 合计金额TOTAL和大写金额改字14 */
+/* 合计金额 TOTAL */
 .total-row {
     font-size: 14px;
 }
-.total-row .label {
+.total-row .en {
+    font-size: 12px;
     color: #666666;
 }
 .total-row .amount {
     font-size: 12px;
 }
+/* 大写金额 */
 .total-amount-chinese {
-    font-size: 14px;
+    font-size: 12px;
+}
+.total-amount-chinese strong {
+    font-weight: bold;
 }
     </style>
 </head>
@@ -289,13 +294,13 @@
         
 <!-- 合计 -->
 <div class="total-row">
-    <span class="label">合计金额 TOTAL：</span><span class="amount">{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.subtotal|smart_number }}</span>
+    合计金额<span class="en"> TOTAL：</span>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.subtotal|smart_number }}
 </div>
 
 <!-- 大写金额（仅内贸显示） -->
 {% if order.business_type != 'international' %}
 <div class="total-amount-chinese">
-    大写金额：{{ chinese_amount }}
+    <strong>大写金额：</strong>{{ chinese_amount }}
 </div>
 {% endif %}
         
