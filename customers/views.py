@@ -2687,6 +2687,7 @@ def stats_dashboard(request):
 
     for month_str in months:
         year, month = map(int, month_str.split('-'))
+        
         # 销售额（总）
         sales = filter_by_role(Order.objects.filter(
             order_date__year=year,
@@ -2706,14 +2707,23 @@ def stats_dashboard(request):
         ), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
         monthly_sales_domestic.append(float(sales_domestic))
 
-        # 外贸销售额
-        sales_international = filter_by_role(Order.objects.filter(
-            order_date__year=year,
-            order_date__month=month,
-            business_type='international',
-            status__in=['confirmed', 'shipped', 'completed'],
-            is_deleted=False
-        ), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
+        # 外贸销售额（管理员跳过部门过滤）
+        if user_role == 'admin':
+            sales_international = Order.objects.filter(
+                order_date__year=year,
+                order_date__month=month,
+                business_type='international',
+                status__in=['confirmed', 'shipped', 'completed'],
+                is_deleted=False
+            ).aggregate(total=Sum('subtotal'))['total'] or 0
+        else:
+            sales_international = filter_by_role(Order.objects.filter(
+                order_date__year=year,
+                order_date__month=month,
+                business_type='international',
+                status__in=['confirmed', 'shipped', 'completed'],
+                is_deleted=False
+            ), 'order').aggregate(total=Sum('subtotal'))['total'] or 0
         monthly_sales_international.append(float(sales_international))
 
         # 订单数
@@ -2850,16 +2860,26 @@ def stats_dashboard(request):
         all_sales_users = User.objects.filter(profile__role='sales')
 
     # 月度排名（管理员：拆分内贸/外贸；主管：不拆分）
-    monthly_data = (
-        Order.objects
-        .filter(
-            order_date__year=current_year,
-            order_date__month=current_month,
-            is_deleted=False
+    if user_role == 'admin':
+        monthly_data = (
+            Order.objects
+            .filter(
+                order_date__year=current_year,
+                order_date__month=current_month,
+                is_deleted=False
+            )
+            .values('sales_person', 'business_type')
+            .annotate(amount=Sum('subtotal'))
         )
-        .values('sales_person', 'business_type')
-        .annotate(amount=Sum('subtotal'))
-    )
+    else:
+        monthly_data = filter_by_role(
+            Order.objects.filter(
+                order_date__year=current_year,
+                order_date__month=current_month,
+                is_deleted=False
+            ),
+            'order'
+        ).values('sales_person', 'business_type').annotate(amount=Sum('subtotal'))
 
     if user_role == 'admin':
         # 管理员：拆分为内贸和外贸
@@ -2899,15 +2919,24 @@ def stats_dashboard(request):
         monthly_ranking = monthly_ranking[:10]
 
     # 年度排名（管理员：拆分内贸/外贸；主管：不拆分）
-    yearly_data = (
-        Order.objects
-        .filter(
-            order_date__year=current_year,
-            is_deleted=False
+    if user_role == 'admin':
+        yearly_data = (
+            Order.objects
+            .filter(
+                order_date__year=current_year,
+                is_deleted=False
+            )
+            .values('sales_person', 'business_type')
+            .annotate(amount=Sum('subtotal'))
         )
-        .values('sales_person', 'business_type')
-        .annotate(amount=Sum('subtotal'))
-    )
+    else:
+        yearly_data = filter_by_role(
+            Order.objects.filter(
+                order_date__year=current_year,
+                is_deleted=False
+            ),
+            'order'
+        ).values('sales_person', 'business_type').annotate(amount=Sum('subtotal'))
 
     if user_role == 'admin':
         # 管理员：拆分为内贸和外贸
