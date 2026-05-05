@@ -225,11 +225,45 @@
                     <input type="hidden" name="next" value="{{ next }}">
                 </form>
             </div>
-            <div class="footer">
+                       <div class="footer">
     <div><i class="fas fa-shield-alt"></i> 安全登录 · 数据加密</div>
     <div>Copyright © Raffinato Fabrics - All Rights Reserved.</div>
 </div>
         </div>
     </div>
+
+    <script>
+    (function() {
+        if (!/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) return;
+        
+        function refreshCSRFToken() {
+            fetch(window.location.href, {
+                method: 'HEAD',
+                credentials: 'same-origin'
+            }).catch(function(err) {
+                console.log('CSRF refresh failed:', err);
+            });
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', refreshCSRFToken);
+        } else {
+            refreshCSRFToken();
+        }
+        
+        setInterval(refreshCSRFToken, 20 * 60 * 1000);
+        
+        var passwordInput = document.querySelector('input[type="password"]');
+        if (passwordInput) {
+            passwordInput.addEventListener('focus', refreshCSRFToken);
+        }
+        
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                refreshCSRFToken();
+            }
+        });
+    })();
+    </script>
 </body>
 </html>

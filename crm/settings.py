@@ -209,19 +209,63 @@ CSRF_TRUSTED_ORIGINS = [
     'https://raffinatocrm.onrender.com',
 ]
 
+# ========== CSRF 和 Session 配置（移动端优化版）==========
+
+# CSRF 配置
+CSRF_TRUSTED_ORIGINS = [
+    'https://crm.raffinato.cn',
+    'https://www.crm.raffinato.cn',
+    'https://raffinatocrm.onrender.com',
+]
+
 # 安全设置（HTTPS）
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
-# 移动端兼容配置（折中方案）
-CSRF_COOKIE_SAMESITE = 'Lax'    # 新增：允许移动端自动填充
-CSRF_COOKIE_HTTPONLY = False  # 必须为 False
-CSRF_USE_SESSIONS = True      # 改为 True：改用 session 存储，更安全
+# 关键修复：解决 Cloudflare 和移动端自动填充问题
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_AGE = 86400                      # 24 小时（解决过期问题）
+CSRF_COOKIE_DOMAIN = '.raffinato.cn'         # Cloudflare 需要明确域名
+CSRF_USE_SESSIONS = False
 
 # Session 配置
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True     # 关闭浏览器即登出
-SESSION_COOKIE_AGE = 3600     # 1 小时（单位：秒）
-SESSION_SAVE_EVERY_REQUEST = True     # 每次请求刷新有效期
-SESSION_COOKIE_HTTPONLY = True  # 保持 True，只有 CSRF cookie 设为 False
-SESSION_COOKIE_SAMESITE = 'Lax'     # 新增：Session 也使用宽松策略
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False      # 改为 False，不随浏览器关闭而失效
+SESSION_COOKIE_AGE = 86400                   # 24 小时
+SESSION_SAVE_EVERY_REQUEST = True            # 每次请求刷新有效期
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_DOMAIN = '.raffinato.cn'
+
+# Cloudflare 代理设置（重要！）
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# 允许的主机
+ALLOWED_HOSTS = [
+    'crm.raffinato.cn',
+    '.raffinato.cn',
+    'raffinatocrm.onrender.com',
+    'localhost',
+    '127.0.0.1',
+]
+
+# 日志配置（用于调试，部署后可以删除）
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django.security.csrf': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+    },
+}
