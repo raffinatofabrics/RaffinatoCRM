@@ -5027,48 +5027,21 @@ def permanent_delete_customer(request, customer_id):
     
     return JsonResponse({'success': True, 'message': f'客户 "{customer_name}" 已彻底删除'})
 
+
+# ==================== 解决移动端403 ====================
+
 from django.contrib.auth.views import LoginView
 from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
 from django.views.decorators.debug import sensitive_post_parameters
-from django.middleware.csrf import get_token, rotate_token
-from django.shortcuts import redirect
-from django.urls import reverse
 
+@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(sensitive_post_parameters('password'), name='dispatch')
+@method_decorator(never_cache, name='dispatch')
 class MobileFriendlyLoginView(LoginView):
     """
-    针对移动端和 Cloudflare 优化的登录视图
-    解决手机浏览器刷脸自动填充导致的 CSRF 403 错误
+    针对移动端优化的登录视图 - 完全禁用CSRF保护
+    解决手机浏览器刷脸自动填充导致的 403 错误
     """
-    
-    @method_decorator(sensitive_post_parameters('password'))
-    @method_decorator(csrf_protect)
-    @method_decorator(never_cache)
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
-    
-    def get(self, request, *args, **kwargs):
-        """每次访问登录页都刷新 CSRF token，防止过期"""
-        # 强制刷新 token
-        rotate_token(request)
-        get_token(request)
-        return super().get(request, *args, **kwargs)
-    
-    def post(self, request, *args, **kwargs):
-        """如果 CSRF 失败，刷新 token 后重试一次"""
-        try:
-            return super().post(request, *args, **kwargs)
-        except Exception as e:
-            if 'CSRF' in str(e):
-                # 刷新 token 后重试
-                rotate_token(request)
-                return super().post(request, *args, **kwargs)
-            raise
-    
-    def form_invalid(self, form):
-        response = super().form_invalid(form)
-        # 如果是 CSRF 错误，清除旧 cookie
-        if 'CSRF' in str(response.content):
-            response.delete_cookie('csrftoken')
-        return response
+    pass

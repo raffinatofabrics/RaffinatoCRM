@@ -232,38 +232,102 @@
         </div>
     </div>
 
-    <script>
-    (function() {
-        if (!/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) return;
-        
-        function refreshCSRFToken() {
-            fetch(window.location.href, {
-                method: 'HEAD',
-                credentials: 'same-origin'
-            }).catch(function(err) {
-                console.log('CSRF refresh failed:', err);
-            });
+<script>
+(function() {
+    // 只在移动端执行
+    if (!/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) return;
+    
+    // 获取CSRF token的函数
+    function getCsrfToken() {
+        var name = 'csrftoken';
+        var value = '; ' + document.cookie;
+        var parts = value.split('; ' + name + '=');
+        if (parts.length === 2) {
+            return parts.pop().split(';').shift();
         }
-        
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', refreshCSRFToken);
-        } else {
-            refreshCSRFToken();
-        }
-        
-        setInterval(refreshCSRFToken, 20 * 60 * 1000);
-        
-        var passwordInput = document.querySelector('input[type="password"]');
-        if (passwordInput) {
-            passwordInput.addEventListener('focus', refreshCSRFToken);
-        }
-        
-        document.addEventListener('visibilitychange', function() {
-            if (!document.hidden) {
-                refreshCSRFToken();
+        return '';
+    }
+    
+    // 刷新CSRF token
+    function refreshCsrfToken() {
+        return fetch(window.location.href, {
+            method: 'HEAD',
+            credentials: 'include'
+        }).then(function() {
+            console.log('CSRF token refreshed');
+        }).catch(function(err) {
+            console.log('Refresh failed:', err);
+        });
+    }
+    
+    // 拦截表单提交，确保CSRF token存在且有效
+    var form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            var csrfInput = form.querySelector('[name=csrfmiddlewaretoken]');
+            var currentToken = getCsrfToken();
+            
+            // 如果没有CSRF token或者token为空，刷新页面
+            if (!currentToken || currentToken === '') {
+                e.preventDefault();
+                console.log('CSRF token missing, refreshing page...');
+                window.location.reload();
+                return false;
+            }
+            
+            // 确保表单里有正确的token
+            if (csrfInput && csrfInput.value !== currentToken) {
+                csrfInput.value = currentToken;
+                console.log('CSRF token updated in form');
+            }
+            
+            // 额外：给密码输入框添加标记，表示是自动填充
+            var passwordInput = form.querySelector('input[type="password"]');
+            if (passwordInput && passwordInput.value) {
+                var autoFillFlag = document.createElement('input');
+                autoFillFlag.type = 'hidden';
+                autoFillFlag.name = 'autofill_detected';
+                autoFillFlag.value = 'true';
+                form.appendChild(autoFillFlag);
             }
         });
-    })();
-    </script>
+    }
+    
+    // 页面加载时刷新token
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshCsrfToken();
+        });
+    } else {
+        refreshCsrfToken();
+    }
+    
+    // 每15分钟刷新一次
+    setInterval(refreshCsrfToken, 15 * 60 * 1000);
+    
+    // 监控密码框的自动填充（刷脸后立即刷新token）
+    var passwordInput = document.querySelector('input[type="password"]');
+    if (passwordInput) {
+        // 监听多种自动填充事件
+        passwordInput.addEventListener('input', function() {
+            if (this.value.length > 0) {
+                refreshCsrfToken();
+            }
+        });
+        passwordInput.addEventListener('change', refreshCsrfToken);
+        passwordInput.addEventListener('blur', refreshCsrfToken);
+        
+        // 使用MutationObserver监控密码框的变化
+        var observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'value') {
+                    refreshCsrfToken();
+                }
+            });
+        });
+        observer.observe(passwordInput, { attributes: true, attributeFilter: ['value'] });
+    }
+})();
+</script>
 </body>
 </html>
