@@ -5026,3 +5026,38 @@ def permanent_delete_customer(request, customer_id):
     customer.delete()
     
     return JsonResponse({'success': True, 'message': f'客户 "{customer_name}" 已彻底删除'})
+
+from django.contrib.auth.views import LoginView
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.cache import never_cache
+from django.views.decorators.debug import sensitive_post_parameters
+
+class MobileFriendlyLoginView(LoginView):
+    """
+    针对移动端自动填充优化的登录视图
+    解决手机浏览器刷脸自动填充导致的 CSRF 403 错误
+    """
+    
+    @method_decorator(sensitive_post_parameters('password'))
+    @method_decorator(csrf_protect)
+    @method_decorator(never_cache)
+    def dispatch(self, request, *args, **kwargs):
+        # 针对移动端自动填充的特殊处理
+        # 如果请求是 POST 但没有 CSRF token，不立即拒绝，让 Django 重新生成
+        if request.method == 'POST':
+            # 确保 session 里有 CSRF token
+            if not request.META.get('CSRF_COOKIE'):
+                # 强制设置 CSRF cookie
+                from django.middleware.csrf import get_token
+                get_token(request)
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def form_invalid(self, form):
+        # 增加更友好的错误提示
+        response = super().form_invalid(form)
+        # 如果是移动端且 CSRF 问题，尝试清除旧的 cookie
+        if 'CSRF' in str(response.content) or '403' in str(response.content):
+            response.delete_cookie('csrftoken')
+        return response

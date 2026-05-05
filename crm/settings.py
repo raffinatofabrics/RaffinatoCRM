@@ -214,8 +214,14 @@ SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
+# 移动端兼容配置（折中方案）
+CSRF_COOKIE_SAMESITE = 'Lax'    # 新增：允许移动端自动填充
+CSRF_COOKIE_HTTPONLY = False  # 必须为 False
+CSRF_USE_SESSIONS = True      # 改为 True：改用 session 存储，更安全
+
 # Session 配置
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True      # 关闭浏览器即登出
-SESSION_COOKIE_AGE = 3600                   # 1 小时（单位：秒）
-SESSION_SAVE_EVERY_REQUEST = True           # 每次请求刷新有效期
-SESSION_COOKIE_HTTPONLY = True              # 防止 XSS 偷取 Cookie
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True     # 关闭浏览器即登出
+SESSION_COOKIE_AGE = 3600     # 1 小时（单位：秒）
+SESSION_SAVE_EVERY_REQUEST = True     # 每次请求刷新有效期
+SESSION_COOKIE_HTTPONLY = True  # 保持 True，只有 CSRF cookie 设为 False
+SESSION_COOKIE_SAMESITE = 'Lax'     # 新增：Session 也使用宽松策略
