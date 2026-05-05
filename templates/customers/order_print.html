@@ -301,16 +301,16 @@
             </tbody>
         </table>
         
-<!-- 合计 -->
-<div class="total-row">
-    合计金额<span class="en"> TOTAL：</span><span class="amount">{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.subtotal|smart_number }}</span>
+<div style="text-align: right; margin-top: 20px;">
+    <div class="total-row">
+        合计金额<span class="en"> TOTAL：</span><span class="amount">{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.subtotal|smart_number }}</span>
+    </div>
+    {% if order.business_type != 'international' %}
+    <div class="total-amount-chinese" style="margin-top: 5px;">
+        <strong>大写金额：</strong><span>{{ chinese_amount }}</span>
+    </div>
+    {% endif %}
 </div>
-<!-- 大写金额（仅内贸显示） -->
-{% if order.business_type != 'international' %}
-<div class="total-amount-chinese">
-    <strong>大写金额：</strong><span>{{ chinese_amount }}</span>
-</div>
-{% endif %}
         
         <!-- 备注 -->
         {% if order.notes %}
