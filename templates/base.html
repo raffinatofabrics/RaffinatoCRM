@@ -471,15 +471,11 @@ body {
     border-bottom-color: #3d4d5f !important;
 }
 </style>
-    <!-- 👇 新增的样式和脚本 👇 -->
+    <!-- 👇 修复移动端滑动冲突（正确版）👇 -->
     <style>
         @media (max-width: 768px) {
-            body {
+            html {
                 overscroll-behavior-x: none;
-                position: fixed;
-                width: 100%;
-                height: 100%;
-                overflow-y: auto;
             }
         }
     </style>
@@ -487,11 +483,19 @@ body {
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             let touchStartX = 0;
+            let touchStartY = 0;
+            
             document.addEventListener('touchstart', function(e) {
                 touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
             }, { passive: false });
+            
             document.addEventListener('touchmove', function(e) {
-                if (touchStartX < 30 && !e.target.closest('.sidebar')) {
+                let deltaX = e.touches[0].clientX - touchStartX;
+                let deltaY = Math.abs(e.touches[0].clientY - touchStartY);
+                
+                // 只有水平滑动且靠近左边缘时才阻止（右滑菜单）
+                if (deltaX > 30 && touchStartX < 30 && deltaY < 30) {
                     e.preventDefault();
                 }
             }, { passive: false });
