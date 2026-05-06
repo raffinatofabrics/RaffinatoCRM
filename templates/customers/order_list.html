@@ -160,8 +160,8 @@ body.dark-mode .pagination .page-item.active .page-link {
                                         <td class="mobile-hide-type" rowspan="{{ items|length }}">{% if order.business_type == 'international' %}外贸{% else %}内贸{% endif %}</a></a>
                                         <td rowspan="{{ items|length }}">{{ order.order_date|date:"Y-m-d" }}</a></a>
                                         <!-- 产品信息 -->
-                                        <td>{{ item.product_name }}{% if item.specification %} -{{ item.specification }}{% endif %}</a></a>
-                                        <td>{{ item.quantity }} {{ item.unit }}</a></a>
+                                        <td>{{ item.product_name }}{% if item.specification %}-{{ item.specification }}{% endif %}</a></a>
+                                        <td>{{ item.quantity|smart_number }} {{ item.unit }}</a></a>
                                         <td rowspan="{{ items|length }}">{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.subtotal|smart_number }}</a></a>
                                         <td rowspan="{{ items|length }}">
                                             {% if order.status == 'draft' %}
@@ -186,8 +186,8 @@ body.dark-mode .pagination .page-item.active .page-link {
                                             </a>
                                         </a></a>
                                     {% else %}
-                                        <td>{{ item.product_name }}{% if item.specification %} -{{ item.specification }}{% endif %}</a></a>
-                                        <td>{{ item.quantity }} {{ item.unit }}</a></a>
+                                        <td>{{ item.product_name }}{% if item.specification %}-{{ item.specification }}{% endif %}</a></a>
+                                        <td>{{  item.quantity|smart_number }} {{ item.unit }}</a></a>
                                     {% endif %}
                                 </tr>
                             {% endfor %}
