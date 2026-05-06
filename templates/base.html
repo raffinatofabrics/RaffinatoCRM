@@ -904,61 +904,60 @@ document.addEventListener('keydown', function(e) {
 
 // ========== 移动端侧边栏（纯点击模式，禁用所有右滑）==========
 (function() {
-    // 只在手机端执行
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (!isMobile) return;
-    
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     const sidebar = document.querySelector('.sidebar');
     
     if (!mobileMenuBtn || !sidebar) return;
     
-    // 1. 点击按钮切换菜单
+    // 1. 点击按钮切换菜单（手机和PC都生效）
     mobileMenuBtn.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
         sidebar.classList.toggle('show');
+        console.log('菜单切换', sidebar.classList.contains('show')); // 调试，部署后可删除
     });
     
-    // 2. 点击主内容区域关闭菜单
+    // 2. 点击主内容区域关闭菜单（仅手机端）
     const mainContent = document.querySelector('.main-content');
     if (mainContent) {
         mainContent.addEventListener('click', function() {
-            if (sidebar.classList.contains('show')) {
+            if (window.innerWidth < 768 && sidebar.classList.contains('show')) {
                 sidebar.classList.remove('show');
             }
         });
     }
     
-    // 3. 完全禁用所有右滑手势（防止浏览器返回）
-    let touchStartX = 0;
-    document.addEventListener('touchstart', function(e) {
-        touchStartX = e.touches[0].clientX;
-    }, { passive: true });
-    
-    document.addEventListener('touchmove', function(e) {
-        const currentX = e.touches[0].clientX;
-        const deltaX = currentX - touchStartX;
+    // 3. 只在手机端禁用右滑手势
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+        let touchStartX = 0;
+        document.addEventListener('touchstart', function(e) {
+            touchStartX = e.touches[0].clientX;
+        }, { passive: true });
         
-        // 从左边缘开始的右滑，完全阻止
-        if (deltaX > 15 && touchStartX < 50) {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-        }
-    }, { passive: false });
-    
-    // 4. 阻止 Safari 的滑动返回（通过历史记录锁）
-    history.pushState(null, null, location.href);
-    window.addEventListener('popstate', function() {
-        if (sidebar.classList.contains('show')) {
-            // 菜单打开时，返回变成关闭菜单
-            sidebar.classList.remove('show');
-            history.pushState(null, null, location.href);
-        } else {
-            history.pushState(null, null, location.href);
-        }
-    });
+        document.addEventListener('touchmove', function(e) {
+            const currentX = e.touches[0].clientX;
+            const deltaX = currentX - touchStartX;
+            
+            // 从左边缘开始的右滑，完全阻止
+            if (deltaX > 15 && touchStartX < 50) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        }, { passive: false });
+        
+        // 阻止 Safari 的滑动返回
+        history.pushState(null, null, location.href);
+        window.addEventListener('popstate', function() {
+            if (sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+                history.pushState(null, null, location.href);
+            } else {
+                history.pushState(null, null, location.href);
+            }
+        });
+    }
 })();
 
 // ========== 侧边栏高亮 ==========
