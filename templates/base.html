@@ -471,8 +471,33 @@ body {
     border-bottom-color: #3d4d5f !important;
 }
 </style>
+    <!-- 👇 新增的样式和脚本 👇 -->
+    <style>
+        @media (max-width: 768px) {
+            body {
+                overscroll-behavior-x: none;
+                position: fixed;
+                width: 100%;
+                height: 100%;
+                overflow-y: auto;
+            }
+        }
+    </style>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let touchStartX = 0;
+            document.addEventListener('touchstart', function(e) {
+                touchStartX = e.touches[0].clientX;
+            }, { passive: false });
+            document.addEventListener('touchmove', function(e) {
+                if (touchStartX < 30 && !e.target.closest('.sidebar')) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+        });
+    </script>
 </head>
-<body>
 <body>
 <script>
 const darkModeSaved = localStorage.getItem('darkMode');
