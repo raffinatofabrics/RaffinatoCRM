@@ -471,30 +471,6 @@ body {
     border-bottom-color: #3d4d5f !important;
 }
 </style>
-    <!-- 禁用移动端右滑手势 -->
-    <script>
-        (function() {
-            if (!/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) return;
-            
-            let touchStartX = 0;
-            
-            document.addEventListener('touchstart', function(e) {
-                touchStartX = e.touches[0].clientX;
-            }, { passive: false });
-            
-            document.addEventListener('touchmove', function(e) {
-                let currentX = e.touches[0].clientX;
-                if (touchStartX < 30 && currentX > touchStartX + 10) {
-                    e.preventDefault();
-                    return false;
-                }
-            }, { passive: false });
-            
-            document.body.addEventListener('gesturestart', function(e) {
-                e.preventDefault();
-            });
-        })();
-    </script>
 </head>
 <body>
 <script>
@@ -832,6 +808,7 @@ document.querySelectorAll('.sidebar .nav-link').forEach(function(link) {
 // 定时刷新日历（确保订单管理页面日历不消失）
 setInterval(setSidebarDate, 500);
 </script>
+
 <script>
 // 禁用右键菜单
 document.addEventListener('contextmenu', function(e) {
@@ -867,6 +844,37 @@ document.addEventListener('keydown', function(e) {
         return false;
     }
 });
+
+// ========== 禁用移动端浏览器右滑返回手势 ==========
+(function() {
+    if (!/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) return;
+    
+    let touchStartX = 0;
+    let touchStartY = 0;
+    
+    document.addEventListener('touchstart', function(e) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+    
+    document.addEventListener('touchmove', function(e) {
+        const currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY;
+        const deltaX = currentX - touchStartX;
+        const deltaY = Math.abs(currentY - touchStartY);
+        
+        if (deltaX > 30 && deltaY < 30 && touchStartX < 50) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+    }, { passive: false });
+    
+    history.pushState(null, null, location.href);
+    window.addEventListener('popstate', function() {
+        history.pushState(null, null, location.href);
+    });
+})();
 </script>
 </body>
 </html>
