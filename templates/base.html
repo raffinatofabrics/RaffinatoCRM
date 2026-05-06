@@ -815,5 +815,51 @@ document.addEventListener('keydown', function(e) {
     }
 });
 </script>
+<script>
+// 终极方案：彻底杀死手机浏览器右滑返回手势
+(function() {
+    // 检测是否为手机
+    if (!/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) return;
+    
+    // 方法1：阻止所有可能导致返回的触摸事件
+    let startX, startY;
+    let isMoving = false;
+    
+    document.body.addEventListener('touchstart', function(e) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        isMoving = false;
+    }, { passive: false });
+    
+    document.body.addEventListener('touchmove', function(e) {
+        let moveX = e.touches[0].clientX - startX;
+        let moveY = Math.abs(e.touches[0].clientY - startY);
+        
+        // 如果是水平右滑超过30px，且垂直移动很小
+        if (moveX > 30 && moveY < 30 && startX < 50) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+    }, { passive: false });
+    
+    // 方法2：通过历史记录API完全禁用返回
+    history.pushState(null, null, location.href);
+    window.addEventListener('popstate', function(e) {
+        // 用户点击返回时，强行再推一个历史记录，阻止实际返回
+        history.pushState(null, null, location.href);
+    });
+    
+    // 方法3：禁用手势事件（Safari专用）
+    document.addEventListener('gesturestart', function(e) {
+        if (e.touches && e.touches[0] && e.touches[0].clientX < 50) {
+            e.preventDefault();
+        }
+    });
+    
+    // 方法4：CSS方式禁止滚动穿透（备用）
+    document.body.style.overscrollBehavior = 'none';
+})();
+</script>
 </body>
 </html>
