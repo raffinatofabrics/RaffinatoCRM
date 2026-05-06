@@ -59,6 +59,33 @@ body.dark-mode .pagination .page-item.active .page-link {
     color: #fff !important;
 }
 
+/* 订单列表 - 紧凑行高（与业务大屏卡片一致） */
+.order-list-table {
+    font-size: 14px;
+}
+
+.order-list-table tbody tr {
+    line-height: 1.4;  /* 与业务大屏卡片一致 */
+}
+
+.order-list-table tbody td {
+    padding: 8px 12px;  /* 紧凑但不拥挤 */
+    vertical-align: middle;
+}
+
+/* 多产品时，第一行和后续行的对齐 */
+.order-list-table tbody td[rowspan] {
+    vertical-align: middle;
+    background-color: inherit;
+}
+
+/* 手机端更紧凑 */
+@media (max-width: 768px) {
+    .order-list-table tbody td {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+}
     /* 手机端适配 */
     @media (max-width: 768px) {
         .mobile-hide-order-no,
@@ -133,7 +160,7 @@ body.dark-mode .pagination .page-item.active .page-link {
 <div class="card-modern">
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-modern">
+            <table class="table table-modern order-list-table">
                 <thead>
                     <tr>
                         <th style="width: 40px;"><input type="checkbox" id="selectAllOrders"></th>
