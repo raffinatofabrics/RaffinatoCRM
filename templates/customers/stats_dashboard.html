@@ -614,14 +614,16 @@ new Chart(productCtx, {
     }
 });
 
-// 客户销售额排行
+// 客户销售额排行（支持内外贸不同货币符号）
 const customerCtx = document.getElementById('customerChart').getContext('2d');
+const customerCurrencies = [{% for c in customer_currencies %}'{{ c }}',{% endfor %}];
+
 new Chart(customerCtx, {
     type: 'bar',
     data: {
         labels: [{% for c in customer_names %}'{{ c|escapejs }}',{% endfor %}],
         datasets: [{
-            label: '销售额({{ default_currency }})',
+            label: '销售额',
             data: [{% for a in customer_amounts %}{{ a }},{% endfor %}],
             backgroundColor: '#10b981',
             borderRadius: 5
@@ -631,7 +633,19 @@ new Chart(customerCtx, {
         responsive: true,
         maintainAspectRatio: true,
         indexAxis: 'y',
-        plugins: { legend: { position: 'top' } }
+        plugins: { 
+            legend: { position: 'top' },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let index = context.dataIndex;
+                        let currency = customerCurrencies[index] || '¥';
+                        let value = context.raw;
+                        return `销售额: ${currency} ${value.toLocaleString()}`;
+                    }
+                }
+            }
+        }
     }
 });
 </script>

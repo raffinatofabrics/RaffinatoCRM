@@ -2793,15 +2793,23 @@ def stats_dashboard(request):
     product_quantities = [p[1]['quantity'] for p in product_top10]
     product_amounts = [p[1]['amount'] for p in product_top10]
 
-    # ========== 客户销售额排行（带权限） ==========
+# ========== 客户销售额排行（带权限） ==========
     customer_sales = {}
+    customer_currency_map = {}  # 新增：存储每个客户的货币类型
     for order in all_orders:
         customer_name = order.customer.company_name
         customer_sales[customer_name] = customer_sales.get(customer_name, 0) + order.subtotal
+        # 新增：记录该客户的货币类型（如果同一个客户有多个订单，以最后一个为准）
+        if order.business_type == 'international':
+            customer_currency_map[customer_name] = '$'
+        else:
+            customer_currency_map[customer_name] = '¥'
 
     customer_top10 = sorted(customer_sales.items(), key=lambda x: x[1], reverse=True)[:10]
     customer_names = [c[0] for c in customer_top10]
     customer_amounts = [c[1] for c in customer_top10]
+    # 新增：生成货币符号数组（与客户顺序对应）
+    customer_currencies = [customer_currency_map.get(name, '¥') for name in customer_names]
 
     total_customers = all_customers.count()
     total_orders = all_orders.count()
@@ -3089,6 +3097,7 @@ def stats_dashboard(request):
         'product_amounts': product_amounts,
         'customer_names': customer_names,
         'customer_amounts': customer_amounts,
+        'customer_currencies': customer_currencies,  # 👈 新增这一行
         'total_customers': total_customers,
         'total_orders': total_orders,
         'reply_rate': reply_rate,
