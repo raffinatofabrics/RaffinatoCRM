@@ -78,34 +78,34 @@ body.dark-mode .stats-container h2 {
 <div class="stats-container">
     <h2 class="mb-4" style="color: #1e293b;">业务数据统计大屏</h2>
     
-  <!-- KPI 卡片 -->
+<!-- KPI 卡片 -->
 <div class="row mb-4">
     <div class="col-md-2">
         <div class="kpi-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
             <div class="kpi-number">{{ today_domestic_count }}</div>
             <div class="kpi-label">今日内贸订单</div>
-            <div class="small">{{ default_currency }}{{ today_domestic_amount|smart_number }}</div>
+            <div class="small">¥ {{ today_domestic_amount|smart_number }}</div>
         </div>
     </div>
     <div class="col-md-2">
         <div class="kpi-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
             <div class="kpi-number">{{ today_international_count }}</div>
             <div class="kpi-label">今日外贸订单</div>
-            <div class="small">{{ default_currency }}{{ today_international_amount|smart_number }}</div>
+            <div class="small">$ {{ today_international_amount|smart_number }}</div>
         </div>
     </div>
     <div class="col-md-2">
         <div class="kpi-card" style="background: linear-gradient(135deg, #10b981, #059669);">
             <div class="kpi-number">{{ month_domestic_count }}</div>
             <div class="kpi-label">本月内贸订单</div>
-            <div class="small">{{ default_currency }}{{ month_domestic_amount|smart_number }}</div>
+            <div class="small">¥ {{ month_domestic_amount|smart_number }}</div>
         </div>
     </div>
     <div class="col-md-2">
         <div class="kpi-card" style="background: linear-gradient(135deg, #10b981, #059669);">
             <div class="kpi-number">{{ month_international_count }}</div>
             <div class="kpi-label">本月外贸订单</div>
-            <div class="small">{{ default_currency }}{{ month_international_amount|smart_number }}</div>
+            <div class="small">$ {{ month_international_amount|smart_number }}</div>
         </div>
     </div>
     <div class="col-md-2">
