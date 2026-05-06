@@ -702,26 +702,83 @@ document.querySelectorAll('form').forEach(form => {
     }
 })();
 
-// ========== 移动端侧边栏 ==========
+// ========== 移动端侧边栏（禁用浏览器返回手势）==========
 const mobileMenuBtn = document.getElementById('mobileMenuBtn');
 const sidebar = document.querySelector('.sidebar');
+
+// 阻止浏览器返回手势的函数
+function preventPopState(e) {
+    if (sidebar && sidebar.classList.contains('show')) {
+        // 如果菜单是打开的，阻止返回
+        e.preventDefault();
+        e.stopPropagation();
+        // 关闭菜单而不是返回
+        sidebar.classList.remove('show');
+        return false;
+    }
+}
 
 if (mobileMenuBtn) {
     mobileMenuBtn.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
         sidebar.classList.toggle('show');
+        
+        // 当菜单打开时，添加一个历史记录占位，防止返回
+        if (sidebar.classList.contains('show')) {
+            history.pushState({sidebar: 'open'}, '', window.location.href);
+        } else {
+            // 菜单关闭时，清除占位
+            if (window.history.state && window.history.state.sidebar === 'open') {
+                window.history.back();
+            }
+        }
     });
 }
 
 const mainContent = document.querySelector('.main-content');
 if (mainContent) {
     mainContent.addEventListener('click', function() {
-        if (window.innerWidth < 768) {
+        if (window.innerWidth < 768 && sidebar.classList.contains('show')) {
             sidebar.classList.remove('show');
         }
     });
 }
+
+// 拦截浏览器返回按钮/popstate事件
+window.addEventListener('popstate', function(e) {
+    if (sidebar && sidebar.classList.contains('show')) {
+        // 菜单打开时，返回操作变成关闭菜单
+        e.preventDefault();
+        sidebar.classList.remove('show');
+        // 阻止真正的页面返回
+        history.pushState({sidebar: 'open'}, '', window.location.href);
+        return false;
+    }
+});
+
+// 禁用右滑打开菜单（只保留点击按钮打开）
+let touchStartX = 0;
+document.addEventListener('touchstart', function(e) {
+    touchStartX = e.touches[0].clientX;
+}, { passive: true });
+
+document.addEventListener('touchmove', function(e) {
+    const currentX = e.touches[0].clientX;
+    const deltaX = currentX - touchStartX;
+    
+    // 如果是从左边缘右滑，且菜单没打开，阻止浏览器返回
+    if (deltaX > 30 && touchStartX < 50 && !sidebar.classList.contains('show')) {
+        e.preventDefault();
+        return false;
+    }
+    // 如果菜单已打开，右滑关闭菜单
+    if (deltaX > 30 && touchStartX < 50 && sidebar.classList.contains('show')) {
+        e.preventDefault();
+        sidebar.classList.remove('show');
+        return false;
+    }
+}, { passive: false });
 
 // ========== 侧边栏高亮（一个脚本搞定）==========
 function setActiveMenu() {
@@ -845,36 +902,167 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// ========== 禁用移动端浏览器右滑返回手势 ==========
+// ========== 移动端侧边栏（纯点击模式，禁用所有右滑）==========
 (function() {
-    if (!/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) return;
+    // 只在手机端执行
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (!isMobile) return;
     
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const sidebar = document.querySelector('.sidebar');
+    
+    if (!mobileMenuBtn || !sidebar) return;
+    
+    // 1. 点击按钮切换菜单
+    mobileMenuBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        sidebar.classList.toggle('show');
+    });
+    
+    // 2. 点击主内容区域关闭菜单
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+        mainContent.addEventListener('click', function() {
+            if (sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+            }
+        });
+    }
+    
+    // 3. 完全禁用所有右滑手势（防止浏览器返回）
     let touchStartX = 0;
-    let touchStartY = 0;
-    
     document.addEventListener('touchstart', function(e) {
         touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
     }, { passive: true });
     
     document.addEventListener('touchmove', function(e) {
         const currentX = e.touches[0].clientX;
-        const currentY = e.touches[0].clientY;
         const deltaX = currentX - touchStartX;
-        const deltaY = Math.abs(currentY - touchStartY);
         
-        if (deltaX > 30 && deltaY < 30 && touchStartX < 50) {
+        // 从左边缘开始的右滑，完全阻止
+        if (deltaX > 15 && touchStartX < 50) {
             e.preventDefault();
             e.stopPropagation();
             return false;
         }
     }, { passive: false });
     
+    // 4. 阻止 Safari 的滑动返回（通过历史记录锁）
     history.pushState(null, null, location.href);
     window.addEventListener('popstate', function() {
-        history.pushState(null, null, location.href);
+        if (sidebar.classList.contains('show')) {
+            // 菜单打开时，返回变成关闭菜单
+            sidebar.classList.remove('show');
+            history.pushState(null, null, location.href);
+        } else {
+            history.pushState(null, null, location.href);
+        }
     });
 })();
+
+// ========== 侧边栏高亮 ==========
+function setActiveMenu() {
+    var currentPath = window.location.pathname;
+    var navLinks = document.querySelectorAll('.sidebar .nav-link');
+    
+    navLinks.forEach(function(link) {
+        link.classList.remove('active');
+    });
+    
+    if (currentPath.indexOf('/customers/orders/') !== -1) {
+        var orderLink = document.querySelector('.sidebar .nav-link[href="/customers/orders/"]');
+        if (orderLink) orderLink.classList.add('active');
+    }
+    
+    navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href === '/customers/orders/') return;
+        
+        if (currentPath === href) {
+            link.classList.add('active');
+        } else if (href === '/stats-dashboard/' && (currentPath === '/' || currentPath === '')) {
+            link.classList.add('active');
+        } else if (href === '/customers/' && currentPath.startsWith('/customers/') && currentPath !== '/customers/') {
+            link.classList.add('active');
+        } else if (href !== '/' && currentPath.startsWith(href) && href.length > 1) {
+            link.classList.add('active');
+        }
+    });
+}
+
+// ========== 侧边栏滚动位置保存 ==========
+(function() {
+    var sidebar = document.querySelector('.sidebar');
+    if (!sidebar) return;
+    
+    var savedTop = sessionStorage.getItem('sidebarScrollTop');
+    if (savedTop) {
+        setTimeout(function() { sidebar.scrollTop = parseInt(savedTop); }, 50);
+    }
+    
+    sidebar.addEventListener('scroll', function() {
+        sessionStorage.setItem('sidebarScrollTop', sidebar.scrollTop);
+    });
+})();
+
+// ========== 侧边栏日历显示 ==========
+function setSidebarDate() {
+    var dateContainer = document.getElementById('currentDate');
+    if (dateContainer) {
+        var now = new Date();
+        var year = now.getFullYear();
+        var month = now.getMonth() + 1;
+        var day = now.getDate();
+        var weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+        var weekday = weekdays[now.getDay()];
+        dateContainer.innerHTML = year + '年' + month + '月' + day + '日<br>' + weekday;
+    }
+}
+
+setActiveMenu();
+setSidebarDate();
+
+document.querySelectorAll('.sidebar .nav-link').forEach(function(link) {
+    link.addEventListener('click', function() {
+        setTimeout(setActiveMenu, 100);
+    });
+});
+
+setInterval(setSidebarDate, 500);
+</script>
+
+<script>
+// 禁用右键菜单
+document.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    return false;
+});
+
+// 禁用 F12 和开发者工具快捷键
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'F12') {
+        e.preventDefault();
+        return false;
+    }
+    if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+        e.preventDefault();
+        return false;
+    }
+    if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        return false;
+    }
+    if (e.ctrlKey && e.key === 'u') {
+        e.preventDefault();
+        return false;
+    }
+    if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        return false;
+    }
+});
 </script>
 </body>
 </html>
