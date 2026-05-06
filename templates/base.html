@@ -19,8 +19,7 @@
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/custom.css' %}">
     <style>
-<style>
-    /* ========== 新颜色方案 ========== */
+/* ========== 新颜色方案 ========== */
 :root {
     --primary-color: #0f172a;
     --primary-light: #1e293b;
@@ -572,11 +571,7 @@ if (darkModeSaved === 'true') {
             e.preventDefault();
             
             try {
-                // 获取 CSRF token
-                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
-                                 '{{ csrf_token }}';
-                
-                // 使用 fetch API 发送 POST 请求
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
                 const response = await fetch('/logout/', {
                     method: 'POST',
                     headers: {
@@ -589,11 +584,9 @@ if (darkModeSaved === 'true') {
                 if (response.ok) {
                     window.location.href = '/login/';
                 } else {
-                    // 降级方案：直接跳转
                     window.location.href = '/logout/?next=/login/';
                 }
             } catch (error) {
-                // 最后的降级方案
                 window.location.href = '/logout/?next=/login/';
             }
         });
@@ -601,7 +594,6 @@ if (darkModeSaved === 'true') {
 })();
 </script>
     <script>
-    // 3秒后自动关闭提示消息
     setTimeout(function() {
         var alerts = document.querySelectorAll('.alert');
         alerts.forEach(function(alert) {
@@ -611,7 +603,6 @@ if (darkModeSaved === 'true') {
     }, 3000);
     </script>
 
-    <!-- Toast 通知容器 -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
         <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="3000">
             <div class="toast-header">
@@ -631,7 +622,6 @@ if (darkModeSaved === 'true') {
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// Toast 通知函数
 function showToast(message, type = 'success') {
     const toastEl = document.getElementById('liveToast');
     const toastBody = toastEl.querySelector('.toast-body');
@@ -654,7 +644,6 @@ function showToast(message, type = 'success') {
     toast.show();
 }
 
-// 加载动画函数
 function showLoading() {
     const overlay = document.getElementById('loadingOverlay');
     if (overlay) overlay.style.display = 'flex';
@@ -665,7 +654,6 @@ function hideLoading() {
     if (overlay) overlay.style.display = 'none';
 }
 
-// 链接点击显示加载动画
 document.querySelectorAll('a').forEach(link => {
     link.addEventListener('click', function(e) {
         if (this.href && !this.href.startsWith('javascript:')) {
@@ -702,219 +690,18 @@ document.querySelectorAll('form').forEach(form => {
     }
 })();
 
-// ========== 移动端侧边栏（禁用浏览器返回手势）==========
-const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-const sidebar = document.querySelector('.sidebar');
-
-// 阻止浏览器返回手势的函数
-function preventPopState(e) {
-    if (sidebar && sidebar.classList.contains('show')) {
-        // 如果菜单是打开的，阻止返回
-        e.preventDefault();
-        e.stopPropagation();
-        // 关闭菜单而不是返回
-        sidebar.classList.remove('show');
-        return false;
-    }
-}
-
-if (mobileMenuBtn) {
-    mobileMenuBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        sidebar.classList.toggle('show');
-        
-        // 当菜单打开时，添加一个历史记录占位，防止返回
-        if (sidebar.classList.contains('show')) {
-            history.pushState({sidebar: 'open'}, '', window.location.href);
-        } else {
-            // 菜单关闭时，清除占位
-            if (window.history.state && window.history.state.sidebar === 'open') {
-                window.history.back();
-            }
-        }
-    });
-}
-
-const mainContent = document.querySelector('.main-content');
-if (mainContent) {
-    mainContent.addEventListener('click', function() {
-        if (window.innerWidth < 768 && sidebar.classList.contains('show')) {
-            sidebar.classList.remove('show');
-        }
-    });
-}
-
-// 拦截浏览器返回按钮/popstate事件
-window.addEventListener('popstate', function(e) {
-    if (sidebar && sidebar.classList.contains('show')) {
-        // 菜单打开时，返回操作变成关闭菜单
-        e.preventDefault();
-        sidebar.classList.remove('show');
-        // 阻止真正的页面返回
-        history.pushState({sidebar: 'open'}, '', window.location.href);
-        return false;
-    }
-});
-
-// 禁用右滑打开菜单（只保留点击按钮打开）
-let touchStartX = 0;
-document.addEventListener('touchstart', function(e) {
-    touchStartX = e.touches[0].clientX;
-}, { passive: true });
-
-document.addEventListener('touchmove', function(e) {
-    const currentX = e.touches[0].clientX;
-    const deltaX = currentX - touchStartX;
-    
-    // 如果是从左边缘右滑，且菜单没打开，阻止浏览器返回
-    if (deltaX > 30 && touchStartX < 50 && !sidebar.classList.contains('show')) {
-        e.preventDefault();
-        return false;
-    }
-    // 如果菜单已打开，右滑关闭菜单
-    if (deltaX > 30 && touchStartX < 50 && sidebar.classList.contains('show')) {
-        e.preventDefault();
-        sidebar.classList.remove('show');
-        return false;
-    }
-}, { passive: false });
-
-// ========== 侧边栏高亮（一个脚本搞定）==========
-function setActiveMenu() {
-    var currentPath = window.location.pathname;
-    var navLinks = document.querySelectorAll('.sidebar .nav-link');
-    
-    // 先移除所有高亮
-    navLinks.forEach(function(link) {
-        link.classList.remove('active');
-    });
-    
-    // 专门处理订单管理
-    if (currentPath.indexOf('/customers/orders/') !== -1) {
-        var orderLink = document.querySelector('.sidebar .nav-link[href="/customers/orders/"]');
-        if (orderLink) orderLink.classList.add('active');
-    }
-    
-    // 处理其他菜单
-    navLinks.forEach(function(link) {
-        var href = link.getAttribute('href');
-        if (!href) return;
-        
-        // 跳过已经高亮的订单管理
-        if (href === '/customers/orders/') return;
-        
-        // 完全匹配
-        if (currentPath === href) {
-            link.classList.add('active');
-        }
-        // 首页
-        else if (href === '/stats-dashboard/' && (currentPath === '/' || currentPath === '')) {
-            link.classList.add('active');
-        }
-        // 客户管理子页面
-        else if (href === '/customers/' && currentPath.startsWith('/customers/') && currentPath !== '/customers/') {
-            link.classList.add('active');
-        }
-        // 其他菜单部分匹配
-        else if (href !== '/' && currentPath.startsWith(href) && href.length > 1) {
-            link.classList.add('active');
-        }
-    });
-}
-// ========== 侧边栏滚动位置保存 ==========
-(function() {
-    var sidebar = document.querySelector('.sidebar');
-    if (!sidebar) return;
-    
-    var savedTop = sessionStorage.getItem('sidebarScrollTop');
-    if (savedTop) {
-        setTimeout(function() { sidebar.scrollTop = parseInt(savedTop); }, 50);
-    }
-    
-    sidebar.addEventListener('scroll', function() {
-        sessionStorage.setItem('sidebarScrollTop', sidebar.scrollTop);
-    });
-})();
-
-// ========== 侧边栏日历显示 ==========
-function setSidebarDate() {
-    var dateContainer = document.getElementById('currentDate');
-    if (dateContainer) {
-        var now = new Date();
-        var year = now.getFullYear();
-        var month = now.getMonth() + 1;
-        var day = now.getDate();
-        var weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-        var weekday = weekdays[now.getDay()];
-        dateContainer.innerHTML = year + '年' + month + '月' + day + '日<br>' + weekday;
-    }
-}
-
-// 页面加载时执行高亮和日历
-setActiveMenu();
-setSidebarDate();
-
-// 点击后延迟重新高亮
-document.querySelectorAll('.sidebar .nav-link').forEach(function(link) {
-    link.addEventListener('click', function() {
-        setTimeout(setActiveMenu, 100);
-    });
-});
-
-// 定时刷新日历（确保订单管理页面日历不消失）
-setInterval(setSidebarDate, 500);
-</script>
-
-<script>
-// 禁用右键菜单
-document.addEventListener('contextmenu', function(e) {
-    e.preventDefault();
-    return false;
-});
-
-// 禁用 F12 和开发者工具快捷键
-document.addEventListener('keydown', function(e) {
-    // F12
-    if (e.key === 'F12') {
-        e.preventDefault();
-        return false;
-    }
-    // Ctrl+Shift+I
-    if (e.ctrlKey && e.shiftKey && e.key === 'I') {
-        e.preventDefault();
-        return false;
-    }
-    // Ctrl+Shift+C
-    if (e.ctrlKey && e.shiftKey && e.key === 'C') {
-        e.preventDefault();
-        return false;
-    }
-    // Ctrl+U (查看源代码)
-    if (e.ctrlKey && e.key === 'u') {
-        e.preventDefault();
-        return false;
-    }
-    // Ctrl+S (保存页面)
-    if (e.ctrlKey && e.key === 's') {
-        e.preventDefault();
-        return false;
-    }
-});
-
-// ========== 移动端侧边栏（纯点击模式，禁用所有右滑）==========
+// ========== 移动端侧边栏 + 禁用右滑（唯一一份，无重复）==========
 (function() {
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     const sidebar = document.querySelector('.sidebar');
     
     if (!mobileMenuBtn || !sidebar) return;
     
-    // 1. 点击按钮切换菜单（手机和PC都生效）
+    // 1. 点击按钮切换菜单
     mobileMenuBtn.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
         sidebar.classList.toggle('show');
-        console.log('菜单切换', sidebar.classList.contains('show')); // 调试，部署后可删除
     });
     
     // 2. 点击主内容区域关闭菜单（仅手机端）
@@ -931,32 +718,16 @@ document.addEventListener('keydown', function(e) {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (isMobile) {
         let touchStartX = 0;
-        document.addEventListener('touchstart', function(e) {
+        document.body.addEventListener('touchstart', function(e) {
             touchStartX = e.touches[0].clientX;
-        }, { passive: true });
-        
-        document.addEventListener('touchmove', function(e) {
-            const currentX = e.touches[0].clientX;
-            const deltaX = currentX - touchStartX;
-            
-            // 从左边缘开始的右滑，完全阻止
-            if (deltaX > 15 && touchStartX < 50) {
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
-            }
         }, { passive: false });
         
-        // 阻止 Safari 的滑动返回
-        history.pushState(null, null, location.href);
-        window.addEventListener('popstate', function() {
-            if (sidebar.classList.contains('show')) {
-                sidebar.classList.remove('show');
-                history.pushState(null, null, location.href);
-            } else {
-                history.pushState(null, null, location.href);
+        document.body.addEventListener('touchmove', function(e) {
+            const deltaX = e.touches[0].clientX - touchStartX;
+            if (deltaX > 30 && touchStartX < 50) {
+                e.preventDefault();
             }
-        });
+        }, { passive: false });
     }
 })();
 
@@ -1030,34 +801,15 @@ document.querySelectorAll('.sidebar .nav-link').forEach(function(link) {
 });
 
 setInterval(setSidebarDate, 500);
-</script>
 
-<script>
-// 禁用右键菜单
+// ========== 禁用开发者工具 ==========
 document.addEventListener('contextmenu', function(e) {
     e.preventDefault();
     return false;
 });
 
-// 禁用 F12 和开发者工具快捷键
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'F12') {
-        e.preventDefault();
-        return false;
-    }
-    if (e.ctrlKey && e.shiftKey && e.key === 'I') {
-        e.preventDefault();
-        return false;
-    }
-    if (e.ctrlKey && e.shiftKey && e.key === 'C') {
-        e.preventDefault();
-        return false;
-    }
-    if (e.ctrlKey && e.key === 'u') {
-        e.preventDefault();
-        return false;
-    }
-    if (e.ctrlKey && e.key === 's') {
+    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'C')) || (e.ctrlKey && e.key === 'u') || (e.ctrlKey && e.key === 's')) {
         e.preventDefault();
         return false;
     }
