@@ -1297,8 +1297,15 @@ def order_list(request):
     total_amount_domestic = orders.filter(business_type='domestic').aggregate(total=Sum('subtotal'))['total'] or 0
     total_amount_international = orders.filter(business_type='international').aggregate(total=Sum('subtotal'))['total'] or 0
     
+    # 计算总数量（从订单的 items 中累加 quantity）
+    total_quantity = 0
+    for order in orders:
+        for item in order.items:
+            total_quantity += float(item.get('quantity', 0))
+
     return render(request, 'customers/order_list.html', {
         'orders': orders,
+        'total_quantity': total_quantity,
         'total_amount_domestic': total_amount_domestic,
         'total_amount_international': total_amount_international,
         'current_type': business_type,
