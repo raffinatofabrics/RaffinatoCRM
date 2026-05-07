@@ -224,17 +224,16 @@ body.dark-mode .pagination .page-item.active .page-link {
                     {% endfor %}
                 </tbody>
                 <tfoot>
+<tfoot>
     <tr style="background-color: #f5f5f5;">
-        <!-- 复选框列 -->
-        <td colspan="5" class="text-end"><strong>合计</strong></a>
-        <!-- 数量列下方：显示总数量 -->
-        <td><strong>{{ total_quantity|smart_number }} 米</strong></a>
-        <!-- 金额列下方：显示总金额 -->
-        <td colspan="3">
+        <td colspan="5" class="text-end"><strong>合计：</strong></td>
+        <td><strong>{{ total_quantity|smart_number }} 米</strong></td>
+        <td colspan="2">
             <strong>¥ {{ total_amount_domestic|smart_number }}</strong><br>
             <strong>$ {{ total_amount_international|smart_number }}</strong>
-        </a></a>
-    </tr>
+        </a>
+        <td></td>
+    </a>
 </tfoot>
             </a>
         </div>
