@@ -226,16 +226,23 @@ body.dark-mode .pagination .page-item.active .page-link {
                 <tfoot>
 <tfoot>
     <tr style="background-color: #f5f5f5;">
-        <td colspan="5" class="text-end"><strong>合计：</strong></td>
-        <td><strong>{{ total_quantity|smart_number }} 米</strong></td>
-        <td colspan="2">
+        <!-- 第1-5列：合并占位（复选框、订单号、客户、类型、订单日期） -->
+        <td colspan="5"></a>
+        <!-- 第6列：合计文字 -->
+        <td><strong>合计：</strong></a>
+        <!-- 第7列：数量 -->
+        <td><strong>{{ total_quantity|smart_number }} 米</strong></a>
+        <!-- 第8列：金额 -->
+        <td>
             <strong>¥ {{ total_amount_domestic|smart_number }}</strong><br>
             <strong>$ {{ total_amount_international|smart_number }}</strong>
         </a>
-        <td></td>
-    </a>
-</tfoot>
-            </a>
+        <!-- 第9列：状态（空白，保留背景色） -->
+        <td style="background-color: #f5f5f5;"></a>
+        <!-- 第10列：操作（空白，保留背景色） -->
+        <td style="background-color: #f5f5f5;"></a>
+    </tr>
+</tfoot>            </a>
         </div>
     </div>
 </div>
