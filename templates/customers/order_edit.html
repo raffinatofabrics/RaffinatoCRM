@@ -4,6 +4,16 @@
 {% block page_title %}编辑订单 - {{ order.order_no }}{% endblock %}
 
 {% block content %}
+<style>
+/* 修复暗色模式下合计行的背景色 */
+body.dark-mode .table tfoot tr {
+    background-color: #0f3460 !important;
+}
+body.dark-mode .table tfoot td {
+    background-color: #0f3460 !important;
+    color: #fff !important;
+}
+</style>
 <div class="row">
     <div class="col-md-12 mb-3">
         <a href="{% url 'order_detail' order.id %}" class="btn btn-secondary">
