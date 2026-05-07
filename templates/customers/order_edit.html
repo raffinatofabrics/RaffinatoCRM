@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block page_title %}编辑订单 - {{ order.order_no }}{% endblock %}
 
@@ -12,15 +13,65 @@
 </div>
 
 <div class="row">
-    <div class="col-md-6 mx-auto">
+    <div class="col-md-10 mx-auto">
         <div class="card-modern">
             <div class="card-header">
                 <h5 class="mb-0">编辑订单 - {{ order.order_no }}</h5>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" id="orderEditForm">
                     {% csrf_token %}
                     
+                    <!-- 产品明细表格 -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold mb-2">产品明细</label>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>产品名称</th>
+                                        <th>规格色号</th>
+                                        <th>数量</th>
+                                        <th>单位</th>
+                                        <th>单价</th>
+                                        <th>金额</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in order.items %}
+                                    <tr class="item-row">
+                                        <td>
+                                            <input type="text" name="product_name[]" class="form-control" value="{{ item.product_name }}" readonly style="background-color:#e9ecef">
+                                        </td>
+                                        <td>
+                                            <input type="text" name="specification[]" class="form-control" value="{{ item.specification|default:'' }}" readonly style="background-color:#e9ecef">
+                                        </td>
+                                        <td>
+                                            <input type="number" name="quantity[]" class="form-control qty-input" step="0.01" value="{{ item.quantity }}">
+                                        </td>
+                                        <td>
+                                            <input type="text" name="unit[]" class="form-control" value="{{ item.unit|default:'米' }}" readonly style="background-color:#e9ecef">
+                                        </td>
+                                        <td>
+                                            <input type="number" name="unit_price[]" class="form-control price-input" step="0.01" value="{{ item.unit_price }}">
+                                        </td>
+                                        <td>
+                                            <input type="text" name="amount[]" class="form-control amount-display" readonly value="{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ item.amount|smart_number }}">
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr style="background-color: #f5f5f5;">
+                                        <td colspan="5" class="text-end"><strong>合计金额：</strong></td>
+                                        <td><strong id="totalAmount">{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.subtotal|smart_number }}</strong></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- 订单状态 -->
                     <div class="mb-3">
                         <label class="form-label">订单状态</label>
                         <select name="status" class="form-select">
@@ -32,9 +83,10 @@
                         </select>
                     </div>
                     
+                    <!-- 备注 -->
                     <div class="mb-3">
                         <label class="form-label">备注</label>
-                        <textarea name="notes" class="form-control" rows="4">{{ order.notes|default:'' }}</textarea>
+                        <textarea name="notes" class="form-control" rows="3">{{ order.notes|default:'' }}</textarea>
                     </div>
                     
                     <div class="mt-4">
@@ -46,4 +98,42 @@
         </div>
     </div>
 </div>
+
+<script>
+// 实时计算每行金额和合计
+function calculateRowAmount(row) {
+    const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+    const price = parseFloat(row.querySelector('.price-input').value) || 0;
+    const amount = qty * price;
+    const currency = '{% if order.business_type == "international" %}${% else %}¥{% endif %}';
+    row.querySelector('.amount-display').value = currency + ' ' + amount.toFixed(2);
+    return amount;
+}
+
+function calculateTotal() {
+    let total = 0;
+    document.querySelectorAll('.item-row').forEach(row => {
+        const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+        const price = parseFloat(row.querySelector('.price-input').value) || 0;
+        total += qty * price;
+    });
+    const currency = '{% if order.business_type == "international" %}${% else %}¥{% endif %}';
+    document.getElementById('totalAmount').innerHTML = currency + ' ' + total.toFixed(2);
+}
+
+// 绑定事件
+document.querySelectorAll('.item-row').forEach(row => {
+    const qtyInput = row.querySelector('.qty-input');
+    const priceInput = row.querySelector('.price-input');
+    
+    qtyInput.addEventListener('input', () => {
+        calculateRowAmount(row);
+        calculateTotal();
+    });
+    priceInput.addEventListener('input', () => {
+        calculateRowAmount(row);
+        calculateTotal();
+    });
+});
+</script>
 {% endblock %}

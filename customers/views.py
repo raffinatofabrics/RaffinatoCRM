@@ -1458,10 +1458,10 @@ def order_detail(request, order_id):
 
 @log_operation('edit', 'order', '编辑订单')
 def order_edit(request, order_id):
-    """编辑订单状态和备注"""
+    """编辑订单：支持修改数量和单价"""
     order = get_object_or_404(Order, id=order_id)
     
-    # 权限检查：销售人员只能编辑自己客户的订单
+    # 权限检查（保持不变）
     if request.user.is_authenticated and hasattr(request.user, 'profile'):
         role = request.user.profile.role
         if role == 'sales':
@@ -1469,16 +1469,44 @@ def order_edit(request, order_id):
                 messages.error(request, '您没有权限编辑此订单')
                 return redirect('order_list')
         elif role == 'dept_leader':
-            # 主管可以编辑本部门订单
             dept = request.user.profile.department
             if dept and order.customer.department != dept:
                 messages.error(request, '您没有权限编辑此订单')
                 return redirect('order_list')
 
     if request.method == 'POST':
+        # 获取修改后的产品明细
+        product_names = request.POST.getlist('product_name[]')
+        specifications = request.POST.getlist('specification[]')
+        quantities = request.POST.getlist('quantity[]')
+        units = request.POST.getlist('unit[]')
+        unit_prices = request.POST.getlist('unit_price[]')
+        
+        # 重新计算 items 和 subtotal
+        items = []
+        subtotal = 0
+        for i in range(len(product_names)):
+            if product_names[i]:
+                qty = float(quantities[i]) if quantities[i] else 0
+                price = float(unit_prices[i]) if unit_prices[i] else 0
+                amount = qty * price
+                subtotal += amount
+                items.append({
+                    'product_name': product_names[i],
+                    'specification': specifications[i] if i < len(specifications) else '',
+                    'quantity': qty,
+                    'unit': units[i] if i < len(units) and units[i] else '米',
+                    'unit_price': price,
+                    'amount': amount,
+                })
+        
+        # 更新订单
+        order.items = items
+        order.subtotal = subtotal
         order.status = request.POST.get('status')
         order.notes = request.POST.get('notes', '')
         order.save()
+        
         messages.success(request, f'订单 {order.order_no} 已更新')
         return redirect('order_detail', order_id=order.id)
     
