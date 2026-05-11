@@ -227,7 +227,7 @@ CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_AGE = 86400                      # 24 小时（解决过期问题）
-CSRF_COOKIE_DOMAIN = '.raffinato.cn'         # Cloudflare 需要明确域名
+CSRF_COOKIE_DOMAIN = None        # Cloudflare 需要明确域名
 CSRF_USE_SESSIONS = False
 
 # Session 配置
@@ -237,7 +237,7 @@ SESSION_SAVE_EVERY_REQUEST = True            # 每次请求刷新有效期
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_SECURE = True
-SESSION_COOKIE_DOMAIN = '.raffinato.cn'
+SESSION_COOKIE_DOMAIN = None
 
 # Cloudflare 代理设置（重要！）
 USE_X_FORWARDED_HOST = True
