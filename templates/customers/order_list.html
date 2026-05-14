@@ -117,48 +117,75 @@ body.dark-mode .dark-mode-bg {
     </a>
 </div>
 
-<!-- 筛选栏 -->
+<!-- 筛选栏（统一搜索按钮触发） -->
+<form method="get" action="" id="orderFilterForm" class="row g-2 mb-3 align-items-end">
+    <!-- 订单类型 -->
+    <div class="col-auto">
+        <label class="form-label small mb-1">订单类型</label>
+        <select name="type" class="form-select form-select-sm">
+            <option value="">全部类型</option>
+            <option value="international" {% if request.GET.type == 'international' %}selected{% endif %}>外贸</option>
+            <option value="domestic" {% if request.GET.type == 'domestic' %}selected{% endif %}>内贸</option>
+        </select>
+    </div>
+    <!-- 订单状态 -->
+    <div class="col-auto">
+        <label class="form-label small mb-1">订单状态</label>
+        <select name="status" class="form-select form-select-sm">
+            <option value="">全部状态</option>
+            <option value="draft" {% if request.GET.status == 'draft' %}selected{% endif %}>草稿</option>
+            <option value="confirmed" {% if request.GET.status == 'confirmed' %}selected{% endif %}>已确认</option>
+            <option value="shipped" {% if request.GET.status == 'shipped' %}selected{% endif %}>已发货</option>
+            <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>已完成</option>
+        </select>
+    </div>
+    <!-- 订单日期 -->
+    <div class="col-auto">
+        <label class="form-label small mb-1">订单日期</label>
+        <input type="date" name="order_date" class="form-control form-control-sm"
+               value="{{ request.GET.order_date|default:'' }}">
+    </div>
+    <!-- 公司名称（模糊搜索） -->
+    <div class="col-auto" style="min-width: 160px;">
+        <label class="form-label small mb-1">公司名称</label>
+        <input type="text" name="company_name" class="form-control form-control-sm"
+               placeholder="输入关键词" value="{{ request.GET.company_name|default:'' }}">
+    </div>
+    <!-- 产品名称（模糊搜索） -->
+    <div class="col-auto" style="min-width: 160px;">
+        <label class="form-label small mb-1">产品名称</label>
+        <input type="text" name="product_name" class="form-control form-control-sm"
+               placeholder="输入型号/名称" value="{{ request.GET.product_name|default:'' }}">
+    </div>
+    <!-- 搜索按钮 -->
+    <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-primary mt-3">🔍 搜索</button>
+    </div>
+    <!-- 重置按钮（清空所有筛选） -->
+    <div class="col-auto">
+        <a href="{% url 'order_list' %}" class="btn btn-sm btn-secondary mt-3">重置</a>
+    </div>
+</form>
+
+<!-- 批量操作按钮（独立于筛选表单） -->
 <div class="row mb-3">
-    <div class="col-md-8">
-        <form method="get" class="row g-2" id="filterForm" novalidate>
-            <div class="col-auto">
-                <select name="type" class="form-select" onchange="this.form.submit()">
-                    <option value="">全部类型</option>
-                    <option value="international" {% if current_type == 'international' %}selected{% endif %}>外贸</option>
-                    <option value="domestic" {% if current_type == 'domestic' %}selected{% endif %}>内贸</option>
-                </select>
-            </div>
-            <div class="col-auto">
-                <select name="status" class="form-select" onchange="this.form.submit()">
-                    <option value="">全部状态</option>
-                    <option value="draft" {% if current_status == 'draft' %}selected{% endif %}>草稿</option>
-                    <option value="confirmed" {% if current_status == 'confirmed' %}selected{% endif %}>已确认</option>
-                    <option value="shipped" {% if current_status == 'shipped' %}selected{% endif %}>已发货</option>
-                    <option value="completed" {% if current_status == 'completed' %}selected{% endif %}>已完成</option>
-                </select>
-            </div>
-            <div class="col-auto">
-                <a href="{% url 'order_list' %}" class="btn btn-secondary">重置</a>
-            </div>
-            <div class="col-auto">
-                <button type="button" id="batchDeleteOrdersBtn" class="btn btn-danger">
-                    <i class="fas fa-trash"></i> 批量删除
-                </button>
-            </div>
-            <div class="col-auto">
-                <div class="dropdown">
-                    <button class="btn btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-edit"></i> 批量调整
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item batch-status" data-status="draft">草稿</a></li>
-                        <li><a class="dropdown-item batch-status" data-status="confirmed">已确认</a></li>
-                        <li><a class="dropdown-item batch-status" data-status="shipped">已发货</a></li>
-                        <li><a class="dropdown-item batch-status" data-status="completed">已完成</a></li>
-                    </ul>
-                </div>
-            </div>
-        </form>
+    <div class="col-auto">
+        <button type="button" id="batchDeleteOrdersBtn" class="btn btn-sm btn-danger">
+            <i class="fas fa-trash"></i> 批量删除
+        </button>
+    </div>
+    <div class="col-auto">
+        <div class="dropdown">
+            <button class="btn btn-sm btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="fas fa-edit"></i> 批量调整
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item batch-status" data-status="draft">草稿</a></li>
+                <li><a class="dropdown-item batch-status" data-status="confirmed">已确认</a></li>
+                <li><a class="dropdown-item batch-status" data-status="shipped">已发货</a></li>
+                <li><a class="dropdown-item batch-status" data-status="completed">已完成</a></li>
+            </ul>
+        </div>
     </div>
 </div>
 

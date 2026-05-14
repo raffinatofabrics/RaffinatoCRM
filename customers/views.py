@@ -1268,10 +1268,15 @@ def order_list(request):
     business_type = request.GET.get('type', '')
     status = request.GET.get('status', '')
     
-    # 只显示未删除的订单（软删除过滤）
+    # ========== 新增：获取三个搜索参数 ==========
+    order_date = request.GET.get('order_date', '')
+    company_name = request.GET.get('company_name', '').strip()
+    product_name = request.GET.get('product_name', '').strip()
+    
+    # 只显示未删除的订单
     orders = Order.objects.select_related('customer').filter(is_deleted=False).order_by('-created_at')
     
-    # ========== 权限过滤（安全版） ==========
+    # ========== 权限过滤 ==========
     role = get_user_role(request)
     if role is None:
         messages.error(request, '会话已过期，请重新登录')
@@ -1287,22 +1292,60 @@ def order_list(request):
         dept = request.user.profile.department
         if dept:
             orders = orders.filter(customer__department=dept)
-    # ========== 权限过滤结束 ==========    
+    
+    # 类型和状态过滤
     if business_type:
         orders = orders.filter(business_type=business_type)
     if status:
         orders = orders.filter(status=status)
     
-    # 分开计算外贸和内贸的合计金额
-    total_amount_domestic = orders.filter(business_type='domestic').aggregate(total=Sum('subtotal'))['total'] or 0
-    total_amount_international = orders.filter(business_type='international').aggregate(total=Sum('subtotal'))['total'] or 0
+    # ========== 新增：订单日期和公司名过滤（数据库层面） ==========
+    if order_date:
+        # 假设订单日期字段名为 order_date，如果是 DateTimeField 则需转日期
+        orders = orders.filter(order_date=order_date)
+    if company_name:
+        orders = orders.filter(customer__name__icontains=company_name)
     
-    # 计算总数量（从订单的 items 中累加 quantity）
-    total_quantity = 0
-    for order in orders:
-        for item in order.items:
-            total_quantity += float(item.get('quantity', 0))
-
+    # ========== 新增：产品名过滤（由于 items 是 JSONField，需在 Python 层过滤） ==========
+    if product_name:
+        # 先将 QuerySet 转为列表（后续不能再链式数据库过滤）
+        orders = list(orders)
+        filtered_orders = []
+        for order in orders:
+            # order.items 是 JSONField 列表，每个元素是字典
+            for item in order.items:
+                if product_name.lower() in item.get('product_name', '').lower():
+                    filtered_orders.append(order)
+                    break
+        orders = filtered_orders
+    else:
+        # 如果没有产品名过滤，orders 仍然是 QuerySet，但后续计算合计金额时需保持一致性
+        # 如果不做产品名过滤，orders 是 QuerySet，可以直接用 aggregate。
+        # 但为了统一，后续计算合计金额时对 QuerySet 和列表分别处理。
+        # 简单做法：如果没有产品名过滤，保持 orders 为 QuerySet，计算合计时使用原方法。
+        # 但为了代码简洁，我们统一将 orders 转为列表（但会丢失 QuerySet 的 aggregate 能力）。
+        # 更好的做法：先不用 list()，只在需要 Python 过滤时才转列表。
+        pass
+    
+    # ========== 计算合计金额和数量 ==========
+    # 注意：如果执行了产品名过滤，orders 已经是列表，不能再用 .filter().aggregate()
+    if product_name:
+        # 手动累加
+        total_amount_domestic = sum(o.subtotal for o in orders if o.business_type == 'domestic')
+        total_amount_international = sum(o.subtotal for o in orders if o.business_type == 'international')
+        total_quantity = 0
+        for order in orders:
+            for item in order.items:
+                total_quantity += float(item.get('quantity', 0))
+    else:
+        # 正常数据库聚合（orders 仍是 QuerySet）
+        total_amount_domestic = orders.filter(business_type='domestic').aggregate(total=Sum('subtotal'))['total'] or 0
+        total_amount_international = orders.filter(business_type='international').aggregate(total=Sum('subtotal'))['total'] or 0
+        total_quantity = 0
+        for order in orders:  # 注意：此时 orders 是 QuerySet，但迭代依然有效
+            for item in order.items:
+                total_quantity += float(item.get('quantity', 0))
+    
     return render(request, 'customers/order_list.html', {
         'orders': orders,
         'total_quantity': total_quantity,
