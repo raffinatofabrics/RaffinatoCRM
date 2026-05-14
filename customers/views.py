@@ -1267,7 +1267,7 @@ def order_list(request):
     business_type = request.GET.get('type', '')
     status = request.GET.get('status', '')
     
-    # 搜索参数
+    # 三个搜索参数
     order_date = request.GET.get('order_date', '')
     company_name = request.GET.get('company_name', '').strip()
     product_name = request.GET.get('product_name', '').strip()
@@ -1275,7 +1275,7 @@ def order_list(request):
     # 只显示未删除的订单
     orders = Order.objects.select_related('customer').filter(is_deleted=False).order_by('-created_at')
     
-    # 权限过滤
+    # ========== 权限过滤 ==========
     role = get_user_role(request)
     if role is None:
         messages.error(request, '会话已过期，请重新登录')
@@ -1306,12 +1306,12 @@ def order_list(request):
     if company_name:
         orders = orders.filter(customer__company_name__icontains=company_name)
     
-    # 产品名过滤（JSONField Python 层过滤）
+    # 产品名过滤（JSONField Python 层过滤，保留可用逻辑）
     if product_name:
-        orders = list(orders)  # 转为列表，后续 Python 过滤
+        orders = list(orders)  # 转为列表
         filtered_orders = []
         for order in orders:
-            for item in order.items:
+            for item in order.items:  # items 是 JSONField 列表
                 if product_name.lower() in item.get('product_name', '').lower():
                     filtered_orders.append(order)
                     break
@@ -1327,7 +1327,7 @@ def order_list(request):
             for item in order.items:
                 total_quantity += float(item.get('quantity', 0))
     else:
-        # 无产品搜索时，orders 是 QuerySet，用数据库聚合
+        # 无产品搜索时，orders 仍是 QuerySet，数据库聚合
         total_amount_domestic = orders.filter(business_type='domestic').aggregate(total=Sum('subtotal'))['total'] or 0
         total_amount_international = orders.filter(business_type='international').aggregate(total=Sum('subtotal'))['total'] or 0
         total_quantity = 0
