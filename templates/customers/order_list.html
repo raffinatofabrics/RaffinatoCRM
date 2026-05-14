@@ -117,7 +117,7 @@ body.dark-mode .dark-mode-bg {
     </a>
 </div>
 
-<!-- 筛选栏（统一搜索按钮触发） -->
+<!-- 筛选栏（统一表单，批量按钮放在同一行） -->
 <form method="get" action="" id="orderFilterForm" class="row g-2 mb-3 align-items-end">
     <!-- 订单类型 -->
     <div class="col-auto">
@@ -145,38 +145,36 @@ body.dark-mode .dark-mode-bg {
         <input type="date" name="order_date" class="form-control form-control-sm"
                value="{{ request.GET.order_date|default:'' }}">
     </div>
-    <!-- 公司名称（模糊搜索） -->
+    <!-- 公司名称 -->
     <div class="col-auto" style="min-width: 160px;">
         <label class="form-label small mb-1">公司名称</label>
         <input type="text" name="company_name" class="form-control form-control-sm"
                placeholder="输入关键词" value="{{ request.GET.company_name|default:'' }}">
     </div>
-    <!-- 产品名称（模糊搜索） -->
+    <!-- 产品名称（预留，暂不实现搜索） -->
     <div class="col-auto" style="min-width: 160px;">
         <label class="form-label small mb-1">产品名称</label>
         <input type="text" name="product_name" class="form-control form-control-sm"
-               placeholder="输入型号/名称" value="{{ request.GET.product_name|default:'' }}">
+               placeholder="暂未实现" value="" disabled>
     </div>
     <!-- 搜索按钮 -->
     <div class="col-auto">
         <button type="submit" class="btn btn-sm btn-primary mt-3">🔍 搜索</button>
     </div>
-    <!-- 重置按钮（清空所有筛选） -->
+    <!-- 重置按钮 -->
     <div class="col-auto">
         <a href="{% url 'order_list' %}" class="btn btn-sm btn-secondary mt-3">重置</a>
     </div>
-</form>
-
-<!-- 批量操作按钮（独立于筛选表单） -->
-<div class="row mb-3">
+    <!-- 批量删除按钮（type="button"，不会提交表单） -->
     <div class="col-auto">
-        <button type="button" id="batchDeleteOrdersBtn" class="btn btn-sm btn-danger">
+        <button type="button" id="batchDeleteOrdersBtn" class="btn btn-sm btn-danger mt-3">
             <i class="fas fa-trash"></i> 批量删除
         </button>
     </div>
+    <!-- 批量调整下拉（type="button" 避免触发） -->
     <div class="col-auto">
         <div class="dropdown">
-            <button class="btn btn-sm btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <button class="btn btn-sm btn-warning dropdown-toggle mt-3" type="button" data-bs-toggle="dropdown">
                 <i class="fas fa-edit"></i> 批量调整
             </button>
             <ul class="dropdown-menu">
@@ -187,7 +185,7 @@ body.dark-mode .dark-mode-bg {
             </ul>
         </div>
     </div>
-</div>
+</form>
 
 <div class="card-modern">
     <div class="card-body">
