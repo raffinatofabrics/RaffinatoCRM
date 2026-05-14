@@ -108,6 +108,22 @@ body.dark-mode .pagination .page-item.active .page-link {
 body.dark-mode .dark-mode-bg {
     background-color: #0f3460 !important;
 }
+
+/* 订单整组高亮样式（配合 JS） */
+.order-row-hover td {
+    background-color: #e9ecef !important;  /* 亮色模式下的高亮色 */
+}
+body.dark-mode .order-row-hover td {
+    background-color: #2c3e50 !important;  /* 暗色模式下的高亮色 */
+}
+
+/* 避免与 Bootstrap 的 table-hover 冲突，提高优先级 */
+.table-modern tbody tr.order-row-hover td {
+    background-color: #e9ecef !important;
+}
+body.dark-mode .table-modern tbody tr.order-row-hover td {
+    background-color: #2c3e50 !important;
+}
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -210,7 +226,7 @@ body.dark-mode .dark-mode-bg {
                     {% for order in orders %}
                         {% with items=order.items %}
                             {% for item in items %}
-                                <tr>
+                                <tr data-order-id="{{ order.id }}"> 
                                     {% if forloop.first %}
                                         <td rowspan="{{ items|length }}"><input type="checkbox" class="order-checkbox" value="{{ order.id }}"></td>
                                         <td class="mobile-hide-order-no" rowspan="{{ items|length }}">{{ order.order_no }}</a></a>
@@ -255,7 +271,6 @@ body.dark-mode .dark-mode-bg {
                     {% endfor %}
                 </tbody>
                 <tfoot>
-<tfoot>
     <tr style="background-color: #f5f5f5;">
         <!-- 第1-5列：合并占位（复选框、订单号、客户、类型、订单日期） -->
         <td colspan="5"></a>
@@ -267,13 +282,13 @@ body.dark-mode .dark-mode-bg {
         <td>
             <strong>¥ {{ total_amount_domestic|smart_number }}</strong><br>
             <strong>$ {{ total_amount_international|smart_number }}</strong>
-        </a>
         <!-- 第9列：状态（空白，保留背景色） -->
         <td style="background-color: #f5f5f5;" class="dark-mode-bg"></a>
         <!-- 第10列：操作（空白，保留背景色） -->
         <td style="background-color: #f5f5f5;" class="dark-mode-bg"></a>
     </tr>
-</tfoot>            </a>
+</tfoot> 
+</table>       
         </div>
     </div>
 </div>
@@ -393,5 +408,40 @@ document.querySelectorAll('.batch-status').forEach(item => {
         });
     });
 });
+</script>
+<script>
+// 订单表格行整组高亮（支持 rowspan 合并单元格）
+(function() {
+    const tbody = document.querySelector('.order-list-table tbody');
+    if (!tbody) return;
+
+    const HOVER_CLASS = 'order-row-hover';
+
+    function removeAllHighlights() {
+        document.querySelectorAll(`.${HOVER_CLASS}`).forEach(row => {
+            row.classList.remove(HOVER_CLASS);
+        });
+    }
+
+    function highlightOrderRows(orderId) {
+        removeAllHighlights();
+        const rows = tbody.querySelectorAll(`tr[data-order-id="${orderId}"]`);
+        rows.forEach(row => row.classList.add(HOVER_CLASS));
+    }
+
+    // 事件委托（捕获阶段，确保及时响应）
+    tbody.addEventListener('mouseenter', function(e) {
+        const targetRow = e.target.closest('tr');
+        if (!targetRow || !targetRow.hasAttribute('data-order-id')) return;
+        const orderId = targetRow.getAttribute('data-order-id');
+        highlightOrderRows(orderId);
+    }, true);
+
+    tbody.addEventListener('mouseleave', function(e) {
+        if (!tbody.contains(e.relatedTarget)) {
+            removeAllHighlights();
+        }
+    });
+})();
 </script>
 {% endblock %}
