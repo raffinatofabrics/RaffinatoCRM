@@ -557,101 +557,110 @@ import json
 
 @log_operation('send_email', 'email', '发送邮件')
 def send_email_to_customer(request, customer_id):
-    """发送邮件给客户（带追踪）"""
-    if request.method == 'POST':
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Method not allowed'}, status=405)
+
+    try:
         data = json.loads(request.body)
-        template_id = data.get('template_id')
-        sender_config_id = data.get('sender_config_id')
-        
-        customer = Customer.objects.get(id=customer_id)
-        template = EmailTemplate.objects.get(id=template_id)
-        
-        # 准备变量
-        variables = {
-            'company_name': customer.company_name,
-            'contact_person': customer.contact_person or '先生/女士',
-            'country': customer.country or '',
-            'my_name': request.user.real_name if hasattr(request.user, 'real_name') else request.user.username,
-            'my_company': 'Raffinato',
-        }
-        
-        subject = template.subject.format(**variables)
-        content = template.content.format(**variables)
-        
-        # 创建发送记录
-        send_log = SendLog.objects.create(
-            customer=customer,
-            template=template,
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': 'Invalid JSON'}, status=400)
+
+    template_id = data.get('template_id')
+    sender_config_id = data.get('sender_config_id')
+
+    if not template_id:
+        return JsonResponse({'success': False, 'message': 'Missing template_id'}, status=400)
+
+    customer = get_object_or_404(Customer, id=customer_id)
+
+    # 关键：验证邮箱
+    if not customer.email or '@' not in customer.email:
+        return JsonResponse({'success': False, 'message': f'客户 {customer.company_name} 无有效邮箱'}, status=400)
+
+    template = get_object_or_404(EmailTemplate, id=template_id)
+
+    # 准备变量（保持不变）
+    variables = {
+        'company_name': customer.company_name,
+        'contact_person': customer.contact_person or '先生/女士',
+        'country': customer.country or '',
+        'my_name': request.user.real_name if hasattr(request.user, 'real_name') else request.user.username,
+        'my_company': 'Raffinato',
+    }
+
+    subject = template.subject.format(**variables)
+    content = template.content.format(**variables)
+
+    # 创建发送记录
+    send_log = SendLog.objects.create(
+        customer=customer,
+        template=template,
+        subject=subject,
+        content=content,
+        sent_by=request.user,
+        sent_at=timezone.now(),
+        status='pending'
+    )
+
+    # 追踪像素与链接替换（需要 re, hashlib, reverse）
+    tracking_pixel_url = request.build_absolute_uri(reverse('track_open', args=[send_log.id]))
+    tracking_img = f'<img src="{tracking_pixel_url}" width="1" height="1" style="display:none;">'
+
+    def replace_link(match):
+        original_url = match.group(1)
+        if 'track/click' in original_url or 'track/open' in original_url:
+            return f'href="{original_url}"'
+        link_id = hashlib.md5(original_url.encode()).hexdigest()[:16]
+        tracking_url = request.build_absolute_uri(reverse('track_click', args=[send_log.id, link_id]))
+        tracking_url += f'?url={original_url}'
+        return f'href="{tracking_url}"'
+
+    final_content = re.sub(r'href="([^"]+)"', replace_link, content)
+    final_content += tracking_img
+
+    # 获取发件邮箱配置（确保模型名正确）
+    if sender_config_id:
+        email_config = get_object_or_404(UserEmailConfig, id=sender_config_id, user=request.user)
+        from_email = email_config.email
+    else:
+        email_config = UserEmailConfig.objects.filter(user=request.user, is_active=True).first()
+        if not email_config:
+            return JsonResponse({'success': False, 'message': '未找到可用发件配置'}, status=400)
+        from_email = email_config.email
+
+    try:
+        msg = EmailMultiAlternatives(
             subject=subject,
-            content=content,
-            sent_by=request.user,
-            sent_at=timezone.now(),
-            status='pending'
+            body=final_content,
+            from_email=from_email,
+            to=[customer.email],   # 此时已确保非空
         )
-        
-        # 1. 添加追踪像素
-        tracking_pixel_url = request.build_absolute_uri(
-            reverse('track_open', args=[send_log.id])
+        msg.attach_alternative(final_content, "text/html")
+        msg.send()
+
+        send_log.status = 'sent'
+        send_log.save()
+
+        CommunicationLog.objects.create(
+            customer=customer,
+            channel='email',
+            direction='outgoing',
+            content=f"【邮件发送】\n主题：{subject}\n收件人：{customer.email}\n内容摘要：{content[:300]}",
+            communication_time=timezone.now(),
+            created_by=request.user.username,
         )
-        tracking_img = f'<img src="{tracking_pixel_url}" width="1" height="1" style="display:none;">'
-        
-        # 2. 替换链接为追踪链接
-        def replace_link(match):
-            original_url = match.group(1)
-            if 'track/click' in original_url or 'track/open' in original_url:
-                return f'href="{original_url}"'
-            
-            link_id = hashlib.md5(original_url.encode()).hexdigest()[:16]
-            tracking_url = request.build_absolute_uri(
-                reverse('track_click', args=[send_log.id, link_id])
-            )
-            tracking_url += f'?url={original_url}'
-            return f'href="{tracking_url}"'
-        
-        final_content = re.sub(r'href="([^"]+)"', replace_link, content)
-        final_content += tracking_img
-        
-        # 获取发件邮箱
-        if sender_config_id:
-            email_config = UserEmailConfig.objects.get(id=sender_config_id, user=request.user)
-            from_email = email_config.email
-        else:
-            email_config = UserEmailConfig.objects.filter(user=request.user, is_active=True).first()
-            from_email = email_config.email if email_config else settings.DEFAULT_FROM_EMAIL
-        
-        try:
-            msg = EmailMultiAlternatives(
-                subject=subject,
-                body=final_content,
-                from_email=from_email,
-                to=[customer.email],
-            )
-            msg.attach_alternative(final_content, "text/html")
-            msg.send()
-            
-            send_log.status = 'sent'
-            send_log.save()
-            
-            # 沟通记录
-            CommunicationLog.objects.create(
-                customer=customer,
-                channel='email',
-                direction='outgoing',
-                content=f"【邮件发送】\n主题：{subject}\n收件人：{customer.email}\n内容摘要：{content[:300]}",
-                communication_time=timezone.now(),
-                created_by=request.user.username,
-            )
-            
-            customer.last_contact_time = timezone.now()
-            customer.save()
-            
-            return JsonResponse({'success': True, 'message': '邮件发送成功'})
-            
-        except Exception as e:
-            send_log.status = 'failed'
-            send_log.error_message = str(e)
-            send_log.save()
-            return JsonResponse({'success': False, 'message': str(e)})
+
+        customer.last_contact_time = timezone.now()
+        customer.save()
+
+        return JsonResponse({'success': True, 'message': '邮件发送成功'})
+
+    except Exception as e:
+        send_log.status = 'failed'
+        send_log.error_message = str(e)
+        send_log.save()
+        return JsonResponse({'success': False, 'message': f'发送失败: {str(e)}'}, status=200)
+
 
 def dashboard(request):
     """仪表盘首页"""
