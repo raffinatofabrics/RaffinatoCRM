@@ -553,10 +553,18 @@ from django.http import JsonResponse
 from templates.models import EmailTemplate
 from send_logs.models import SendLog
 from django.utils import timezone
-import json
+import logging
+logger = logging.getLogger(__name__)
 
 @log_operation('send_email', 'email', '发送邮件')
 def send_email_to_customer(request, customer_id):
+    try:
+        return _send_email_to_customer_impl(request, customer_id)
+    except Exception as e:
+        logger.exception("send_email_to_customer 未捕获异常")
+        return JsonResponse({'success': False, 'message': f'服务器错误: {str(e)}'}, status=500)
+
+def _send_email_to_customer_impl(request, customer_id):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'message': 'Method not allowed'}, status=405)
 
@@ -568,18 +576,41 @@ def send_email_to_customer(request, customer_id):
     template_id = data.get('template_id')
     sender_config_id = data.get('sender_config_id')
 
-    if not template_id:
-        return JsonResponse({'success': False, 'message': 'Missing template_id'}, status=400)
+    # 获取模板（支持默认）
+    if template_id:
+        try:
+            template = EmailTemplate.objects.get(id=template_id)
+        except EmailTemplate.DoesNotExist:
+            return JsonResponse({'success': False, 'message': '指定的邮件模板不存在'}, status=400)
+    else:
+        template = EmailTemplate.objects.first()
+        if not template:
+            return JsonResponse({'success': False, 'message': '没有可用的邮件模板，请先创建模板'}, status=400)
 
-    customer = get_object_or_404(Customer, id=customer_id)
+    # 获取客户
+    try:
+        customer = Customer.objects.get(id=customer_id)
+    except Customer.DoesNotExist:
+        return JsonResponse({'success': False, 'message': '客户不存在'}, status=404)
 
-    # 关键：验证邮箱
+    # 验证客户邮箱
     if not customer.email or '@' not in customer.email:
         return JsonResponse({'success': False, 'message': f'客户 {customer.company_name} 无有效邮箱'}, status=400)
 
-    template = get_object_or_404(EmailTemplate, id=template_id)
+    # 获取发件配置（支持默认）
+    if sender_config_id:
+        try:
+            email_config = UserEmailConfig.objects.get(id=sender_config_id, user=request.user)
+        except UserEmailConfig.DoesNotExist:
+            return JsonResponse({'success': False, 'message': '指定的发件配置不存在'}, status=400)
+    else:
+        email_config = UserEmailConfig.objects.filter(user=request.user, is_active=True).first()
+        if not email_config:
+            return JsonResponse({'success': False, 'message': '没有可用的发件配置，请先配置邮箱'}, status=400)
 
-    # 准备变量（保持不变）
+    from_email = email_config.email
+
+    # 准备模板变量
     variables = {
         'company_name': customer.company_name,
         'contact_person': customer.contact_person or '先生/女士',
@@ -591,7 +622,7 @@ def send_email_to_customer(request, customer_id):
     subject = template.subject.format(**variables)
     content = template.content.format(**variables)
 
-    # 创建发送记录
+    # 创建发送日志
     send_log = SendLog.objects.create(
         customer=customer,
         template=template,
@@ -602,10 +633,11 @@ def send_email_to_customer(request, customer_id):
         status='pending'
     )
 
-    # 追踪像素与链接替换（需要 re, hashlib, reverse）
+    # 追踪像素
     tracking_pixel_url = request.build_absolute_uri(reverse('track_open', args=[send_log.id]))
     tracking_img = f'<img src="{tracking_pixel_url}" width="1" height="1" style="display:none;">'
 
+    # 替换链接为追踪链接
     def replace_link(match):
         original_url = match.group(1)
         if 'track/click' in original_url or 'track/open' in original_url:
@@ -618,22 +650,13 @@ def send_email_to_customer(request, customer_id):
     final_content = re.sub(r'href="([^"]+)"', replace_link, content)
     final_content += tracking_img
 
-    # 获取发件邮箱配置（确保模型名正确）
-    if sender_config_id:
-        email_config = get_object_or_404(UserEmailConfig, id=sender_config_id, user=request.user)
-        from_email = email_config.email
-    else:
-        email_config = UserEmailConfig.objects.filter(user=request.user, is_active=True).first()
-        if not email_config:
-            return JsonResponse({'success': False, 'message': '未找到可用发件配置'}, status=400)
-        from_email = email_config.email
-
+    # 发送邮件
     try:
         msg = EmailMultiAlternatives(
             subject=subject,
             body=final_content,
             from_email=from_email,
-            to=[customer.email],   # 此时已确保非空
+            to=[customer.email],
         )
         msg.attach_alternative(final_content, "text/html")
         msg.send()
@@ -641,6 +664,7 @@ def send_email_to_customer(request, customer_id):
         send_log.status = 'sent'
         send_log.save()
 
+        # 记录沟通日志
         CommunicationLog.objects.create(
             customer=customer,
             channel='email',
@@ -659,8 +683,8 @@ def send_email_to_customer(request, customer_id):
         send_log.status = 'failed'
         send_log.error_message = str(e)
         send_log.save()
+        # 返回 200 但 success=False，方便前端解析
         return JsonResponse({'success': False, 'message': f'发送失败: {str(e)}'}, status=200)
-
 
 def dashboard(request):
     """仪表盘首页"""
