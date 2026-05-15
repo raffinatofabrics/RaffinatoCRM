@@ -505,12 +505,12 @@ if (darkModeSaved === 'true') {
     <li class="nav-item"><a class="nav-link" href="{% url 'order_summary' %}" data-url="{% url 'order_summary' %}"><i class="fas fa-chart-bar"></i> 订单汇总</a></li>
     <li class="nav-item"><a class="nav-link" href="{% url 'search_task_list' %}" data-url="{% url 'search_task_list' %}"><i class="fas fa-search"></i> 搜索任务</a></li>
     <li class="nav-item"><a class="nav-link" href="{% url 'import_customers' %}" data-url="{% url 'import_customers' %}"><i class="fas fa-upload"></i> 导入客户</a></li>
+<li class="nav-item"><a class="nav-link" href="/email-configs/" data-url="/email-configs/"><i class="fas fa-envelope"></i> 邮箱配置</a></li>
     <li class="nav-item"><a class="nav-link" href="/templates/" data-url="/templates/"><i class="fas fa-envelope"></i> 邮件模板</a></li>
     <li class="nav-item"><a class="nav-link" href="/send-logs/" data-url="/send-logs/"><i class="fas fa-history"></i> 发送记录</a></li>
     <li class="nav-item"><a class="nav-link" href="{% url 'document_list' %}" data-url="{% url 'document_list' %}"><i class="fas fa-folder-open"></i> 公司文档</a></li>
     {% if user.is_superuser or user.profile.role == 'admin' %}
     <li class="nav-item"><a class="nav-link" href="{% url 'recycle_bin' %}"><i class="fas fa-trash-restore"></i> 回收站</a></li>
-    <li class="nav-item"><a class="nav-link" href="/email-configs/" data-url="/email-configs/"><i class="fas fa-envelope"></i> 邮箱配置</a></li>
     <li class="nav-item"><a class="nav-link" href="{% url 'user_list' %}" data-url="{% url 'user_list' %}"><i class="fas fa-users-cog"></i> 用户管理</a></li>
     <li class="nav-item"><a class="nav-link" href="{% url 'business_rules_settings' %}" data-url="{% url 'business_rules_settings' %}"><i class="fas fa-cog"></i> 业务规则</a></li>
     <li class="nav-item"><a class="nav-link" href="{% url 'seal_list' %}" data-url="{% url 'seal_list' %}"><i class="fas fa-stamp"></i> 印章管理</a></li>
