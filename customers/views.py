@@ -5154,3 +5154,120 @@ class MobileFriendlyLoginView(LoginView):
     解决手机浏览器刷脸自动填充导致的 403 错误
     """
     pass
+
+# ==================== 订单管理下载 ====================
+import openpyxl
+from openpyxl.styles import Font, Alignment, PatternFill
+from django.http import HttpResponse
+from django.utils import timezone
+
+def order_list_export(request):
+    """导出订单列表为Excel"""
+    from django.db.models import Sum
+    
+    # 获取筛选参数（复用订单列表的过滤逻辑）
+    business_type = request.GET.get('type', '')
+    status = request.GET.get('status', '')
+    order_date = request.GET.get('order_date', '')
+    company_name = request.GET.get('company_name', '').strip()
+    product_name = request.GET.get('product_name', '').strip()
+    
+    # 获取订单数据
+    orders = Order.objects.select_related('customer').filter(is_deleted=False).order_by('-created_at')
+    
+    # 权限过滤
+    role = get_user_role(request)
+    if role == 'sales':
+        orders = orders.filter(customer__assigned_sales=request.user)
+    elif role == 'dept_leader':
+        dept = request.user.profile.department
+        if dept:
+            orders = orders.filter(customer__department=dept)
+    elif role == 'readonly':
+        dept = request.user.profile.department
+        if dept:
+            orders = orders.filter(customer__department=dept)
+    
+    # 筛选条件
+    if business_type:
+        orders = orders.filter(business_type=business_type)
+    if status:
+        orders = orders.filter(status=status)
+    if order_date:
+        orders = orders.filter(order_date=order_date)
+    if company_name:
+        orders = orders.filter(customer__company_name__icontains=company_name)
+    if product_name:
+        orders = list(orders)
+        filtered_orders = []
+        for order in orders:
+            for item in order.items:
+                if product_name.lower() in item.get('product_name', '').lower():
+                    filtered_orders.append(order)
+                    break
+        orders = filtered_orders
+    else:
+        orders = list(orders)
+    
+    # 创建Excel工作簿
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "订单列表"
+    
+    # 表头样式
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    
+    # 表头
+    headers = ['订单号', '客户', '类型', '订单日期', '产品名称', '规格', '数量', '单位', '金额', '状态', '创建时间']
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+    
+    # 填充数据
+    row_num = 2
+    for order in orders:
+        items = order.items if isinstance(order.items, list) else []
+        if not items:
+            # 无产品项时，只写一行
+            ws.cell(row=row_num, column=1, value=order.order_no)
+            ws.cell(row=row_num, column=2, value=order.customer.company_name if order.customer else '')
+            ws.cell(row=row_num, column=3, value='外贸' if order.business_type == 'international' else '内贸')
+            ws.cell(row=row_num, column=4, value=order.order_date.strftime('%Y-%m-%d') if order.order_date else '')
+            ws.cell(row=row_num, column=5, value='')
+            ws.cell(row=row_num, column=6, value='')
+            ws.cell(row=row_num, column=7, value='')
+            ws.cell(row=row_num, column=8, value='')
+            ws.cell(row=row_num, column=9, value=str(order.subtotal) if order.subtotal else '')
+            ws.cell(row=row_num, column=10, value=order.get_status_display() if hasattr(order, 'get_status_display') else order.status)
+            ws.cell(row=row_num, column=11, value=order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '')
+            row_num += 1
+        else:
+            for idx, item in enumerate(items):
+                ws.cell(row=row_num, column=1, value=order.order_no if idx == 0 else '')
+                ws.cell(row=row_num, column=2, value=order.customer.company_name if order.customer and idx == 0 else '')
+                ws.cell(row=row_num, column=3, value='外贸' if order.business_type == 'international' else '内贸' if idx == 0 else '')
+                ws.cell(row=row_num, column=4, value=order.order_date.strftime('%Y-%m-%d') if order.order_date and idx == 0 else '')
+                ws.cell(row=row_num, column=5, value=item.get('product_name', ''))
+                ws.cell(row=row_num, column=6, value=item.get('specification', ''))
+                ws.cell(row=row_num, column=7, value=item.get('quantity', ''))
+                ws.cell(row=row_num, column=8, value=item.get('unit', ''))
+                ws.cell(row=row_num, column=9, value=str(order.subtotal) if order.subtotal and idx == 0 else '')
+                ws.cell(row=row_num, column=10, value=order.get_status_display() if hasattr(order, 'get_status_display') else order.status if idx == 0 else '')
+                ws.cell(row=row_num, column=11, value=order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at and idx == 0 else '')
+                row_num += 1
+    
+    # 调整列宽
+    column_widths = [18, 25, 8, 12, 20, 15, 10, 8, 12, 10, 18]
+    for i, width in enumerate(column_widths, 1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = width
+    
+    # 生成响应
+    filename = f"订单列表_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
