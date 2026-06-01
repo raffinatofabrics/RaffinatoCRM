@@ -201,16 +201,13 @@ body.dark-mode .table-modern tbody tr.order-row-hover td {
             </ul>
         </div>
     </div>
-</form>
-
-<!-- 下载按钮放在表单外面 -->
-<div class="row g-2 mb-3">
+    <!-- 下载按钮（改为 button 类型，不触发表单提交） -->
     <div class="col-auto">
-        <a href="{% url 'order_list_export' %}?{{ request.GET.urlencode }}" class="btn btn-sm btn-success">
-            <i class="fas fa-download"></i> 下载 Excel
-        </a>
+        <button type="button" id="downloadBtn" class="btn btn-sm btn-success mt-3">
+            <i class="fas fa-download"></i> 下载
+        </button>
     </div>
-</div>
+</form>
 
 
 <div class="card-modern">
@@ -452,5 +449,23 @@ document.querySelectorAll('.batch-status').forEach(item => {
         }
     });
 })();
+
+// 下载按钮 - 导出当前筛选结果
+const downloadBtn = document.getElementById('downloadBtn');
+if (downloadBtn) {
+    downloadBtn.addEventListener('click', function() {
+        const form = document.getElementById('orderFilterForm');
+        const formData = new FormData(form);
+        const params = new URLSearchParams();
+        
+        for (const [key, value] of formData.entries()) {
+            if (value) {
+                params.append(key, value);
+            }
+        }
+        
+        window.location.href = "{% url 'order_list_export' %}?" + params.toString();
+    });
+}
 </script>
 {% endblock %}
