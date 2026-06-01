@@ -201,13 +201,16 @@ body.dark-mode .table-modern tbody tr.order-row-hover td {
             </ul>
         </div>
     </div>
-<!-- 下载按钮（新增） -->
-<div class="col-auto">
-    <a href="{% url 'order_list_export' %}?{{ request.GET.urlencode }}" class="btn btn-sm btn-success mt-3">
-        <i class="fas fa-download"></i> 下载
-    </a>
-</div>
 </form>
+
+<!-- 下载按钮放在表单外面 -->
+<div class="row g-2 mb-3">
+    <div class="col-auto">
+        <a href="{% url 'order_list_export' %}?{{ request.GET.urlencode }}" class="btn btn-sm btn-success">
+            <i class="fas fa-download"></i> 下载 Excel
+        </a>
+    </div>
+</div>
 
 
 <div class="card-modern">
