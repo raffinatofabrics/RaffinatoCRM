@@ -1301,7 +1301,8 @@ def order_list(request):
     status = request.GET.get('status', '')
     
     # 三个搜索参数
-    order_date = request.GET.get('order_date', '')
+    order_date_start = request.GET.get('order_date_start', '')
+    order_date_end = request.GET.get('order_date_end', '')
     company_name = request.GET.get('company_name', '').strip()
     product_name = request.GET.get('product_name', '').strip()
     
@@ -1331,9 +1332,11 @@ def order_list(request):
     if status:
         orders = orders.filter(status=status)
     
-    # 订单日期过滤
-    if order_date:
-        orders = orders.filter(order_date=order_date)
+    # 日期区间过滤（修改这里）
+    if order_date_start:
+        orders = orders.filter(order_date__gte=order_date_start)
+    if order_date_end:
+        orders = orders.filter(order_date__lte=order_date_end)
     
     # 公司名过滤（修正字段名）
     if company_name:
@@ -5155,7 +5158,7 @@ class MobileFriendlyLoginView(LoginView):
     """
     pass
 
-# ==================== 订单管理下载 ====================
+# ==================== 订单管理导出====================
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill
 from django.http import HttpResponse
@@ -5168,7 +5171,8 @@ def order_list_export(request):
     # 获取筛选参数（复用订单列表的过滤逻辑）
     business_type = request.GET.get('type', '')
     status = request.GET.get('status', '')
-    order_date = request.GET.get('order_date', '')
+    order_date_start = request.GET.get('order_date_start', '')  # 改为开始日期
+    order_date_end = request.GET.get('order_date_end', '')      # 改为结束日期
     company_name = request.GET.get('company_name', '').strip()
     product_name = request.GET.get('product_name', '').strip()
     
@@ -5193,8 +5197,11 @@ def order_list_export(request):
         orders = orders.filter(business_type=business_type)
     if status:
         orders = orders.filter(status=status)
-    if order_date:
-        orders = orders.filter(order_date=order_date)
+    # 日期区间过滤（修改这里）
+    if order_date_start:
+        orders = orders.filter(order_date__gte=order_date_start)
+    if order_date_end:
+        orders = orders.filter(order_date__lte=order_date_end)
     if company_name:
         orders = orders.filter(customer__company_name__icontains=company_name)
     if product_name:

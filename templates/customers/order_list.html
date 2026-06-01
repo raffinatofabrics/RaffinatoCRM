@@ -155,12 +155,18 @@ body.dark-mode .table-modern tbody tr.order-row-hover td {
             <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>已完成</option>
         </select>
     </div>
-    <!-- 订单日期 -->
-    <div class="col-auto">
-        <label class="form-label small mb-1">订单日期</label>
-        <input type="date" name="order_date" class="form-control form-control-sm"
-               value="{{ request.GET.order_date|default:'' }}">
-    </div>
+    <!-- 订单日期 - 开始 -->
+<div class="col-auto">
+    <label class="form-label small mb-1">开始日期</label>
+    <input type="date" name="order_date_start" class="form-control form-control-sm"
+           value="{{ request.GET.order_date_start|default:'' }}">
+</div>
+<!-- 订单日期 - 结束 -->
+<div class="col-auto">
+    <label class="form-label small mb-1">结束日期</label>
+    <input type="date" name="order_date_end" class="form-control form-control-sm"
+           value="{{ request.GET.order_date_end|default:'' }}">
+</div>
     <!-- 公司名称 -->
     <div class="col-auto" style="min-width: 160px;">
         <label class="form-label small mb-1">公司名称</label>
