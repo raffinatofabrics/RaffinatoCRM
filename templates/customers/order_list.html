@@ -249,7 +249,7 @@ body.dark-mode .table-modern tbody tr.order-row-hover td {
                         <!-- 产品信息 -->
                         <td>{{ item.product_name }}{% if item.specification %}-{{ item.specification }}{% endif %}</a></a>
                         <td>{{ item.quantity|smart_number }} {{ item.unit }}</a></a>
-                        <td>{{ item.unit_price|smart_number }} {% if order.business_type == 'international' %}${% else %}¥{% endif %}</a></a>  <!-- 单价 -->
+                        <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ item.unit_price|smart_number }}</td>  <!-- 单价 -->
                         <td rowspan="{{ items|length }}">{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ order.subtotal|smart_number }}</a></a>
                         <td rowspan="{{ items|length }}">
                             {% if order.status == 'draft' %}
@@ -276,7 +276,7 @@ body.dark-mode .table-modern tbody tr.order-row-hover td {
                     {% else %}
                         <td>{{ item.product_name }}{% if item.specification %}-{{ item.specification }}{% endif %}</a></a>
                         <td>{{ item.quantity|smart_number }} {{ item.unit }}</a></a>
-                        <td>{{ item.unit_price|smart_number }} {% if order.business_type == 'international' %}${% else %}¥{% endif %}</a></a>  <!-- 添加单价列 -->
+                        <td>{% if order.business_type == 'international' %}${% else %}¥{% endif %} {{ item.unit_price|smart_number }}</td>  <!-- 添加单价列 -->
                     {% endif %}
                 </tr>
             {% endfor %}
@@ -285,24 +285,27 @@ body.dark-mode .table-modern tbody tr.order-row-hover td {
         <tr><td colspan="11" class="text-center">暂无订单，点击上方按钮创建</a></a>  <!-- colspan 改为 11 -->
     {% endfor %}
 </tbody>
-                <tfoot>
+<tfoot>
     <tr style="background-color: #f5f5f5;">
-        <!-- 第1-5列：合并占位（复选框、订单号、客户、类型、订单日期） -->
+        <!-- 第1-5列：留白 -->
         <td colspan="5"></a>
         <!-- 第6列：合计文字 -->
         <td><strong>合计：</strong></a>
         <!-- 第7列：数量 -->
         <td><strong>{{ total_quantity|smart_number }} 米</strong></a>
-        <!-- 第8列：金额 -->
+        <!-- 第8列：单价（留白） -->
+        <td></a>
+        <!-- 第9列：金额 -->
         <td>
             <strong>¥ {{ total_amount_domestic|smart_number }}</strong><br>
             <strong>$ {{ total_amount_international|smart_number }}</strong>
-        <!-- 第9列：状态（空白，保留背景色） -->
+        </a>
+        <!-- 第10列：状态（留白） -->
         <td style="background-color: #f5f5f5;" class="dark-mode-bg"></a>
-        <!-- 第10列：操作（空白，保留背景色） -->
+        <!-- 第11列：操作（留白） -->
         <td style="background-color: #f5f5f5;" class="dark-mode-bg"></a>
     </tr>
-</tfoot> 
+</tfoot>
 </table>       
         </div>
     </div>
