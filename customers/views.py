@@ -5249,12 +5249,20 @@ def order_list_export(request):
             ws.cell(row=row_num, column=7, value='')
             ws.cell(row=row_num, column=8, value='')
             ws.cell(row=row_num, column=9, value='')      # 单价
-            ws.cell(row=row_num, column=10, value=str(order.subtotal) if order.subtotal else '')
+            ws.cell(row=row_num, column=10, value='')     # 金额（无产品）
             ws.cell(row=row_num, column=11, value=order.get_status_display() if hasattr(order, 'get_status_display') else order.status)
             ws.cell(row=row_num, column=12, value=order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '')
             row_num += 1
         else:
             for idx, item in enumerate(items):
+                # 计算该产品的小计金额（单价 × 数量）
+                quantity = item.get('quantity', 0)
+                unit_price = item.get('unit_price', 0)
+                try:
+                    item_amount = float(quantity) * float(unit_price) if quantity and unit_price else 0
+                except (ValueError, TypeError):
+                    item_amount = 0
+                
                 ws.cell(row=row_num, column=1, value=order.order_no if idx == 0 else '')
                 ws.cell(row=row_num, column=2, value=order.customer.company_name if order.customer and idx == 0 else '')
                 ws.cell(row=row_num, column=3, value='外贸' if order.business_type == 'international' else '内贸' if idx == 0 else '')
@@ -5263,13 +5271,13 @@ def order_list_export(request):
                 ws.cell(row=row_num, column=6, value=item.get('specification', ''))
                 ws.cell(row=row_num, column=7, value=item.get('quantity', ''))
                 ws.cell(row=row_num, column=8, value=item.get('unit', ''))
-                ws.cell(row=row_num, column=9, value=item.get('unit_price', ''))  # 单价（新增）
-                ws.cell(row=row_num, column=10, value=str(order.subtotal) if order.subtotal and idx == 0 else '')
+                ws.cell(row=row_num, column=9, value=unit_price)      # 单价
+                ws.cell(row=row_num, column=10, value=item_amount)    # 该产品金额（新增，每行都有）
                 ws.cell(row=row_num, column=11, value=order.get_status_display() if hasattr(order, 'get_status_display') else order.status if idx == 0 else '')
                 ws.cell(row=row_num, column=12, value=order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at and idx == 0 else '')
                 row_num += 1
     
-    # 调整列宽（添加单价列）
+    # 调整列宽
     column_widths = [18, 25, 8, 12, 20, 15, 10, 8, 10, 12, 10, 18]
     for i, width in enumerate(column_widths, 1):
         ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = width
