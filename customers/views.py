@@ -5226,8 +5226,8 @@ def order_list_export(request):
     header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
     header_alignment = Alignment(horizontal="center", vertical="center")
     
-    # 表头
-    headers = ['订单号', '客户', '类型', '订单日期', '产品名称', '规格', '数量', '单位', '金额', '状态', '创建时间']
+    # 表头（添加单价列）
+    headers = ['订单号', '客户', '类型', '订单日期', '产品名称', '规格', '数量', '单位', '单价', '金额', '状态', '创建时间']
     for col, header in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col, value=header)
         cell.font = header_font
@@ -5239,7 +5239,7 @@ def order_list_export(request):
     for order in orders:
         items = order.items if isinstance(order.items, list) else []
         if not items:
-            # 无产品项时，只写一行
+            # 无产品项时
             ws.cell(row=row_num, column=1, value=order.order_no)
             ws.cell(row=row_num, column=2, value=order.customer.company_name if order.customer else '')
             ws.cell(row=row_num, column=3, value='外贸' if order.business_type == 'international' else '内贸')
@@ -5248,9 +5248,10 @@ def order_list_export(request):
             ws.cell(row=row_num, column=6, value='')
             ws.cell(row=row_num, column=7, value='')
             ws.cell(row=row_num, column=8, value='')
-            ws.cell(row=row_num, column=9, value=str(order.subtotal) if order.subtotal else '')
-            ws.cell(row=row_num, column=10, value=order.get_status_display() if hasattr(order, 'get_status_display') else order.status)
-            ws.cell(row=row_num, column=11, value=order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '')
+            ws.cell(row=row_num, column=9, value='')      # 单价
+            ws.cell(row=row_num, column=10, value=str(order.subtotal) if order.subtotal else '')
+            ws.cell(row=row_num, column=11, value=order.get_status_display() if hasattr(order, 'get_status_display') else order.status)
+            ws.cell(row=row_num, column=12, value=order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '')
             row_num += 1
         else:
             for idx, item in enumerate(items):
@@ -5262,13 +5263,14 @@ def order_list_export(request):
                 ws.cell(row=row_num, column=6, value=item.get('specification', ''))
                 ws.cell(row=row_num, column=7, value=item.get('quantity', ''))
                 ws.cell(row=row_num, column=8, value=item.get('unit', ''))
-                ws.cell(row=row_num, column=9, value=str(order.subtotal) if order.subtotal and idx == 0 else '')
-                ws.cell(row=row_num, column=10, value=order.get_status_display() if hasattr(order, 'get_status_display') else order.status if idx == 0 else '')
-                ws.cell(row=row_num, column=11, value=order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at and idx == 0 else '')
+                ws.cell(row=row_num, column=9, value=item.get('unit_price', ''))  # 单价（新增）
+                ws.cell(row=row_num, column=10, value=str(order.subtotal) if order.subtotal and idx == 0 else '')
+                ws.cell(row=row_num, column=11, value=order.get_status_display() if hasattr(order, 'get_status_display') else order.status if idx == 0 else '')
+                ws.cell(row=row_num, column=12, value=order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at and idx == 0 else '')
                 row_num += 1
     
-    # 调整列宽
-    column_widths = [18, 25, 8, 12, 20, 15, 10, 8, 12, 10, 18]
+    # 调整列宽（添加单价列）
+    column_widths = [18, 25, 8, 12, 20, 15, 10, 8, 10, 12, 10, 18]
     for i, width in enumerate(column_widths, 1):
         ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = width
     
